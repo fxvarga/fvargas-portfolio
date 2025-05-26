@@ -1,4 +1,4 @@
-import { split, ApolloClient, InMemoryCache, HttpLink, ApolloLink, from } from '@apollo/client';
+import { split, ApolloClient, InMemoryCache, from } from '@apollo/client';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { createUploadLink } from 'apollo-upload-client';

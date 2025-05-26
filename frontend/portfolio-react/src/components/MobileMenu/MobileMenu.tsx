@@ -34,7 +34,7 @@ const menus = [
 const MobileMenu = () => {
 
   const { devMode, toggleDevMode } = useDevMode();
-  const { config, isFeatureEnabled } = useConfig();
+  const { isFeatureEnabled } = useConfig();
   const [menuActive, setMenuState] = useState(false);
 
   const ClickHandler = () => {

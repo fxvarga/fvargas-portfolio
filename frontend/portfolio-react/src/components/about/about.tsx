@@ -71,6 +71,7 @@ const About = () => {
     if (onMessageReceived.isCompleted) {
       setComplete(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [subscriptionData, subscriptionLoading, subscriptionError]);
 
   const { devMode } = useDevMode();

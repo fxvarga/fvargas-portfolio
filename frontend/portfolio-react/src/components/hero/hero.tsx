@@ -12,7 +12,7 @@ const Hero = () => {
   const { devMode } = useDevMode();
   const [currentImage, setCurrentImage] = useState(himg);
   const [isOriginalImage, setIsOriginalImage] = useState(true);
-  const [remixImageQuery, { data, error, loading }] = useLazyQuery(remixImage, {
+  const [remixImageQuery, { error, loading }] = useLazyQuery(remixImage, {
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
       if (data?.generateHeroImage) {

@@ -183,6 +183,7 @@ export const ConfigProvider: React.FC<ConfigProviderProps> = ({
   // Load config on component mount
   useEffect(() => {
     loadConfig();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configPath]);
 
   // Helper function to check if a feature is enabled

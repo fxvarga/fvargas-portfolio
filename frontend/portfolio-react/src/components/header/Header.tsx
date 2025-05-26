@@ -8,7 +8,7 @@ import { useConfig } from '../../main-component/State/ConfigProvider';
 const Header = (props) => {
   const [menuActive, setMenuState] = useState(false);
   const { devMode, toggleDevMode } = useDevMode();
-  const { config, isFeatureEnabled } = useConfig();
+  const { isFeatureEnabled } = useConfig();
 
   const SubmitHandler = (e) => {
     e.preventDefault();

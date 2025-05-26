@@ -34,3 +34,6 @@ jobs:
 
       - name: ✅ Run Vitest tests
         run: pnpm vitest run --coverage
+
+      - name: Run project build
+        run: pnpm build
