@@ -1,17 +1,11 @@
-name: Run Vitest Tests
-
-on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-
 jobs:
   test:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: ./frontend/portfolio-react
+
     steps:
       - name: 📥 Checkout repository
         uses: actions/checkout@v3
@@ -22,13 +16,14 @@ jobs:
           node-version: 18
           cache: 'pnpm'
 
+      - name: 🔧 Enable Corepack (for pnpm)
+        run: corepack enable
+
       - name: 🛠 Install pnpm (if missing)
         run: corepack prepare pnpm@latest --activate
 
       - name: 📦 Install dependencies
-        run: |
-          corepack enable
-          pnpm install
+        run: pnpm install
 
-      - name: ✅ Run Vitest
+      - name: ✅ Run Vitest tests
         run: pnpm vitest run --coverage
