@@ -1,0 +1,12 @@
+{
+  "apiUrl": "https://localhost:7007/graphql/",
+  "apiWsUrl": "wss://localhost:7007/graphql",
+  "environment": "production",
+  "version": "1.0.0",
+  "flags": {
+    "showDevTools": false,
+    "enableAnalytics": true,
+    "enableContactForm": true,
+    "showExperimental": false
+  }
+}

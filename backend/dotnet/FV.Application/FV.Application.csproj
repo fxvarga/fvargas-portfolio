@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\FV.Domain\FV.Domain.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel" Version="1.37.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Abstractions" Version="1.37.0" />
+    <PackageReference Include="Microsoft.SemanticKernel.Agents.Core" Version="1.37.0-alpha" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureAISearch" Version="1.37.0-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.37.0-preview" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Core" Version="1.37.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.37.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.MsGraph" Version="1.37.0-alpha" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.OpenApi" Version="1.37.0-alpha" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.KernelMemory.AI.AzureOpenAI" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.AI.Ollama" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.AI.OpenAI" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.Abstractions" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.Core" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.DataFormats.AzureAIDocIntel" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.DocumentStorage.AzureBlobs" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.MemoryDb.AzureAISearch" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.MemoryDb.Postgres" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.MemoryDb.Qdrant" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.MemoryDb.SQLServer" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.Orchestration.AzureQueues" Version="0.92.241112.1" />
+    <PackageReference Include="Microsoft.KernelMemory.Orchestration.RabbitMQ" Version="0.92.241112.1" />
+    <PackageReference Include="SharpToken" />
+  </ItemGroup>
+</Project>

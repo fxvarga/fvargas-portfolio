@@ -1,0 +1,88 @@
+mutation {
+  createEntityDefinition(input: {
+    name: "Hero",
+    attributes: [
+      { name: "heading", type: "string", isRequired: true },
+      { name: "subheading", type: "string", isRequired: false },
+      { name: "ctaText", type: "string", isRequired: false },
+      { name: "ctaLink", type: "string", isRequired: false },
+      { name: "backgroundImage", type: "string", isRequired: false }
+    ]
+    relationships: []
+  })
+}
+mutation {
+  createEntityDefinition(input: {
+    name: "About",
+    attributes: [
+      { name: "heading", type: "string", isRequired: true },
+      { name: "bio", type: "richtext", isRequired: true },
+      { name: "photo", type: "string", isRequired: false }
+    ]
+    relationships: []
+  })
+}
+mutation {
+  createEntityDefinition(input: {
+    name: "Project",
+    attributes: [
+      { name: "title", type: "string", isRequired: true },
+      { name: "description", type: "richtext", isRequired: true },
+      { name: "slug", type: "string", isRequired: true },
+      { name: "blocks", type: "block-array", isRequired: false },
+      { name: "featuredImage", type: "string", isRequired: false },
+      { name: "tags", type: "string", isRequired: false }
+    ]
+    relationships: []
+  })
+}
+mutation {
+  createEntityDefinition(input: {
+    name: "Skill",
+    attributes: [
+      { name: "name", type: "string", isRequired: true },
+      { name: "category", type: "string", isRequired: true },
+      { name: "icon", type: "string", isRequired: false }
+    ]
+    relationships: []
+  })
+}
+mutation {
+  createEntityDefinition(input: {
+    name: "Client",
+    attributes: [
+      { name: "name", type: "string", isRequired: true },
+      { name: "industry", type: "string", isRequired: false },
+      { name: "logo", type: "string", isRequired: false }
+    ]
+    relationships: []
+  })
+}
+mutation {
+  createEntityDefinition(input: {
+    name: "CaseStudy",
+    attributes: [
+      { name: "title", type: "string", isRequired: true },
+      { name: "summary", type: "richtext", isRequired: true },
+      { name: "slug", type: "string", isRequired: true },
+      { name: "client", type: "reference", targetEntity: "Client", isRequired: false },
+      { name: "projects", type: "reference", targetEntity: "Project", isRequired: false },
+      { name: "blocks", type: "block-array", isRequired: false }
+    ]
+    relationships: [
+    { name: "client", targetEntityId: "client", type: "OneToOne" },
+      { name: "projects", targetEntityId: "project", type: "ManyToOne" }
+    ]
+  })
+}
+mutation {
+  createEntityDefinition(input: {
+    name: "Contact",
+    attributes: [
+      { name: "email", type: "string", isRequired: true },
+      { name: "phone", type: "string", isRequired: false },
+      { name: "socialLinks", type: "block-array", isRequired: false }
+    ]
+    relationships: []
+  })
+}

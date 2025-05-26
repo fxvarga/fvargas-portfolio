@@ -1,0 +1,107 @@
+mutation {
+  createEntityRecord(input: {
+    entityType: "Hero",
+    data: {
+      heading: "Building for the Future"
+      subheading: "Engineering systems that scale"
+      ctaText: "View Projects"
+      ctaLink: "/projects"
+      backgroundImage: "/assets/hero.jpg"
+    }
+  })
+} mutation {
+  createEntityRecord(input: {
+    entityType: "About",
+    data: {
+      heading: "Hi, I'm Fernando"
+      bio: "I'm a senior engineer specializing in workflow automation, front-end systems, and AI-powered platforms."
+      photo: "/assets/profile.jpg"
+    }
+  })
+} mutation {
+  createEntityRecord(input: {
+    entityType: "Skill",
+    data: {
+      name: "React",
+      category: "Frontend",
+      icon: "react"
+    }
+  })
+} mutation {
+  createEntityRecord(input: {
+    entityType: "Client",
+    data: {
+      name: "Microsoft",
+      industry: "Technology",
+      logo: "/assets/msft.png"
+    }
+  })
+} mutation {
+  createEntityRecord(input: {
+    entityType: "Project",
+    data: {
+      title: "Workflow Orchestrator",
+      description: "Built a self-service workflow automation system powered by .NET, GraphQL, and Azure.",
+      slug: "workflow-orchestrator",
+      featuredImage: "/assets/project1.png",
+      tags: "dotnet,azure,graphql",
+      blocks: [
+        {
+          layout: "hero",
+          content: { text: "A modern orchestration engine" }
+        },
+        {
+          layout: "image-left-text-right",
+          content: {
+            imageUrl: "/assets/diagram.png",
+            text: "Here’s the architecture overview."
+          }
+        }
+      ]
+    }
+  })
+} mutation {
+  createEntityRecord(input: {
+    entityType: "CaseStudy",
+    data: {
+      title: "Automating Enterprise Workflows",
+      summary: "From static steps to dynamic task orchestration at scale.",
+      slug: "enterprise-workflows",
+      client: "Microsoft",
+      projects: "Workflow Orchestrator",
+      blocks: [
+        {
+          layout: "hero",
+          content: { text: "Scaling with confidence" }
+        },
+        {
+          layout: "stat-blocks",
+          content: {
+            stats: [
+              { label: "Workflows migrated", value: "120+" },
+              { label: "Downtime", value: "0%" }
+            ]
+          }
+        }
+      ]
+    }
+  })
+} mutation {
+  createEntityRecord(input: {
+    entityType: "Contact",
+    data: {
+      email: "fernando@example.com",
+      phone: "555-1234",
+      socialLinks: [
+        {
+          layout: "social-icon",
+          content: { platform: "GitHub", url: "https://github.com/fernandovargas" }
+        },
+        {
+          layout: "social-icon",
+          content: { platform: "LinkedIn", url: "https://linkedin.com/in/fernandovargas" }
+        }
+      ]
+    }
+  })
+}

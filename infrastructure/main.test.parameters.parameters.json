@@ -1,0 +1,69 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "applicationName": {
+      "value": "fv-portfolio"
+    },
+    "env": {
+      "value": "prod"
+    },
+    "location": {
+      "value": "eastus2"
+    },
+    "storageSKU": {
+      "value": "Standard_RAGRS"
+    },
+    "appServicePlan": {
+      "value": {
+        "osPlatform": "windows",
+        "sku": "P0V3",
+        "capacity": 1
+      }
+    },
+    "azureAdSettings": {
+      "value": {
+        "clientId": "90cb10fe-6d3c-4b89-a1b2-e7c7125d7a18",
+        "audience": "https://themaimai.onmicrosoft.com"
+      }
+    },
+    "baseUri": {
+      "value": "https://fernando-vargas.com"
+    },
+    "featureFlags": {
+      "value": [
+        {
+          "id": "OutageBanner",
+          "description": "",
+          "enabled": false
+        },
+        {
+          "id": "DevMode",
+          "description": "",
+          "enabled": false
+        }
+      ]
+    },
+    "azureOpenAi4o": {
+      "value": {
+        "deploymentName": "gpt-4o-mini",
+        "apiVersion": "2024-07-18",
+        "capacity": 100
+      }
+    },
+    "azureOpenAiImage": {
+      "value": {
+        "deploymentName": "dall-e-3",
+        "apiVersion": "3.0",
+        "capacity": 1
+      }
+    },
+    "azureOpenAiEmbeddings": {
+      "value": {
+        "deploymentName": "text-embedding-ada-002",
+        "apiVersion": "2",
+        "capacity": 100
+      }
+    }
+  }
+}
