@@ -1,8 +1,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import Header from './Header';
+
 let devMode = true
 let toggleDevModeFn = vi.fn()
+
 vi.mock('../../main-component/State/DevModeProvider', () => ({
   useDevMode: () => ({
     devMode: devMode,
