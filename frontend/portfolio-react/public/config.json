@@ -1,7 +1,7 @@
 {
-  "apiUrl": "https://fde-fv-portfolio-prod-eastus2-api-cpf8eva6fwdmaaa8.z02.azurefd.net/graphql/",
-  "apiWsUrl": "ws://fde-fv-portfolio-prod-eastus2-api-cpf8eva6fwdmaaa8.z02.azurefd.net/graphql/",
-  "environment": "production",
+  "apiUrl": "https://localhost:7007/graphql/",
+  "apiWsUrl": "wss://localhost:7007/graphql/",
+  "environment": "development",
   "version": "1.0.0",
   "flags": {
     "showDevTools": false,
