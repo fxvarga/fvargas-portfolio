@@ -5,7 +5,7 @@ import { createUploadLink } from 'apollo-upload-client';
 import { createClient } from 'graphql-ws';
 import { setContext } from '@apollo/client/link/context';
 import { onError } from '@apollo/client/link/error';
-import { AppConfig } from '../types/AppConfig';
+import { AppConfig } from '../shared/types/AppConfig';
 
 // Declare a singleton Apollo client
 let apolloClient: ApolloClient<unknown> | null = null;
@@ -21,11 +21,14 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
   if (networkError) console.error(`[Network error]: ${networkError}`);
 });
 
+// Storage key for auth token (must match AuthContext)
+const AUTH_TOKEN_KEY = 'cms_auth_token';
+
 // Create auth link (assuming you have authentication)
 const createAuthLink = () => {
   return setContext((_, { headers }) => {
     // Get the authentication token from local storage if it exists
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem(AUTH_TOKEN_KEY);
 
     // Return the headers to the context so httpLink can read them
     return {

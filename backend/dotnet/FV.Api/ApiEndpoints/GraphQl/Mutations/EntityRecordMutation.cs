@@ -1,7 +1,7 @@
 using System.Text.Json;
 using FV.Application.Commands.EntityRecord;
 
-namespace FV.API.GraphQL.Mutations;
+namespace FV.Api.ApiEndpoints.GraphQl.Mutations;
 
 [ExtendObjectType(OperationTypeNames.Mutation)]
 public class EntityRecordMutations

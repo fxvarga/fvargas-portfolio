@@ -1,6 +1,8 @@
 using FV.Application.Queries.EntityDefinition;
 using FV.Domain.Entities;
 
+namespace FV.Api.ApiEndpoints.GraphQl.Queries;
+
 [ExtendObjectType(OperationTypeNames.Query)]
 public class EntityDefinitionQueries
 {

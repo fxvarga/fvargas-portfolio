@@ -1,0 +1,251 @@
+using System.Text.Json;
+using FV.Domain.Entities;
+using FV.Infrastructure.Persistence;
+using FV.Api.ApiEndpoints.GraphQl.Queries;
+using HotChocolate.Authorization;
+using Microsoft.EntityFrameworkCore;
+
+namespace FV.Api.ApiEndpoints.GraphQl.Mutations;
+
+[ExtendObjectType(OperationTypeNames.Mutation)]
+public class ContentMutations
+{
+    /// <summary>
+    /// Create a new content record (protected - requires authentication)
+    /// </summary>
+    [Authorize]
+    public async Task<ContentMutationPayload> CreateContent(
+        CreateContentInput input,
+        [Service] CmsDbContext dbContext)
+    {
+        try
+        {
+            var record = new EntityRecord
+            {
+                Id = Guid.NewGuid(),
+                EntityType = input.EntityType,
+                JsonData = input.Data.GetRawText(),
+                IsDraft = input.IsDraft ?? true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Version = 1,
+                PublishedAt = input.IsDraft == false ? DateTime.UtcNow : null
+            };
+
+            dbContext.EntityRecords.Add(record);
+            await dbContext.SaveChangesAsync();
+
+            return new ContentMutationPayload
+            {
+                Success = true,
+                Record = ToContentRecord(record)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ContentMutationPayload
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Update an existing content record (protected - requires authentication)
+    /// </summary>
+    [Authorize]
+    public async Task<ContentMutationPayload> UpdateContent(
+        UpdateContentInput input,
+        [Service] CmsDbContext dbContext)
+    {
+        try
+        {
+            var record = await dbContext.EntityRecords.FindAsync(input.Id);
+            if (record == null)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Content record not found"
+                };
+            }
+
+            // Save version history before updating
+            var versionRecord = new EntityRecordVersion
+            {
+                Id = Guid.NewGuid(),
+                EntityRecordId = record.Id,
+                EntityType = record.EntityType,
+                JsonData = record.JsonData,
+                Version = record.Version,
+                CreatedAt = DateTime.UtcNow
+            };
+            dbContext.EntityRecordVersions.Add(versionRecord);
+
+            // Update the record
+            record.JsonData = input.Data.GetRawText();
+            record.UpdatedAt = DateTime.UtcNow;
+            record.Version++;
+
+            if (input.Publish == true && record.IsDraft)
+            {
+                record.IsDraft = false;
+                record.PublishedAt = DateTime.UtcNow;
+            }
+
+            await dbContext.SaveChangesAsync();
+
+            return new ContentMutationPayload
+            {
+                Success = true,
+                Record = ToContentRecord(record)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ContentMutationPayload
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Publish a draft content record (protected - requires authentication)
+    /// </summary>
+    [Authorize]
+    public async Task<ContentMutationPayload> PublishContent(
+        Guid id,
+        [Service] CmsDbContext dbContext)
+    {
+        try
+        {
+            var record = await dbContext.EntityRecords.FindAsync(id);
+            if (record == null)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Content record not found"
+                };
+            }
+
+            record.IsDraft = false;
+            record.PublishedAt = DateTime.UtcNow;
+            record.UpdatedAt = DateTime.UtcNow;
+
+            await dbContext.SaveChangesAsync();
+
+            return new ContentMutationPayload
+            {
+                Success = true,
+                Record = ToContentRecord(record)
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ContentMutationPayload
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Delete a content record (protected - requires Admin role)
+    /// </summary>
+    [Authorize(Roles = new[] { "Admin" })]
+    public async Task<ContentMutationPayload> DeleteContent(
+        Guid id,
+        [Service] CmsDbContext dbContext)
+    {
+        try
+        {
+            var record = await dbContext.EntityRecords.FindAsync(id);
+            if (record == null)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Content record not found"
+                };
+            }
+
+            dbContext.EntityRecords.Remove(record);
+            await dbContext.SaveChangesAsync();
+
+            return new ContentMutationPayload
+            {
+                Success = true
+            };
+        }
+        catch (Exception ex)
+        {
+            return new ContentMutationPayload
+            {
+                Success = false,
+                ErrorMessage = ex.Message
+            };
+        }
+    }
+
+    /// <summary>
+    /// Get all content records including drafts (protected - for CMS admin)
+    /// </summary>
+    [Authorize]
+    [GraphQLName("getAllContentAdmin")]
+    public async Task<List<Queries.ContentRecord>> GetAllContentAdmin(
+        string? entityType,
+        [Service] CmsDbContext dbContext)
+    {
+        var query = dbContext.EntityRecords.AsQueryable();
+
+        if (!string.IsNullOrEmpty(entityType))
+        {
+            query = query.Where(r => r.EntityType == entityType);
+        }
+
+        var records = await query.OrderByDescending(r => r.UpdatedAt).ToListAsync();
+
+        return records.Select(ToContentRecord).ToList();
+    }
+
+    private static Queries.ContentRecord ToContentRecord(EntityRecord record)
+    {
+        return new Queries.ContentRecord
+        {
+            Id = record.Id,
+            EntityType = record.EntityType,
+            Data = JsonSerializer.Deserialize<JsonElement>(record.JsonData),
+            Version = record.Version,
+            PublishedAt = record.PublishedAt,
+            UpdatedAt = record.UpdatedAt
+        };
+    }
+}
+
+// Input types
+public class CreateContentInput
+{
+    public string EntityType { get; set; } = default!;
+    public JsonElement Data { get; set; }
+    public bool? IsDraft { get; set; }
+}
+
+public class UpdateContentInput
+{
+    public Guid Id { get; set; }
+    public JsonElement Data { get; set; }
+    public bool? Publish { get; set; }
+}
+
+// Payload types
+public class ContentMutationPayload
+{
+    public bool Success { get; set; }
+    public Queries.ContentRecord? Record { get; set; }
+    public string? ErrorMessage { get; set; }
+}

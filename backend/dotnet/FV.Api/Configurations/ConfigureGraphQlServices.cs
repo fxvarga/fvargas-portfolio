@@ -1,7 +1,6 @@
+using FV.Api.ApiEndpoints.GraphQl.Mutations;
 using FV.Api.ApiEndpoints.GraphQl.Queries;
 using FV.Api.ApiEndpoints.GraphQl.Subscriptions;
-using FV.API.GraphQL.Mutations;
-using FV.API.GraphQL.Queries;
 using HotChocolate.Types.Pagination;
 
 namespace FV.Api.Configurations;
@@ -29,9 +28,13 @@ public static class ConfigureGraphQlServices
             .AddTypeExtension<SessionQueries>()
             .AddTypeExtension<EntityDefinitionQueries>()
             .AddTypeExtension<EntityRecordQueries>()
+            .AddTypeExtension<ContentQueries>()
             .AddMutationType()
             .AddTypeExtension<EntityDefinitionMutations>()
             .AddTypeExtension<EntityRecordMutations>()
+            .AddTypeExtension<AuthMutations>()
+            .AddTypeExtension<ContentMutations>()
+            .AddAuthorization()
             .AddHttpRequestInterceptor((context, executor, requestBuilder, ct) =>
             {
                 var userId = context.User?.Identity?.Name;

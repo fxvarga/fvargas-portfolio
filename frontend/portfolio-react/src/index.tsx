@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './main-component/App/App';
+import App from './app/App';
 import reportWebVitals from './reportWebVitals';
-import './css/font-awesome.min.css';
-import './css/themify-icons.css';
-import './css/flaticon.css';
-import './css/animate.css';
+import './assets/styles/css/font-awesome.min.css';
+import './assets/styles/css/themify-icons.css';
+import './assets/styles/css/flaticon.css';
+import './assets/styles/css/animate.css';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './sass/style.scss';
+import './assets/styles/sass/style.scss';
 
 
 const root = ReactDOM.createRoot(document.getElementById('root')!);

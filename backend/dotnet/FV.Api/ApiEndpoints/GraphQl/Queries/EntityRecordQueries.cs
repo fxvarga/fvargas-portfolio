@@ -1,6 +1,6 @@
 using FV.Application.Queries.EntityRecord;
 
-namespace FV.API.GraphQL.Queries;
+namespace FV.Api.ApiEndpoints.GraphQl.Queries;
 
 [ExtendObjectType(OperationTypeNames.Query)]
 public class EntityRecordQueries

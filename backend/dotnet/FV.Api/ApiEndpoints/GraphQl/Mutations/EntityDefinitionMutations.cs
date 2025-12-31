@@ -1,5 +1,7 @@
 using FV.Application.Commands.EntityDefinition;
 
+namespace FV.Api.ApiEndpoints.GraphQl.Mutations;
+
 [ExtendObjectType(OperationTypeNames.Mutation)]
 public class EntityDefinitionMutations
 {
