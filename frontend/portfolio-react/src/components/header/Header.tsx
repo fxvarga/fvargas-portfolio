@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
 import { Link } from 'react-scroll';
 import MobileMenu from '../MobileMenu/MobileMenu';
-import Logo from '../../images/logo.png';
 import { useDevMode } from '../../main-component/State/DevModeProvider';
 import { Switch, FormControlLabel } from '@mui/material';
 import { useConfig } from '../../main-component/State/ConfigProvider';
-const Header = (props) => {
+import { useNavigation } from '../../context/CMSContext';
+
+interface HeaderProps {
+  topbarNone?: string;
+  hclass?: string;
+}
+
+const Header: React.FC<HeaderProps> = (props) => {
   const [menuActive, setMenuState] = useState(false);
   const { devMode, toggleDevMode } = useDevMode();
   const { isFeatureEnabled } = useConfig();
+  const { navigation } = useNavigation();
 
-  const SubmitHandler = (e) => {
+  const SubmitHandler = (e: React.FormEvent) => {
     e.preventDefault();
   };
 
@@ -32,9 +39,8 @@ const Header = (props) => {
               <div className="col-lg-3 col-md-6 col-6">
                 <div className="navbar-header">
                   <Link onClick={ClickHandler} className="navbar-brand" to="/">
-                    <img src={Logo} alt="" />
+                    {navigation && <img src={navigation.logo.url} alt={navigation.logo.alt} />}
                     {devMode && isFeatureEnabled('DevMode') && (
-
                       <div className="dev-mode-indicator ml-2" style={{
                         color: '#FF5722',
                         fontSize: '12px',
@@ -45,26 +51,28 @@ const Header = (props) => {
                         padding: '2px 6px',
                         display: 'inline-block'
                       }}>
-                        INSIGHTS MODE ON
+                        {navigation?.devModeLabel || 'INSIGHTS MODE ON'}
                       </div>
-
-                    )}</Link>
+                    )}
+                  </Link>
                 </div>
               </div>
               <div className="col-lg-6 col-md-1 col-1">
                 <div id="navbar" className="collapse navbar-collapse navigation-holder">
                   <button className="menu-close"><i className="ti-close"></i></button>
                   <ul className="nav navbar-nav mb-2 mb-lg-0">
-                    <li><Link activeClass="active" to="home" spy={true} smooth={true} duration={500} offset={-100}>Home</Link></li>
-                    <li><Link activeClass="active" to="about" spy={true} smooth={true} duration={500} offset={-95}>About</Link></li>
-                    <li><Link activeClass="active" to="featured-work" spy={true} smooth={true} duration={500} offset={-95}>Featured Work</Link></li>
-                    <li><Link activeClass="active" to="contact" spy={true} smooth={true} duration={500} offset={-95}>Contact</Link></li>
+                    {navigation?.menuItems.map((item) => (
+                      <li key={item.id}>
+                        <Link activeClass="active" to={item.link} spy={true} smooth={true} duration={500} offset={-95}>
+                          {item.title}
+                        </Link>
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
               <div className="col-lg-3 col-md-2 col-2">
                 <div className="header-right d-flex align-items-center justify-content-end gap-3">
-                  {/* 👇 Developer Mode Toggle */}
                   {isFeatureEnabled('DevMode') && (
                     <FormControlLabel
                       control={
@@ -86,11 +94,10 @@ const Header = (props) => {
                           }}
                         />
                       }
-                      label="InsightsSwitch"
+                      label={navigation?.insightsLabel || 'Insights'}
                       sx={{ marginRight: 0 }}
                     />
                   )}
-                  {/* 🔍 Search */}
                   {isFeatureEnabled('Search') && (
                     <div className="header-search-form-wrapper">
                       <div className="cart-search-contact">
@@ -100,7 +107,7 @@ const Header = (props) => {
                         <div className={`header-search-form ${menuActive ? "header-search-content-toggle" : ""}`}>
                           <form onSubmit={SubmitHandler}>
                             <div>
-                              <input type="text" className="form-control" placeholder="Search here..." />
+                              <input type="text" className="form-control" placeholder={navigation?.searchPlaceholder || 'Search here...'} />
                               <button type="submit"><i className="fi ti-search"></i></button>
                             </div>
                           </form>
@@ -119,4 +126,3 @@ const Header = (props) => {
 };
 
 export default Header;
-

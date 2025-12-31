@@ -1,22 +1,24 @@
 import React, { useState } from "react";
 import { NavLink } from 'react-router'
-import himg from '../../images/slider/fernando-portfolio-hero.png'
 import { Link } from 'react-scroll'
 import { useDevMode } from '../../main-component/State/DevModeProvider';
 import CustomDialog from "../dialog/InsightsDialog";
 import { useLazyQuery } from "@apollo/client";
 import { remixImage } from "../../api/insightsApi";
 import { CircularProgress } from "@mui/material";
+import { useHero, useSiteConfig } from "../../context/CMSContext";
 
 const Hero = () => {
   const { devMode } = useDevMode();
-  const [currentImage, setCurrentImage] = useState(himg);
+  const { hero, isLoading } = useHero();
+  const { siteConfig } = useSiteConfig();
+  
+  const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [isOriginalImage, setIsOriginalImage] = useState(true);
   const [remixImageQuery, { error, loading }] = useLazyQuery(remixImage, {
     fetchPolicy: 'network-only',
     onCompleted: (data) => {
       if (data?.generateHeroImage) {
-        // Set the new image from the base64 data URL
         setCurrentImage(data.generateHeroImage);
         setIsOriginalImage(false);
       }
@@ -26,11 +28,28 @@ const Hero = () => {
   const handleRemixImage = () => {
     remixImageQuery({
       variables: {
-        prompt: "Can you take my image, upscale it, put a black background, and cartoonify it?"
+        prompt: hero?.insightsDialog.prompt || "Generate a creative remix of this portfolio hero image"
       }
     });
   };
 
+  if (isLoading || !hero) {
+    return (
+      <section className="tp-hero-section-1">
+        <div className="container">
+          <div className="row">
+            <div className="col col-xs-7 col-lg-7">
+              <div className="tp-hero-section-text">
+                <CircularProgress />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  const displayImage = currentImage || hero.image.url;
 
   return (
     <section className="tp-hero-section-1">
@@ -39,13 +58,15 @@ const Hero = () => {
           <div className="col col-xs-7 col-lg-7">
             <div className="tp-hero-section-text">
               <div className="tp-hero-title">
-                <h2>Senior Full-Stack Engineer</h2>
+                <h2>{hero.title}</h2>
               </div>
               <div className="tp-hero-sub">
-                <p>Fernando Vargas</p>
+                <p>{hero.name}</p>
               </div>
               <div className="btns">
-                <Link activeClass="active" to="contact" spy={true} smooth={true} duration={500} offset={-95} className="theme-btn">Contact Me</Link>
+                <Link activeClass="active" to={hero.ctaButton.scrollTo} spy={true} smooth={true} duration={500} offset={-95} className="theme-btn">
+                  {hero.ctaButton.label}
+                </Link>
               </div>
             </div>
           </div>
@@ -62,16 +83,9 @@ const Hero = () => {
             display: 'flex',
             alignItems: 'center'
           }}>
-            <CustomDialog title="Leveraging GenAI for Image Enhancement">
-              <p>
-                This section reveals how the hero image was created using generative AI tools I integrated into my workflow.
-              </p>
-              <p>
-                Prompt used: "Can you take my image, upscale it, put a black background, and cartoonify it?"
-              </p>
-              <p>
-                I used an AI-powered image enhancement pipeline that supports real-time experimentation for visual identity and branding. The result is a cohesive, dark-themed vector portrait styled to match the site's design system.
-              </p>
+            <CustomDialog title={hero.insightsDialog.title}>
+              <p>{hero.insightsDialog.description}</p>
+              <p>Prompt used: "{hero.insightsDialog.prompt}"</p>
 
               <div style={{ color: 'white', marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
                 {loading ? (
@@ -80,20 +94,17 @@ const Hero = () => {
                     <span>Generating new portrait...</span>
                   </div>
                 ) : (
-                  <>
-                    <button
-                      className="theme-btn"
-                      onClick={handleRemixImage}
-                      disabled={loading || !isOriginalImage}
-                      style={{
-                        opacity: loading || !isOriginalImage ? 0.7 : 1,
-                        cursor: loading || !isOriginalImage ? 'not-allowed' : 'pointer'
-                      }}
-                    >
-                      Remix Image
-                    </button>
-
-                  </>
+                  <button
+                    className="theme-btn"
+                    onClick={handleRemixImage}
+                    disabled={loading || !isOriginalImage}
+                    style={{
+                      opacity: loading || !isOriginalImage ? 0.7 : 1,
+                      cursor: loading || !isOriginalImage ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    Remix Image
+                  </button>
                 )}
               </div>
 
@@ -117,7 +128,7 @@ const Hero = () => {
                   borderRadius: '4px',
                   color: '#2e7d32'
                 }}>
-                  ✓ Image successfully remixed with AI! Check out the new portrait.
+                  Image successfully remixed with AI! Check out the new portrait.
                 </div>
               )}
             </CustomDialog>
@@ -125,12 +136,11 @@ const Hero = () => {
         )}
         <div className="right-img">
           <img
-            src={currentImage}
-            alt="Fernando Vargas portrait"
+            src={displayImage}
+            alt={hero.image.alt}
             style={{
               transition: 'all 0.5s ease-in-out',
               filter: isOriginalImage ? 'grayscale(100%)' : 'none',
-
             }}
           />
           {loading && (
@@ -148,11 +158,15 @@ const Hero = () => {
       </div>
       <div className="social-link">
         <ul>
-          <li><NavLink to="https://www.linkedin.com/in/fernando-vargas-16234254/">LinkedIn</NavLink></li>
+          {siteConfig?.socialLinks.map((link, index) => (
+            <li key={index}>
+              <NavLink to={link.url}>{link.platform}</NavLink>
+            </li>
+          ))}
         </ul>
       </div>
       <div className="visible-text">
-        <h1>Developer</h1>
+        <h1>{hero.backgroundText}</h1>
       </div>
     </section>
   )

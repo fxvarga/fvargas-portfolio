@@ -1,33 +1,41 @@
-import React from 'react'
-import { Link } from 'react-router'
-import Logo from '../../images/logo.png'
+import React from 'react';
+import { Link } from 'react-router';
+import { useFooter } from '../../context/CMSContext';
 
-const Footer = (props) => {
+const Footer = () => {
+  const { footer, siteConfig } = useFooter();
+
   return (
     <div className="tp-site-footer text-center">
       <div className="container">
         <div className="row">
           <div className="col-12">
             <div className="footer-image">
-              <Link className="logo" to="/"><img style={{ width: 100 }} src={Logo} alt="" className="App-Logo" /></Link>
+              <Link className="logo" to="/">
+                {footer && <img style={{ width: 100 }} src={footer.logo.url} alt={footer.logo.alt} className="App-Logo" />}
+              </Link>
             </div>
           </div>
           <div className="col-12">
             <div className="link-widget">
               <ul>
-                <li><Link to="https://www.linkedin.com/in/fernando-vargas-16234254/"><i className="ti-linkedin"></i></Link></li>
+                {siteConfig?.socialLinks.map((link, index) => (
+                  <li key={index}>
+                    <Link to={link.url}><i className={link.icon}></i></Link>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>
           <div className="col-12">
             <div className="copyright">
-              <p>© 2025. All rights reserved by Fernando Vargas.</p>
+              <p>{siteConfig?.copyright}</p>
             </div>
           </div>
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default Footer;

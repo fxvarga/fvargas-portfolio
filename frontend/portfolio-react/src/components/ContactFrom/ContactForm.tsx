@@ -1,21 +1,21 @@
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import SimpleReactValidator from 'simple-react-validator';
-
+import { useContact } from '../../context/CMSContext';
 
 const ContactForm = () => {
+  const { contact, contactInfo } = useContact();
 
   const [forms, setForms] = useState({
     name: '',
     email: '',
-    subject: '',
-    phone: '',
     message: ''
   });
   const [validator] = useState(new SimpleReactValidator({
     className: 'errorMessage'
   }));
-  const changeHandler = e => {
-    setForms({ ...forms, [e.target.name]: e.target.value })
+
+  const changeHandler = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForms({ ...forms, [e.target.name]: e.target.value });
     if (validator.allValid()) {
       validator.hideMessages();
     } else {
@@ -23,12 +23,12 @@ const ContactForm = () => {
     }
   };
 
-  const submitHandler = async (e) => {
+  const submitHandler = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validator.allValid()) {
       validator.hideMessages();
 
-      const response = await fetch("https://formspree.io/f/xjkyeqzq", {
+      const response = await fetch(contactInfo?.formEndpoint || '', {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -37,70 +37,70 @@ const ContactForm = () => {
       });
 
       if (response.ok) {
-        alert("Message sent!");
-        setForms({
-          name: '',
-          email: '',
-          subject: '',
-          phone: '',
-          message: ''
-        });
+        alert(contact?.successMessage || "Message sent!");
+        setForms({ name: '', email: '', message: '' });
       } else {
-        alert("Failed to send message. Please try again later.");
+        alert(contact?.errorMessage || "Failed to send message. Please try again later.");
       }
     } else {
       validator.showMessages();
     }
   };
 
+  if (!contact || !contactInfo) {
+    return null;
+  }
+
   return (
-    <form method="post" className="contact-validation-active" onSubmit={(e) => submitHandler(e)} >
+    <form method="post" className="contact-validation-active" onSubmit={submitHandler}>
       <div className="row align-items-center">
         <div className="col-md-6 col-md-6 col-12">
           <div className="form-group">
-            <label>Name*</label>
+            <label>{contact.formFields.name.label}</label>
             <input
               value={forms.name}
               type="text"
               name="name"
-              onBlur={(e) => changeHandler(e)}
-              onChange={(e) => changeHandler(e)}
+              onBlur={changeHandler}
+              onChange={changeHandler}
               className="form-control"
-              placeholder="Your Name" />
+              placeholder={contact.formFields.name.placeholder}
+            />
             {validator.message('name', forms.name, 'required|alpha_space')}
           </div>
         </div>
         <div className="col-md-6 col-md-6 col-12">
           <div className="form-group">
-            <label>Email*</label>
+            <label>{contact.formFields.email.label}</label>
             <input
               value={forms.email}
               type="email"
               name="email"
-              onBlur={(e) => changeHandler(e)}
-              onChange={(e) => changeHandler(e)}
+              onBlur={changeHandler}
+              onChange={changeHandler}
               className="form-control"
-              placeholder="Your Email" />
+              placeholder={contact.formFields.email.placeholder}
+            />
             {validator.message('email', forms.email, 'required|email')}
           </div>
         </div>
         <div className="col-md-12">
           <div className="fullwidth form-group">
-            <label>Message*</label>
+            <label>{contact.formFields.message.label}</label>
             <textarea
-              onBlur={(e) => changeHandler(e)}
-              onChange={(e) => changeHandler(e)}
+              onBlur={changeHandler}
+              onChange={changeHandler}
               value={forms.message}
               name="message"
               className="form-control"
-              placeholder="Message">
-            </textarea>
+              placeholder={contact.formFields.message.placeholder}
+            />
             {validator.message('message', forms.message, 'required')}
           </div>
         </div>
         <div className="col-md-5 order-md-1 order-2 col-12">
           <div className="submit-area">
-            <button type="submit" className="theme-btn">Submit now</button>
+            <button type="submit" className="theme-btn">{contact.submitButtonText}</button>
             <div id="loader">
               <i className="ti-reload"></i>
             </div>
@@ -109,15 +109,14 @@ const ContactForm = () => {
         <div className="col-md-7 order-md-2 order-1 col-12">
           <div className="contact-info">
             <ul>
-              <li><i className="fi flaticon-phone-call"></i> (980)-219-0610</li>
-              <li><i className="fi flaticon-mail"></i> fxvarga@gmail.com</li>
+              <li><i className="fi flaticon-phone-call"></i> {contactInfo.phone}</li>
+              <li><i className="fi flaticon-mail"></i> {contactInfo.email}</li>
             </ul>
           </div>
         </div>
       </div>
     </form>
-
-  )
-}
+  );
+};
 
 export default ContactForm;

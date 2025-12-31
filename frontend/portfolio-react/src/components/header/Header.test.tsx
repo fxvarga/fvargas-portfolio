@@ -19,6 +19,16 @@ vi.mock('../../main-component/State/ConfigProvider', () => ({
   }),
 }));
 
+vi.mock('../../context/CMSContext', () => ({
+  useNavigation: () => ({
+    logo: { src: '/images/logo.png', alt: 'Logo' },
+    menuItems: [
+      { id: 'home', label: 'Home', href: '#home' },
+      { id: 'about', label: 'About', href: '#about' },
+    ],
+  }),
+}));
+
 describe('Header', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,8 +47,8 @@ describe('Header', () => {
 
   it('calls toggleDevMode when the switch is clicked', ()=>{
     render(<Header topbarNone="" hclass="" />);
-    const switchControl = screen.getByLabelText(/InsightsSwitch/i);
-    fireEvent.click(switchControl);
+    const switches = screen.getAllByLabelText(/Insights/i);
+    fireEvent.click(switches[0]);
     expect(toggleDevModeFn).toHaveBeenCalledTimes(1)
   })
 });

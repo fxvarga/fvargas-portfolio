@@ -1,45 +1,21 @@
 import React, { useState } from 'react';
 import ListItem from "@mui/material/List";
-import { Link } from 'react-scroll'
+import { Link } from 'react-scroll';
 import './style.css';
 import { Box, FormControlLabel, Switch } from '@mui/material';
 import { useConfig } from '../../main-component/State/ConfigProvider';
 import { useDevMode } from '../../main-component/State/DevModeProvider';
-
-const menus = [
-  {
-    id: 1,
-    title: 'Home',
-    link: 'home',
-  },
-  {
-    id: 2,
-    title: 'About',
-    link: 'about',
-  },
-  {
-    id: 3,
-    title: 'Featured Work',
-    link: 'featured-work',
-  },
-  {
-    id: 5,
-    title: 'Contact',
-    link: 'contact',
-  }
-
-]
-
+import { useNavigation } from '../../context/CMSContext';
 
 const MobileMenu = () => {
-
   const { devMode, toggleDevMode } = useDevMode();
   const { isFeatureEnabled } = useConfig();
+  const { navigation } = useNavigation();
   const [menuActive, setMenuState] = useState(false);
 
   const ClickHandler = () => {
     window.scrollTo(10, 0);
-  }
+  };
 
   return (
     <div>
@@ -49,16 +25,14 @@ const MobileMenu = () => {
         </div>
 
         <ul className="responsivemenu">
-          {menus.map((item, mn) => {
-            return (
-              <ListItem key={mn}>
-                <Link
-                  to={item.link} spy={true} smooth={true} duration={500} onClick={ClickHandler}>{item.title}</Link>
-              </ListItem>
-            )
-          })}
-          {/* 👇 Developer Mode Toggle */}
-
+          {navigation?.menuItems.map((item) => (
+            <ListItem key={item.id}>
+              <Link to={item.link} spy={true} smooth={true} duration={500} onClick={ClickHandler}>
+                {item.title}
+              </Link>
+            </ListItem>
+          ))}
+          
           {isFeatureEnabled('DevMode') && (
             <Box
               sx={{
@@ -92,13 +66,12 @@ const MobileMenu = () => {
                     }}
                   />
                 }
-                label="Insights"
+                label={navigation?.insightsLabel || 'Insights'}
                 sx={{ padding: 2, marginRight: 0 }}
               />
             </Box>
           )}
         </ul>
-
       </div>
 
       <div className="showmenu" onClick={() => setMenuState(!menuActive)}>
@@ -109,7 +82,7 @@ const MobileMenu = () => {
         </button>
       </div>
     </div>
-  )
-}
+  );
+};
 
 export default MobileMenu;

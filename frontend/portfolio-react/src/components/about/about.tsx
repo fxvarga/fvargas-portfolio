@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import aImg from '../../images/about/fernando-portfolio-image.png'
 import CustomDialog from '../dialog/InsightsDialog';
 import { useDevMode } from '../../main-component/State/DevModeProvider';
 import { styled } from '@mui/material/styles';
 import { useLazyQuery, useSubscription } from '@apollo/client';
 import { messageSubscription, startTimer } from '../../api/insightsApi';
+import { CircularProgress } from '@mui/material';
+import { useAbout } from '../../context/CMSContext';
 
 // Styled code block component
-const CodeBlock = styled('pre')(({ theme }) => ({
+const CodeBlock = styled('pre')(() => ({
   backgroundColor: '#1e1e1e',
   color: '#d4d4d4',
   borderRadius: '6px',
@@ -43,12 +44,13 @@ const CodeBlock = styled('pre')(({ theme }) => ({
 }));
 
 // Component to render syntax highlighted code
-const SyntaxHighlightedCode = ({ code }) => {
-  // Parse the code with simple syntax highlighting
+const SyntaxHighlightedCode = ({ code }: { code: string }) => {
   const highlightedCode = code
   return <div dangerouslySetInnerHTML={{ __html: highlightedCode }} />;
 };
+
 const About = () => {
+  const { about, isLoading: cmsLoading } = useAbout();
   const [startTimerQuery, { data, error, loading }] = useLazyQuery(startTimer, { fetchPolicy: 'network-only' });
 
   const [timeOnCard, setTimeOnCard] = useState(0);
@@ -60,6 +62,7 @@ const About = () => {
   } = useSubscription(messageSubscription, {
     skip: !data?.startTimer?.sessionId,
   });
+
   useEffect(() => {
     if (subscriptionLoading || subscriptionError || !subscriptionData) {
       return;
@@ -89,15 +92,27 @@ const TIMER_SUBSCRIPTION = gql\`
 \`
 const sessionId = ${data?.startTimer?.sessionId};
 `;
-  return (
 
+  if (cmsLoading || !about) {
+    return (
+      <section className="tf-about-section section-padding">
+        <div className="container">
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '50px' }}>
+            <CircularProgress />
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
     <section className="tf-about-section section-padding">
       <div className="container">
         <div className="tf-about-wrap">
           <div className="row align-items-center">
             <div className="col-lg-6 col-md-12 col-12">
               <div className="tf-about-img">
-                <img src={aImg} alt="" />
+                <img src={about.image.url} alt={about.image.alt} />
                 <div className="tf-about-img-text">
                   {devMode && (
                     <div className="assistant-button" style={{
@@ -108,14 +123,12 @@ const sessionId = ${data?.startTimer?.sessionId};
                       display: 'flex',
                       alignItems: 'center'
                     }}>
-                      <CustomDialog title="How's about a timer using GraphQl Subscriptions?"
+                      <CustomDialog title={about.insightsDialog.title}
                         callback={startTimerQuery}
                         onCloseCallBack={() => { setComplete(false); setTimeOnCard(0); }}>
                         {!loading && !error && (
                           <>
-                            <p>
-                              In twelve years of experience, I've learned a thing or two about websockets and GraphQl
-                            </p>
+                            <p>{about.insightsDialog.description}</p>
                             <CodeBlock>
                               <SyntaxHighlightedCode code={subscriptionCode} />
                             </CodeBlock>
@@ -131,30 +144,29 @@ const sessionId = ${data?.startTimer?.sessionId};
                           </>
                         )}
                       </CustomDialog>
-
                     </div>
                   )}
                   <div className="tf-about-icon">
-                    <h3>12+</h3>
+                    <h3>{about.experienceYears}</h3>
                   </div>
                 </div>
               </div>
             </div>
             <div className="col-lg-6 col-md-12 col-12">
               <div className="tf-about-text">
-                <small>Hi I'm Fernando Vargas</small>
-                <h2>Full-Stack Engineer with Passion for UX</h2>
-                <h5>I'm a full-stack engineer with 12+ years of experience architecting distributed systems and crafting frontends that people love to use.</h5>
-                <p> I thrive at the intersection of technical depth and user experience—equally comfortable optimizing backend architecture as I am building intuitive React UIs. Whether I'm designing a visual workflow editor, building a GraphQL-powered dashboard, or creating reusable components adopted by entire organizations, I care deeply about performance, maintainability, and impact. I'm passionate about platforms, developer experience, and the power of well-crafted tools to unlock creativity at scale. </p>
+                <small>{about.greeting}</small>
+                <h2>{about.headline}</h2>
+                <h5>{about.subheadline}</h5>
+                <p>{about.bio}</p>
               </div>
             </div>
           </div>
         </div>
       </div>
       <div className="visible-rotate-text">
-        <h1>About Me</h1>
+        <h1>{about.sectionTitle}</h1>
       </div>
-    </section >
+    </section>
   )
 }
 
