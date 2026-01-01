@@ -4,6 +4,15 @@ import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
 import AdminLayout from '../layout/AdminLayout';
+import {
+  FooterEditor,
+  NavigationEditor,
+  ContactEditor,
+  HeroEditor,
+  AboutEditor,
+  SiteConfigEditor,
+  ServicesEditor,
+} from '../components/editors';
 import '../styles/admin.css';
 
 // Types
@@ -15,6 +24,8 @@ interface ContentRecord {
   publishedAt: string | null;
   updatedAt: string;
 }
+
+type EditorMode = 'visual' | 'json';
 
 // GraphQL mutations
 const GET_CONTENT_BY_TYPE = gql`
@@ -74,18 +85,39 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   'footer': 'Footer',
 };
 
+// Content types that have custom visual editors
+const VISUAL_EDITOR_TYPES = ['hero', 'about', 'services', 'contact', 'navigation', 'site-config', 'footer'];
+
+// Helper function to parse data that might be a JSON string
+const parseRecordData = (data: unknown): Record<string, unknown> => {
+  if (!data) return {};
+  if (typeof data === 'string') {
+    try {
+      return JSON.parse(data);
+    } catch {
+      console.error('Failed to parse record data as JSON');
+      return {};
+    }
+  }
+  return data as Record<string, unknown>;
+};
+
 const ContentEditorPage: React.FC = () => {
   const { entityType } = useParams<{ entityType: string }>();
   const navigate = useNavigate();
   
   const [record, setRecord] = useState<ContentRecord | null>(null);
+  const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [jsonData, setJsonData] = useState<string>('');
+  const [editorMode, setEditorMode] = useState<EditorMode>('visual');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+
+  const hasVisualEditor = entityType && VISUAL_EDITOR_TYPES.includes(entityType);
 
   const fetchContent = useCallback(async () => {
     if (!entityType) return;
@@ -109,9 +141,12 @@ const ContentEditorPage: React.FC = () => {
       if (records.length > 0) {
         const foundRecord = records[0];
         setRecord(foundRecord);
-        setJsonData(JSON.stringify(foundRecord.data, null, 2));
+        const parsedData = parseRecordData(foundRecord.data);
+        setFormData(parsedData);
+        setJsonData(JSON.stringify(parsedData, null, 2));
       } else {
         setRecord(null);
+        setFormData({});
         setJsonData('{}');
       }
       setError(null);
@@ -126,6 +161,20 @@ const ContentEditorPage: React.FC = () => {
   useEffect(() => {
     fetchContent();
   }, [fetchContent]);
+
+  // Sync formData to jsonData when switching to JSON mode
+  useEffect(() => {
+    if (editorMode === 'json') {
+      setJsonData(JSON.stringify(formData, null, 2));
+    }
+  }, [editorMode, formData]);
+
+  const handleFormDataChange = (newData: Record<string, unknown>) => {
+    setFormData(newData);
+    setHasChanges(true);
+    setError(null);
+    setSuccess(null);
+  };
 
   const handleJsonChange = (value: string) => {
     setJsonData(value);
@@ -143,14 +192,37 @@ const ContentEditorPage: React.FC = () => {
     }
   };
 
+  const getCurrentData = (): Record<string, unknown> | null => {
+    if (editorMode === 'json') {
+      return validateJson();
+    }
+    return formData;
+  };
+
+  const handleSwitchMode = (newMode: EditorMode) => {
+    if (newMode === 'json' && editorMode === 'visual') {
+      // Switching to JSON - sync formData to jsonData
+      setJsonData(JSON.stringify(formData, null, 2));
+    } else if (newMode === 'visual' && editorMode === 'json') {
+      // Switching to visual - parse JSON and update formData
+      const parsed = validateJson();
+      if (parsed) {
+        setFormData(parsed);
+      } else {
+        return; // Don't switch if JSON is invalid
+      }
+    }
+    setEditorMode(newMode);
+  };
+
   const handleSave = async () => {
     if (!record) {
       setError('No record to save');
       return;
     }
 
-    const parsedData = validateJson();
-    if (!parsedData) return;
+    const dataToSave = getCurrentData();
+    if (!dataToSave) return;
 
     try {
       setIsSaving(true);
@@ -162,7 +234,7 @@ const ContentEditorPage: React.FC = () => {
         variables: {
           input: {
             id: record.id,
-            data: parsedData,
+            data: dataToSave,
           },
         },
         context: {
@@ -174,7 +246,9 @@ const ContentEditorPage: React.FC = () => {
 
       if (data.updateContent.success) {
         setRecord(data.updateContent.record);
-        setJsonData(JSON.stringify(data.updateContent.record.data, null, 2));
+        const parsedData = parseRecordData(data.updateContent.record.data);
+        setFormData(parsedData);
+        setJsonData(JSON.stringify(parsedData, null, 2));
         setSuccess('Content saved successfully!');
         setHasChanges(false);
       } else {
@@ -223,8 +297,8 @@ const ContentEditorPage: React.FC = () => {
   const handleSaveAndPublish = async () => {
     if (!record) return;
 
-    const parsedData = validateJson();
-    if (!parsedData) return;
+    const dataToSave = getCurrentData();
+    if (!dataToSave) return;
 
     try {
       setIsSaving(true);
@@ -236,7 +310,7 @@ const ContentEditorPage: React.FC = () => {
         variables: {
           input: {
             id: record.id,
-            data: parsedData,
+            data: dataToSave,
             publish: true,
           },
         },
@@ -249,7 +323,9 @@ const ContentEditorPage: React.FC = () => {
 
       if (data.updateContent.success) {
         setRecord(data.updateContent.record);
-        setJsonData(JSON.stringify(data.updateContent.record.data, null, 2));
+        const parsedData = parseRecordData(data.updateContent.record.data);
+        setFormData(parsedData);
+        setJsonData(JSON.stringify(parsedData, null, 2));
         setSuccess('Content saved and published successfully!');
         setHasChanges(false);
       } else {
@@ -277,6 +353,40 @@ const ContentEditorPage: React.FC = () => {
   const getLabel = (): string => {
     return CONTENT_TYPE_LABELS[entityType || ''] || entityType || 'Content';
   };
+
+  const renderVisualEditor = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const editorProps = { data: formData as any, onChange: handleFormDataChange as any };
+
+    switch (entityType) {
+      case 'footer':
+        return <FooterEditor {...editorProps} />;
+      case 'navigation':
+        return <NavigationEditor {...editorProps} />;
+      case 'contact':
+        return <ContactEditor {...editorProps} />;
+      case 'hero':
+        return <HeroEditor {...editorProps} />;
+      case 'about':
+        return <AboutEditor {...editorProps} />;
+      case 'site-config':
+        return <SiteConfigEditor {...editorProps} />;
+      case 'services':
+        return <ServicesEditor {...editorProps} />;
+      default:
+        return null;
+    }
+  };
+
+  const renderJsonEditor = () => (
+    <div className="admin-json-editor">
+      <textarea
+        value={jsonData}
+        onChange={(e) => handleJsonChange(e.target.value)}
+        spellCheck={false}
+      />
+    </div>
+  );
 
   return (
     <AdminLayout>
@@ -320,21 +430,35 @@ const ContentEditorPage: React.FC = () => {
           <div className="admin-editor-main">
             <div className="admin-card">
               <div className="admin-card-header">
-                <h2 className="admin-card-title">JSON Editor</h2>
-                {hasChanges && (
-                  <span className="admin-badge admin-badge-warning">
-                    Unsaved Changes
-                  </span>
-                )}
-              </div>
-              <div className="admin-card-body" style={{ padding: 0 }}>
-                <div className="admin-json-editor">
-                  <textarea
-                    value={jsonData}
-                    onChange={(e) => handleJsonChange(e.target.value)}
-                    spellCheck={false}
-                  />
+                <h2 className="admin-card-title">
+                  {editorMode === 'visual' ? 'Visual Editor' : 'JSON Editor'}
+                </h2>
+                <div className="admin-editor-mode-toggle">
+                  {hasChanges && (
+                    <span className="admin-badge admin-badge-warning" style={{ marginRight: '0.75rem' }}>
+                      Unsaved Changes
+                    </span>
+                  )}
+                  {hasVisualEditor && (
+                    <div className="admin-btn-group">
+                      <button
+                        className={`admin-btn admin-btn-sm ${editorMode === 'visual' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                        onClick={() => handleSwitchMode('visual')}
+                      >
+                        Visual
+                      </button>
+                      <button
+                        className={`admin-btn admin-btn-sm ${editorMode === 'json' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
+                        onClick={() => handleSwitchMode('json')}
+                      >
+                        JSON
+                      </button>
+                    </div>
+                  )}
                 </div>
+              </div>
+              <div className="admin-card-body" style={{ padding: editorMode === 'json' ? 0 : undefined }}>
+                {editorMode === 'visual' && hasVisualEditor ? renderVisualEditor() : renderJsonEditor()}
               </div>
             </div>
           </div>

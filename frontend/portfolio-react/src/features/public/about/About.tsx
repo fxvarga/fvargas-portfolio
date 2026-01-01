@@ -112,7 +112,7 @@ const sessionId = ${data?.startTimer?.sessionId};
           <div className="row align-items-center">
             <div className="col-lg-6 col-md-12 col-12">
               <div className="tf-about-img">
-                <img src={about.image.url} alt={about.image.alt} />
+                <img src={about.image?.url} alt={about.image?.alt} />
                 <div className="tf-about-img-text">
                   {devMode && (
                     <div className="assistant-button" style={{
@@ -123,12 +123,12 @@ const sessionId = ${data?.startTimer?.sessionId};
                       display: 'flex',
                       alignItems: 'center'
                     }}>
-                      <CustomDialog title={about.insightsDialog.title}
+                      <CustomDialog title={about.insightsDialog?.title ?? 'Insights'}
                         callback={startTimerQuery}
                         onCloseCallBack={() => { setComplete(false); setTimeOnCard(0); }}>
                         {!loading && !error && (
                           <>
-                            <p>{about.insightsDialog.description}</p>
+                            <p>{about.insightsDialog?.description}</p>
                             <CodeBlock>
                               <SyntaxHighlightedCode code={subscriptionCode} />
                             </CodeBlock>

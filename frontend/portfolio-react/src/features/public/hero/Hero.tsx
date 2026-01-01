@@ -49,7 +49,7 @@ const Hero = () => {
     );
   }
 
-  const displayImage = currentImage || hero.image.url;
+  const displayImage = currentImage || hero.image?.url;
 
   return (
     <section className="tp-hero-section-1">
@@ -64,8 +64,8 @@ const Hero = () => {
                 <p>{hero.name}</p>
               </div>
               <div className="btns">
-                <Link activeClass="active" to={hero.ctaButton.scrollTo} spy={true} smooth={true} duration={500} offset={-95} className="theme-btn">
-                  {hero.ctaButton.label}
+                <Link activeClass="active" to={hero.ctaButton?.scrollTo ?? 'contact'} spy={true} smooth={true} duration={500} offset={-95} className="theme-btn">
+                  {hero.ctaButton?.label ?? 'Contact Me'}
                 </Link>
               </div>
             </div>
@@ -83,9 +83,9 @@ const Hero = () => {
             display: 'flex',
             alignItems: 'center'
           }}>
-            <CustomDialog title={hero.insightsDialog.title}>
-              <p>{hero.insightsDialog.description}</p>
-              <p>Prompt used: "{hero.insightsDialog.prompt}"</p>
+            <CustomDialog title={hero.insightsDialog?.title ?? 'Insights'}>
+              <p>{hero.insightsDialog?.description}</p>
+              <p>Prompt used: "{hero.insightsDialog?.prompt}"</p>
 
               <div style={{ color: 'white', marginTop: '20px', display: 'flex', justifyContent: 'space-between' }}>
                 {loading ? (
@@ -137,7 +137,7 @@ const Hero = () => {
         <div className="right-img">
           <img
             src={displayImage}
-            alt={hero.image.alt}
+            alt={hero.image?.alt}
             style={{
               transition: 'all 0.5s ease-in-out',
               filter: isOriginalImage ? 'grayscale(100%)' : 'none',
