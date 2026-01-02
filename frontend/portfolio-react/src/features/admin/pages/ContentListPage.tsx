@@ -21,6 +21,7 @@ interface EntityDefinitionSummary {
   name: string;
   displayName: string | null;
   category: string | null;
+  isSingleton: boolean;
 }
 
 // GraphQL query for admin content
@@ -45,6 +46,7 @@ const GET_ALL_ENTITY_DEFINITIONS = gql`
       name
       displayName
       category
+      isSingleton
     }
   }
 `;
@@ -125,6 +127,20 @@ const ContentListPage: React.FC = () => {
 
   const getLabel = (entityType: string): string => {
     return contentTypeLabels[entityType] || entityType;
+  };
+
+  // Check if an entity type is a singleton
+  const isSingleton = (entityType: string): boolean => {
+    const def = entityDefinitions.find(d => d.name === entityType);
+    return def?.isSingleton ?? true; // Default to singleton behavior if not found
+  };
+
+  // Get the edit link for a record - include ID for non-singletons
+  const getEditLink = (record: ContentRecord): string => {
+    if (isSingleton(record.entityType)) {
+      return `/admin/content/${record.entityType}`;
+    }
+    return `/admin/content/${record.entityType}/${record.id}`;
   };
 
   return (
@@ -221,7 +237,7 @@ const ContentListPage: React.FC = () => {
                     <td>
                       <div className="admin-btn-group">
                         <Link
-                          to={`/admin/content/${record.entityType}`}
+                          to={getEditLink(record)}
                           className="admin-btn admin-btn-primary admin-btn-sm"
                         >
                           Edit

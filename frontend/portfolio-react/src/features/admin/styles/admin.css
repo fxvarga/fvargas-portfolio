@@ -87,6 +87,21 @@
   border-left-color: var(--admin-primary);
 }
 
+.admin-nav-expandable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-nav-subitem {
+  opacity: 0.85;
+  font-size: 0.85rem;
+}
+
+.admin-nav-subitem:hover {
+  opacity: 1;
+}
+
 .admin-nav-icon {
   margin-right: 0.75rem;
   width: 20px;

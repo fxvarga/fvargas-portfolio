@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router';
+import { useParams, useNavigate, Link } from 'react-router';
 import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
@@ -171,10 +171,11 @@ const parseRecordData = (data: unknown): Record<string, unknown> => {
 };
 
 const ContentEditorPage: React.FC = () => {
-  const { entityType } = useParams<{ entityType: string }>();
+  const { entityType, recordId } = useParams<{ entityType: string; recordId?: string }>();
   const navigate = useNavigate();
   
   const [record, setRecord] = useState<ContentRecord | null>(null);
+  const [allRecords, setAllRecords] = useState<ContentRecord[]>([]); // For non-singleton list view
   const [formData, setFormData] = useState<Record<string, unknown>>({});
   const [jsonData, setJsonData] = useState<string>('');
   const [editorMode, setEditorMode] = useState<EditorMode>('visual');
@@ -231,8 +232,21 @@ const ContentEditorPage: React.FC = () => {
       });
 
       const records = data.getAllContentAdmin || [];
-      if (records.length > 0) {
-        const foundRecord = records[0];
+      setAllRecords(records);
+
+      // Determine which record to edit
+      let foundRecord: ContentRecord | null = null;
+      
+      if (recordId) {
+        // If recordId is provided, find that specific record
+        foundRecord = records.find((r: ContentRecord) => r.id === recordId) || null;
+      } else if (entityDefinition?.isSingleton || records.length === 1) {
+        // For singletons or when there's only one record, use the first one
+        foundRecord = records.length > 0 ? records[0] : null;
+      }
+      // If non-singleton with multiple records and no recordId, we'll show the list view
+
+      if (foundRecord) {
         setRecord(foundRecord);
         const parsedData = parseRecordData(foundRecord.data);
         setFormData(parsedData);
@@ -249,7 +263,7 @@ const ContentEditorPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [entityType]);
+  }, [entityType, recordId, entityDefinition?.isSingleton]);
 
   useEffect(() => {
     fetchEntityDefinition();
@@ -489,6 +503,75 @@ const ContentEditorPage: React.FC = () => {
     return CONTENT_TYPE_LABELS[entityType || ''] || entityType || 'Content';
   };
 
+  // Get a display title for a record (used in list view for non-singletons)
+  const getRecordTitle = (rec: ContentRecord): string => {
+    const data = parseRecordData(rec.data);
+    // Try common title fields
+    if (data.title && typeof data.title === 'string') return data.title;
+    if (data.slug && typeof data.slug === 'string') return data.slug;
+    if (data.name && typeof data.name === 'string') return data.name;
+    if (data.headerTitle && typeof data.headerTitle === 'string') return data.headerTitle;
+    return rec.id.substring(0, 8) + '...';
+  };
+
+  // Check if we should show the list view (non-singleton with multiple records and no recordId)
+  const shouldShowListView = !recordId && 
+    entityDefinition && 
+    !entityDefinition.isSingleton && 
+    allRecords.length > 1;
+
+  const renderRecordListView = () => (
+    <div className="admin-card">
+      <div className="admin-card-header">
+        <h2 className="admin-card-title">{getLabel()} Records</h2>
+        <span className="admin-badge admin-badge-info">{allRecords.length} records</span>
+      </div>
+      <div className="admin-card-body" style={{ padding: 0 }}>
+        <table className="admin-table">
+          <thead>
+            <tr>
+              <th>Title</th>
+              <th>Status</th>
+              <th>Version</th>
+              <th>Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {allRecords.map((rec) => (
+              <tr key={rec.id}>
+                <td>
+                  <strong>{getRecordTitle(rec)}</strong>
+                  <br />
+                  <small style={{ color: 'var(--admin-text-muted)' }}>
+                    {rec.id.substring(0, 8)}...
+                  </small>
+                </td>
+                <td>
+                  {rec.publishedAt ? (
+                    <span className="admin-badge admin-badge-success">Published</span>
+                  ) : (
+                    <span className="admin-badge admin-badge-warning">Draft</span>
+                  )}
+                </td>
+                <td>v{rec.version}</td>
+                <td>{formatDate(rec.updatedAt)}</td>
+                <td>
+                  <Link
+                    to={`/admin/content/${entityType}/${rec.id}`}
+                    className="admin-btn admin-btn-primary admin-btn-sm"
+                  >
+                    Edit
+                  </Link>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+
   const renderLegacyEditor = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const editorProps = { data: formData as any, onChange: handleFormDataChange as any };
@@ -548,22 +631,32 @@ const ContentEditorPage: React.FC = () => {
     <AdminLayout>
       <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <h1>Edit {getLabel()}</h1>
+          <h1>{shouldShowListView ? getLabel() : `Edit ${getLabel()}`}</h1>
           <p>
-            {entityDefinition?.description || 'Modify the content data for this section'}
-            {hasDynamicEditor && (
+            {entityDefinition?.description || (shouldShowListView ? `Manage ${getLabel()} records` : 'Modify the content data for this section')}
+            {hasDynamicEditor && !shouldShowListView && (
               <span className="admin-badge admin-badge-info" style={{ marginLeft: '0.5rem' }}>
                 Dynamic Schema
               </span>
             )}
           </p>
         </div>
-        <button
-          className="admin-btn admin-btn-secondary"
-          onClick={() => navigate('/admin/content')}
-        >
-          Back to Content
-        </button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          {recordId && !entityDefinition?.isSingleton && (
+            <button
+              className="admin-btn admin-btn-secondary"
+              onClick={() => navigate(`/admin/content/${entityType}`)}
+            >
+              Back to List
+            </button>
+          )}
+          <button
+            className="admin-btn admin-btn-secondary"
+            onClick={() => navigate('/admin/content')}
+          >
+            Back to Content
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -579,6 +672,8 @@ const ContentEditorPage: React.FC = () => {
           <div className="admin-loading-spinner"></div>
           <p>Loading content...</p>
         </div>
+      ) : shouldShowListView ? (
+        renderRecordListView()
       ) : !record ? (
         <div className="admin-card">
           <div className="admin-card-body">

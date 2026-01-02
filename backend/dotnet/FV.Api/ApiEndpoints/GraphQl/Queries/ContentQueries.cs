@@ -162,6 +162,7 @@ public class ContentQueries
 
     /// <summary>
     /// Get all published content records (for all entity types)
+    /// Returns all records for non-singleton types, and only the most recent for singleton types.
     /// </summary>
     public async Task<List<ContentRecord>> GetAllPublishedContent(
         [Service] CmsDbContext dbContext,
@@ -172,18 +173,44 @@ public class ContentQueries
             return new List<ContentRecord>();
         }
 
+        // Get entity definitions to know which are singletons
+        var entityDefinitions = await dbContext.EntityDefinitions
+            .Where(d => d.PortfolioId == tenantContext.PortfolioId)
+            .ToListAsync();
+        
+        var singletonTypes = entityDefinitions
+            .Where(d => d.IsSingleton)
+            .Select(d => d.Name)
+            .ToHashSet();
+
         var records = await dbContext.EntityRecords
             .Where(r => r.PortfolioId == tenantContext.PortfolioId && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync();
 
-        // Group by type and take the most recent for each
-        var latestByType = records
-            .GroupBy(r => r.EntityType)
-            .Select(g => g.First())
-            .ToList();
+        // For singleton types, take only the most recent; for non-singletons, take all
+        var result = new List<EntityRecord>();
+        var singletonsSeen = new HashSet<string>();
+        
+        foreach (var record in records)
+        {
+            if (singletonTypes.Contains(record.EntityType))
+            {
+                // Singleton: only add if we haven't seen this type yet
+                if (!singletonsSeen.Contains(record.EntityType))
+                {
+                    result.Add(record);
+                    singletonsSeen.Add(record.EntityType);
+                }
+            }
+            else
+            {
+                // Non-singleton: add all records
+                result.Add(record);
+            }
+        }
 
-        return latestByType.Select(r => new ContentRecord
+        return result.Select(r => new ContentRecord
         {
             Id = r.Id,
             EntityType = r.EntityType,

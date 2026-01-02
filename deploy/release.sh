@@ -313,6 +313,7 @@ services:
       - ASPNETCORE_URLS=http://+:5000
       - CMS_DB_PATH=/app/data/cms.db
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - CMS_ADMIN_PASSWORD=${CMS_ADMIN_PASSWORD}
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -428,6 +429,9 @@ www.${domain_fernando:-localhost} {
 
 # Jessica Sutherland Portfolio
 ${domain_jessica:-jessica.localhost} {
+    handle /admin* {
+        redir https://${domain_fernando:-localhost}{uri} permanent
+    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -448,6 +452,9 @@ www.${domain_jessica:-jessica.localhost} {
 
 # Busy Bee Marketing Agency
 ${domain_busybee:-busybee.localhost} {
+    handle /admin* {
+        redir https://${domain_fernando:-localhost}{uri} permanent
+    }
     handle /graphql* {
         reverse_proxy backend:5000
     }

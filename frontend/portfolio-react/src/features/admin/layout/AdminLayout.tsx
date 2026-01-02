@@ -13,6 +13,13 @@ interface EntityDefinitionNav {
   displayName?: string;
   category?: string;
   icon?: string;
+  isSingleton: boolean;
+}
+
+interface ContentRecordNav {
+  id: string;
+  entityType: string;
+  data: Record<string, unknown>;
 }
 
 interface AdminLayoutProps {
@@ -27,6 +34,17 @@ const GET_ALL_ENTITY_DEFINITIONS = gql`
       displayName
       category
       icon
+      isSingleton
+    }
+  }
+`;
+
+const GET_ALL_CONTENT_ADMIN = gql`
+  mutation GetAllContentAdmin($entityType: String) {
+    getAllContentAdmin(entityType: $entityType) {
+      id
+      entityType
+      data
     }
   }
 `;
@@ -46,6 +64,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { selectedPortfolio, portfolios, selectPortfolio } = usePortfolio();
   const navigate = useNavigate();
   const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionNav[]>([]);
+  const [nonSingletonRecords, setNonSingletonRecords] = useState<Record<string, ContentRecordNav[]>>({});
+  const [expandedEntities, setExpandedEntities] = useState<Set<string>>(new Set());
   const [isLoadingNav, setIsLoadingNav] = useState(true);
 
   useEffect(() => {
@@ -64,7 +84,31 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         });
 
         if (data?.allEntityDefinitions) {
-          setEntityDefinitions(data.allEntityDefinitions);
+          const definitions: EntityDefinitionNav[] = data.allEntityDefinitions;
+          setEntityDefinitions(definitions);
+
+          // Fetch records for non-singleton entities
+          const nonSingletons = definitions.filter(d => !d.isSingleton);
+          const recordsMap: Record<string, ContentRecordNav[]> = {};
+
+          await Promise.all(
+            nonSingletons.map(async (def) => {
+              try {
+                // Don't override headers - let apiProvider's authLink handle auth & portfolio headers
+                const { data: contentData } = await client.mutate({
+                  mutation: GET_ALL_CONTENT_ADMIN,
+                  variables: { entityType: def.name },
+                });
+                if (contentData?.getAllContentAdmin) {
+                  recordsMap[def.name] = contentData.getAllContentAdmin;
+                }
+              } catch (err) {
+                console.error(`Failed to fetch records for ${def.name}:`, err);
+              }
+            })
+          );
+
+          setNonSingletonRecords(recordsMap);
         }
       } catch (err) {
         console.error('Failed to fetch entity definitions for nav:', err);
@@ -84,6 +128,27 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   const getInitials = (username: string) => {
     return username.charAt(0).toUpperCase();
+  };
+
+  const toggleEntityExpanded = (entityName: string) => {
+    setExpandedEntities(prev => {
+      const next = new Set(prev);
+      if (next.has(entityName)) {
+        next.delete(entityName);
+      } else {
+        next.add(entityName);
+      }
+      return next;
+    });
+  };
+
+  const getRecordTitle = (record: ContentRecordNav): string => {
+    const data = record.data;
+    if (data.title && typeof data.title === 'string') return data.title;
+    if (data.slug && typeof data.slug === 'string') return data.slug;
+    if (data.name && typeof data.name === 'string') return data.name;
+    if (data.headerTitle && typeof data.headerTitle === 'string') return data.headerTitle;
+    return record.id.substring(0, 8) + '...';
   };
 
   // Group entity definitions by category
@@ -173,19 +238,58 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     {category}
                   </div>
                 )}
-                {defs.map((def) => (
-                  <NavLink
-                    key={def.id}
-                    to={`/admin/content/${def.name}`}
-                    className={({ isActive }) =>
-                      `admin-nav-item ${isActive ? 'active' : ''}`
-                    }
-                    style={{ paddingLeft: '2.5rem' }}
-                  >
-                    {def.icon && <Icon className="admin-nav-icon" fontSize="small">{def.icon}</Icon>}
-                    {def.displayName || def.name}
-                  </NavLink>
-                ))}
+                {defs.map((def) => {
+                  const isNonSingleton = !def.isSingleton;
+                  const records = nonSingletonRecords[def.name] || [];
+                  const isExpanded = expandedEntities.has(def.name);
+                  const hasRecords = records.length > 0;
+
+                  if (isNonSingleton && hasRecords) {
+                    // Non-singleton with records: show expandable item
+                    return (
+                      <React.Fragment key={def.id}>
+                        <div
+                          className="admin-nav-item admin-nav-expandable"
+                          style={{ paddingLeft: '2.5rem', cursor: 'pointer' }}
+                          onClick={() => toggleEntityExpanded(def.name)}
+                        >
+                          {def.icon && <Icon className="admin-nav-icon" fontSize="small">{def.icon}</Icon>}
+                          {def.displayName || def.name}
+                          <span style={{ marginLeft: 'auto', fontSize: '0.7rem' }}>
+                            {isExpanded ? '▼' : '▶'} ({records.length})
+                          </span>
+                        </div>
+                        {isExpanded && records.map((record) => (
+                          <NavLink
+                            key={record.id}
+                            to={`/admin/content/${def.name}/${record.id}`}
+                            className={({ isActive }) =>
+                              `admin-nav-item admin-nav-subitem ${isActive ? 'active' : ''}`
+                            }
+                            style={{ paddingLeft: '3.5rem', fontSize: '0.85rem' }}
+                          >
+                            {getRecordTitle(record)}
+                          </NavLink>
+                        ))}
+                      </React.Fragment>
+                    );
+                  }
+
+                  // Singleton or non-singleton without records: simple link
+                  return (
+                    <NavLink
+                      key={def.id}
+                      to={`/admin/content/${def.name}`}
+                      className={({ isActive }) =>
+                        `admin-nav-item ${isActive ? 'active' : ''}`
+                      }
+                      style={{ paddingLeft: '2.5rem' }}
+                    >
+                      {def.icon && <Icon className="admin-nav-icon" fontSize="small">{def.icon}</Icon>}
+                      {def.displayName || def.name}
+                    </NavLink>
+                  );
+                })}
               </React.Fragment>
             ))
           ) : (

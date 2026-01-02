@@ -48,6 +48,15 @@ const AdminApp: React.FC = () => {
             }
           />
 
+          <Route
+            path="content/:entityType/:recordId"
+            element={
+              <ProtectedRoute>
+                <ContentEditorPage />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Schema management routes */}
           <Route
             path="schema"
