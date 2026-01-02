@@ -109,13 +109,19 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
     app.MapBananaCakePop();
+    app.UseHttpsRedirection();
 }
 else
 {
     app.UseHsts();
+    // In production, Caddy handles HTTPS - use forwarded headers instead
+    app.UseForwardedHeaders(new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
+            | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+    });
 }
 app.UseCors();
-app.UseHttpsRedirection();
 app.UseRouting();
 
 // Add authentication and authorization middleware
@@ -123,6 +129,9 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapHealthChecks("/healthcheck", new HealthCheckOptions() { Predicate = (check) => !check.Tags.Contains("HealthCheck") });
-app.MapGraphQL();
+
+// WebSockets must be enabled before MapGraphQL for subscriptions to work
 app.UseWebSockets();
+app.MapGraphQL();
+
 await app.RunAsync();

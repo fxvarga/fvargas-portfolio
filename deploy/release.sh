@@ -4,7 +4,7 @@ set -e
 
 # ============================================
 # Portfolio Release Script
-# Deploys to DigitalOcean (new or existing droplet)
+# Builds locally, pushes to Docker Hub, deploys to DigitalOcean
 # ============================================
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -66,6 +66,23 @@ validate_env() {
     fi
 
     log_success "Environment variables validated"
+}
+
+# ============================================
+# Validate Docker Registry Variables
+# ============================================
+validate_registry() {
+    if [[ -z "$DOCKER_USERNAME" ]]; then
+        log_error "DOCKER_USERNAME not set in .env"
+        log_info "Set your Docker Hub username and run: docker login"
+        exit 1
+    fi
+    
+    # Check if logged into Docker
+    if ! docker info 2>/dev/null | grep -q "Username"; then
+        log_warn "You may not be logged into Docker Hub"
+        log_info "Run: docker login"
+    fi
 }
 
 # ============================================
@@ -197,71 +214,176 @@ SETUP_SCRIPT
 }
 
 # ============================================
-# Build and Push Images
+# Build and Push Images Locally
 # ============================================
-build_images() {
-    log_info "Building Docker images locally..."
+build_and_push() {
+    validate_registry
     
-    cd "$PROJECT_ROOT"
-    docker compose build
+    local backend_image="${DOCKER_USERNAME}/${IMAGE_BACKEND:-portfolio-backend}"
+    local frontend_image="${DOCKER_USERNAME}/${IMAGE_FRONTEND:-portfolio-frontend}"
+    local tag="${1:-latest}"
+    
+    log_info "Building images locally..."
+    
+    # Build backend
+    log_info "Building backend image: ${backend_image}:${tag}"
+    docker build -t "${backend_image}:${tag}" -f "$PROJECT_ROOT/backend/dotnet/Dockerfile" "$PROJECT_ROOT/backend/dotnet"
+    
+    # Build frontend
+    log_info "Building frontend image: ${frontend_image}:${tag}"
+    docker build -t "${frontend_image}:${tag}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
     
     log_success "Images built successfully"
+    
+    # Push to registry
+    log_info "Pushing images to Docker Hub..."
+    
+    docker push "${backend_image}:${tag}"
+    docker push "${frontend_image}:${tag}"
+    
+    log_success "Images pushed to Docker Hub"
+    
+    # Export for use in deploy
+    export BACKEND_IMAGE="${backend_image}:${tag}"
+    export FRONTEND_IMAGE="${frontend_image}:${tag}"
 }
 
 # ============================================
-# Deploy to Server
+# Deploy to Server (using pre-built images)
 # ============================================
 deploy() {
+    local tag="${1:-latest}"
+    local backend_image="${DOCKER_USERNAME}/${IMAGE_BACKEND:-portfolio-backend}:${tag}"
+    local frontend_image="${DOCKER_USERNAME}/${IMAGE_FRONTEND:-portfolio-frontend}:${tag}"
+    local domain="${DOMAIN_NAME:-}"
+    
     log_info "Deploying to $DROPLET_IP..."
+    log_info "Using images:"
+    log_info "  Backend:  $backend_image"
+    log_info "  Frontend: $frontend_image"
+    
+    if [[ -n "$domain" ]]; then
+        log_info "  Domain:   $domain (with Caddy/HTTPS)"
+    else
+        log_info "  Domain:   None (HTTP only via nginx)"
+    fi
 
-    # Create production docker-compose with environment variables
-    local remote_dir="/opt/portfolio"
-
-    # Copy necessary files
-    log_info "Copying files to server..."
-    
-    # Create a temp directory for deployment files
-    local tmp_dir=$(mktemp -d)
-    
-    # Copy docker-compose and Dockerfiles
-    cp "$PROJECT_ROOT/docker-compose.yml" "$tmp_dir/"
-    cp -r "$PROJECT_ROOT/backend" "$tmp_dir/"
-    cp -r "$PROJECT_ROOT/frontend" "$tmp_dir/"
-    
-    # Create production .env file
-    cat > "$tmp_dir/.env" << EOF
-ASPNETCORE_ENVIRONMENT=Production
-CMS_ADMIN_USERNAME=${CMS_ADMIN_USERNAME:-admin}
-CMS_ADMIN_PASSWORD=${CMS_ADMIN_PASSWORD}
-JWT_SECRET_KEY=${JWT_SECRET_KEY}
-CMS_DB_PATH=/app/data/cms.db
-EOF
-    
-    # Sync files to server
-    rsync -avz --delete \
-        --exclude 'node_modules' \
-        --exclude 'bin' \
-        --exclude 'obj' \
-        --exclude '.git' \
-        --exclude '*.db' \
-        -e "ssh -o StrictHostKeyChecking=no" \
-        "$tmp_dir/" "root@$DROPLET_IP:$remote_dir/"
-    
-    # Cleanup temp directory
-    rm -rf "$tmp_dir"
-    
-    log_info "Building and starting containers on server..."
-    
+    # Create production docker-compose on server
     ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << DEPLOY_SCRIPT
         set -e
-        cd $remote_dir
         
-        # Build and start containers
+        mkdir -p /opt/portfolio
+        cd /opt/portfolio
+        
+        # Create docker-compose.yml for production
+        cat > docker-compose.yml << 'COMPOSE_EOF'
+services:
+  backend:
+    image: ${backend_image}
+    container_name: portfolio-backend
+    volumes:
+      - cms-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - CMS_DB_PATH=/app/data/cms.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/graphql?query=%7B__typename%7D"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    image: ${frontend_image}
+    container_name: portfolio-frontend
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: portfolio-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - DOMAIN_NAME=${domain}
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+
+networks:
+  portfolio-network:
+    driver: bridge
+
+volumes:
+  cms-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
+COMPOSE_EOF
+
+        # Create Caddyfile with domain directly embedded
+        cat > Caddyfile << CADDY_EOF
+${domain:-localhost} {
+    # API and GraphQL routes to backend
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+
+    # Everything else to frontend
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+www.${domain:-localhost} {
+    redir https://${domain:-localhost}{uri} permanent
+}
+CADDY_EOF
+
+        # Pull latest images
+        echo "Pulling images..."
+        docker compose pull
+        
+        # Start containers
+        echo "Starting containers..."
         docker compose down --remove-orphans || true
-        docker compose build --no-cache
         docker compose up -d
         
-        # Wait for services to be healthy
+        # Wait for services
         echo "Waiting for services to start..."
         sleep 10
         
@@ -274,48 +396,48 @@ DEPLOY_SCRIPT
 
     log_success "Deployment complete!"
     echo ""
-    log_info "Your application is now running at:"
-    echo "  http://$DROPLET_IP"
-    echo "  http://$DROPLET_IP/admin"
-    
-    if [[ -n "$DOMAIN_NAME" ]]; then
+    if [[ -n "$domain" ]]; then
+        log_info "Your application is now running at:"
+        echo "  https://$domain"
+        echo "  https://$domain/admin"
         echo ""
-        log_info "Don't forget to point your domain ($DOMAIN_NAME) to $DROPLET_IP"
+        log_info "Make sure your DNS is configured:"
+        echo "  $domain      -> A record -> $DROPLET_IP"
+        echo "  www.$domain  -> A record -> $DROPLET_IP (or CNAME to $domain)"
+    else
+        log_info "Your application is now running at:"
+        echo "  http://$DROPLET_IP"
+        echo "  http://$DROPLET_IP/admin"
     fi
 }
 
 # ============================================
-# Quick Deploy (existing server, code only)
+# Full Deploy (build locally + push + deploy)
+# ============================================
+full_deploy() {
+    local tag="${1:-latest}"
+    
+    build_and_push "$tag"
+    deploy "$tag"
+}
+
+# ============================================
+# Quick Deploy (rebuild + push + restart)
 # ============================================
 quick_deploy() {
-    log_info "Quick deploying to $DROPLET_IP (code changes only)..."
-
-    local remote_dir="/opt/portfolio"
-
-    # Sync only source files
-    rsync -avz \
-        --exclude 'node_modules' \
-        --exclude 'bin' \
-        --exclude 'obj' \
-        --exclude '.git' \
-        --exclude '*.db' \
-        --exclude '.env' \
-        -e "ssh -o StrictHostKeyChecking=no" \
-        "$PROJECT_ROOT/backend/" "root@$DROPLET_IP:$remote_dir/backend/"
+    local tag="${1:-latest}"
     
-    rsync -avz \
-        --exclude 'node_modules' \
-        --exclude '.git' \
-        -e "ssh -o StrictHostKeyChecking=no" \
-        "$PROJECT_ROOT/frontend/" "root@$DROPLET_IP:$remote_dir/frontend/"
-
-    ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << DEPLOY_SCRIPT
+    build_and_push "$tag"
+    
+    log_info "Restarting containers on server..."
+    
+    ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << 'QUICK_SCRIPT'
         set -e
-        cd $remote_dir
-        docker compose build
+        cd /opt/portfolio
+        docker compose pull
         docker compose up -d
         docker compose ps
-DEPLOY_SCRIPT
+QUICK_SCRIPT
 
     log_success "Quick deploy complete!"
 }
@@ -379,25 +501,63 @@ backup_db() {
 }
 
 # ============================================
+# Build Only (no push)
+# ============================================
+build_only() {
+    local backend_image="${DOCKER_USERNAME:-local}/${IMAGE_BACKEND:-portfolio-backend}"
+    local frontend_image="${DOCKER_USERNAME:-local}/${IMAGE_FRONTEND:-portfolio-frontend}"
+    local tag="${1:-latest}"
+    
+    log_info "Building images locally..."
+    
+    # Build backend
+    log_info "Building backend image: ${backend_image}:${tag}"
+    docker build -t "${backend_image}:${tag}" -f "$PROJECT_ROOT/backend/dotnet/Dockerfile" "$PROJECT_ROOT/backend/dotnet"
+    
+    # Build frontend
+    log_info "Building frontend image: ${frontend_image}:${tag}"
+    docker build -t "${frontend_image}:${tag}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    
+    log_success "Images built successfully"
+    echo ""
+    log_info "Images:"
+    echo "  ${backend_image}:${tag}"
+    echo "  ${frontend_image}:${tag}"
+}
+
+# ============================================
 # Print Usage
 # ============================================
 usage() {
-    echo "Usage: $0 <command>"
+    echo "Usage: $0 <command> [options]"
     echo ""
     echo "Commands:"
-    echo "  new         Create new droplet and deploy"
-    echo "  deploy      Full deploy to existing droplet"
-    echo "  quick       Quick deploy (code changes only)"
-    echo "  status      Show container status"
-    echo "  logs        Follow container logs (optionally: logs backend|frontend)"
-    echo "  backup      Backup database"
-    echo "  setup       Setup existing server (install Docker, etc.)"
+    echo "  new             Create new droplet and deploy"
+    echo "  deploy          Build locally, push to Docker Hub, deploy to server"
+    echo "  quick           Quick deploy (build, push, restart containers)"
+    echo "  build           Build images locally (no push)"
+    echo "  push            Build and push images to Docker Hub"
+    echo "  status          Show container status on server"
+    echo "  logs [service]  Follow container logs"
+    echo "  backup          Backup database from server"
+    echo "  setup           Setup existing server (install Docker, etc.)"
+    echo ""
+    echo "Options:"
+    echo "  --tag <tag>     Image tag (default: latest)"
     echo ""
     echo "Examples:"
-    echo "  $0 new              # Create droplet and deploy"
-    echo "  $0 deploy           # Full deploy to existing server"
-    echo "  $0 quick            # Quick code-only deploy"
-    echo "  $0 logs backend     # Follow backend logs"
+    echo "  $0 new                    # Create droplet and deploy"
+    echo "  $0 deploy                 # Build locally + push + deploy"
+    echo "  $0 deploy --tag v1.0.0    # Deploy with specific tag"
+    echo "  $0 quick                  # Quick redeploy"
+    echo "  $0 build                  # Build images only"
+    echo "  $0 logs backend           # Follow backend logs"
+    echo ""
+    echo "Required .env variables:"
+    echo "  DOCKER_USERNAME           Docker Hub username"
+    echo "  DROPLET_IP                Server IP (or use 'new' to create)"
+    echo "  CMS_ADMIN_PASSWORD        Admin password"
+    echo "  JWT_SECRET_KEY            JWT signing key"
     echo ""
 }
 
@@ -407,31 +567,57 @@ usage() {
 main() {
     local command="${1:-}"
     shift || true
+    
+    # Parse options
+    local tag="latest"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --tag)
+                tag="$2"
+                shift 2
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
 
     case "$command" in
         new)
             load_env
             validate_env
+            validate_registry
             create_droplet
             setup_server
-            deploy
+            full_deploy "$tag"
             ;;
         deploy)
             load_env
             validate_env
+            validate_registry
             if [[ -z "$DROPLET_IP" ]]; then
                 log_error "DROPLET_IP not set. Use 'new' to create a droplet first."
                 exit 1
             fi
-            deploy
+            full_deploy "$tag"
             ;;
         quick)
             load_env
+            validate_registry
             if [[ -z "$DROPLET_IP" ]]; then
                 log_error "DROPLET_IP not set"
                 exit 1
             fi
-            quick_deploy
+            quick_deploy "$tag"
+            ;;
+        build)
+            load_env
+            build_only "$tag"
+            ;;
+        push)
+            load_env
+            validate_registry
+            build_and_push "$tag"
             ;;
         status)
             load_env

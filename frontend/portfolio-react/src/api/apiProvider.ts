@@ -40,6 +40,21 @@ const createAuthLink = () => {
   });
 };
 
+// Helper to construct WebSocket URL from a potentially relative path
+const getWebSocketUrl = (wsUrl: string): string => {
+  // If already a full URL, return as-is
+  if (wsUrl.startsWith('wss://') || wsUrl.startsWith('ws://')) {
+    return wsUrl;
+  }
+
+  // Construct from current page location
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  const path = wsUrl.startsWith('/') ? wsUrl : `/${wsUrl}`;
+  
+  return `${protocol}//${host}${path}`;
+};
+
 // Initialize Apollo client with config
 export const initializeClient = (config: AppConfig): ApolloClient<unknown> => {
   // If client already exists, return it
@@ -68,10 +83,13 @@ export const initializeClient = (config: AppConfig): ApolloClient<unknown> => {
     }
   });
 
-  // Create WebSocket link
+  // Create WebSocket link with properly constructed URL
+  const wsUrl = getWebSocketUrl(config.apiWsUrl);
+  console.log(`Resolved WebSocket URL: ${wsUrl}`);
+  
   const wsLink = new GraphQLWsLink(
     createClient({
-      url: `${config.apiWsUrl}`,
+      url: wsUrl,
       on: {
         connected: (socket) => {
           console.log('WebSocket connected successfully');

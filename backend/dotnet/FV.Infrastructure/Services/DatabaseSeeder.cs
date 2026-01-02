@@ -552,9 +552,9 @@ public class DatabaseSeeder : IDatabaseSeeder
             },
             menuItems = new[]
             {
-                new { id = 1, title = "Home", link = "hero" },
+                new { id = 1, title = "Home", link = "home" },
                 new { id = 2, title = "About", link = "about" },
-                new { id = 3, title = "Featured Work", link = "service" },
+                new { id = 3, title = "Featured Work", link = "featured-work" },
                 new { id = 4, title = "Contact", link = "contact" }
             },
             searchPlaceholder = "Search here...",

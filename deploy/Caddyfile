@@ -1,0 +1,24 @@
+{$DOMAIN_NAME:localhost} {
+    # API and GraphQL routes to backend
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+
+    # Everything else to frontend
+    handle {
+        reverse_proxy frontend:80
+    }
+}
+
+# Redirect www to non-www
+www.{$DOMAIN_NAME:localhost} {
+    redir https://{$DOMAIN_NAME:localhost}{uri} permanent
+}
