@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router';
 import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { useAuth } from '../auth/AuthContext';
+import { usePortfolio } from '../auth/PortfolioContext';
 import Icon from '@mui/material/Icon';
 import '../styles/admin.css';
 
@@ -42,17 +43,24 @@ const FALLBACK_CONTENT_TYPES = [
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { user, logout } = useAuth();
+  const { selectedPortfolio, portfolios, selectPortfolio } = usePortfolio();
   const navigate = useNavigate();
   const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionNav[]>([]);
   const [isLoadingNav, setIsLoadingNav] = useState(true);
 
   useEffect(() => {
     const fetchEntityDefinitions = async () => {
+      if (!selectedPortfolio) {
+        setIsLoadingNav(false);
+        return;
+      }
+
       try {
+        setIsLoadingNav(true);
         const client = getClient();
         const { data } = await client.query({
           query: GET_ALL_ENTITY_DEFINITIONS,
-          fetchPolicy: 'cache-first',
+          fetchPolicy: 'network-only', // Always fetch fresh when portfolio changes
         });
 
         if (data?.allEntityDefinitions) {
@@ -67,7 +75,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     };
 
     fetchEntityDefinitions();
-  }, []);
+  }, [selectedPortfolio]);
 
   const handleLogout = () => {
     logout();
@@ -102,7 +110,24 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
       <aside className="admin-sidebar">
         <div className="admin-sidebar-header">
           <h1>CMS Admin</h1>
-          <p>Content Management</p>
+          {portfolios.length > 1 ? (
+            <select 
+              className="admin-portfolio-switcher"
+              value={selectedPortfolio?.id || ''}
+              onChange={(e) => {
+                const portfolio = portfolios.find(p => p.id === e.target.value);
+                if (portfolio) {
+                  selectPortfolio(portfolio);
+                }
+              }}
+            >
+              {portfolios.map(p => (
+                <option key={p.id} value={p.id}>{p.name}</option>
+              ))}
+            </select>
+          ) : (
+            <p>{selectedPortfolio?.name || 'Content Management'}</p>
+          )}
         </div>
 
         <nav className="admin-sidebar-nav">

@@ -12,17 +12,30 @@ public class CreateEntityRecordCommand
 public class CreateEntityRecordHandler
 {
     private readonly IUnitOfWork _uow;
+    private readonly ITenantContext _tenantContext;
 
-    public CreateEntityRecordHandler(IUnitOfWork uow)
+    public CreateEntityRecordHandler(IUnitOfWork uow, ITenantContext tenantContext)
     {
         _uow = uow;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Guid> HandleAsync(CreateEntityRecordCommand command)
     {
+        if (!_tenantContext.IsResolved || !_tenantContext.PortfolioId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context not resolved");
+        }
+
+        var portfolioId = _tenantContext.PortfolioId.Value;
+
         var definition = await _uow.EntityDefinitions.GetByNameAsync(command.EntityType);
         if (definition == null)
             throw new Exception($"Entity type '{command.EntityType}' is not defined.");
+
+        // Verify the definition belongs to the current tenant
+        if (definition.PortfolioId != portfolioId)
+            throw new Exception($"Entity type '{command.EntityType}' is not defined for this tenant.");
 
         // TODO: Add schema-based validation here
 
@@ -33,7 +46,8 @@ public class CreateEntityRecordHandler
             JsonData = JsonSerializer.Serialize(command.Data),
             CreatedAt = DateTime.UtcNow,
             IsDraft = true,
-            Version = 1
+            Version = 1,
+            PortfolioId = portfolioId
         };
 
         await _uow.EntityRecords.AddAsync(record);

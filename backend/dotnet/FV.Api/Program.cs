@@ -1,10 +1,10 @@
-using FV.Api.Providers;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.FeatureManagement;
 using FV.Api.Configurations;
 using FV.Application;
 using FV.Infrastructure;
 using FV.Infrastructure.Extensions;
+using FV.Infrastructure.Middleware;
 using FV.Infrastructure.Persistence;
 using FV.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -123,6 +123,10 @@ else
 }
 app.UseCors();
 app.UseRouting();
+
+// Tenant resolution must happen before authentication/authorization
+// so that tenant context is available for the request
+app.UseTenantResolution();
 
 // Add authentication and authorization middleware
 app.UseAuthentication();

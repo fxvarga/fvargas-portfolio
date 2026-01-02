@@ -19,14 +19,21 @@ public class CreateEntityDefinitionCommand
 public class CreateEntityDefinitionCommandHandler
 {
     private readonly IUnitOfWork _uow;
+    private readonly ITenantContext _tenantContext;
 
-    public CreateEntityDefinitionCommandHandler(IUnitOfWork uow)
+    public CreateEntityDefinitionCommandHandler(IUnitOfWork uow, ITenantContext tenantContext)
     {
         _uow = uow;
+        _tenantContext = tenantContext;
     }
 
     public async Task<Guid> HandleAsync(CreateEntityDefinitionCommand command)
     {
+        if (!_tenantContext.IsResolved || !_tenantContext.PortfolioId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context not resolved");
+        }
+
         var entity = new Domain.Entities.EntityDefinition
         {
             Id = Guid.NewGuid(),
@@ -44,6 +51,7 @@ public class CreateEntityDefinitionCommandHandler
                 TargetEntityId = r.TargetEntityId,
                 Type = r.Type
             }).ToList() ?? new List<RelationshipDefinition>(),
+            PortfolioId = _tenantContext.PortfolioId.Value
         };
 
         await _uow.EntityDefinitions.AddAsync(entity);

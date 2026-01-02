@@ -1,4 +1,5 @@
-{$DOMAIN_NAME:localhost} {
+# Fernando Vargas Portfolio (main site + admin)
+{$DOMAIN_FERNANDO:localhost} {
     # API and GraphQL routes to backend
     handle /graphql* {
         reverse_proxy backend:5000
@@ -14,11 +15,63 @@
 
     # Everything else to frontend
     handle {
-        reverse_proxy frontend:80
+        reverse_proxy frontend-fernando:80
     }
 }
 
-# Redirect www to non-www
-www.{$DOMAIN_NAME:localhost} {
-    redir https://{$DOMAIN_NAME:localhost}{uri} permanent
+# Redirect www to non-www for Fernando
+www.{$DOMAIN_FERNANDO:localhost} {
+    redir https://{$DOMAIN_FERNANDO:localhost}{uri} permanent
+}
+
+# Jessica Sutherland Portfolio (photographer)
+{$DOMAIN_JESSICA:jessica.localhost} {
+    # API and GraphQL routes to backend
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+
+    # Everything else to frontend
+    handle {
+        reverse_proxy frontend-jessica:80
+    }
+}
+
+# Redirect www to non-www for Jessica
+www.{$DOMAIN_JESSICA:jessica.localhost} {
+    redir https://{$DOMAIN_JESSICA:jessica.localhost}{uri} permanent
+}
+
+# Busy Bee Marketing Agency Portfolio
+{$DOMAIN_BUSYBEE:busybee.localhost} {
+    # API and GraphQL routes to backend
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+
+    # Everything else to frontend
+    handle {
+        reverse_proxy frontend-busybee:80
+    }
+}
+
+# Redirect www to non-www for Busy Bee
+www.{$DOMAIN_BUSYBEE:busybee.localhost} {
+    redir https://{$DOMAIN_BUSYBEE:busybee.localhost}{uri} permanent
 }

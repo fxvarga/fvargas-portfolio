@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FV.Domain.Entities;
+using FV.Domain.Interfaces;
 using FV.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -13,10 +14,18 @@ public class ContentQueries
     /// </summary>
     public async Task<List<ContentRecord>> GetPublishedContent(
         string entityType,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
+        if (!tenantContext.IsResolved)
+        {
+            return new List<ContentRecord>();
+        }
+
         var records = await dbContext.EntityRecords
-            .Where(r => r.EntityType == entityType && !r.IsDraft)
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
+                     && r.EntityType == entityType 
+                     && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync();
 
@@ -36,10 +45,18 @@ public class ContentQueries
     /// </summary>
     public async Task<ContentRecord?> GetPublishedContentSingle(
         string entityType,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
+        if (!tenantContext.IsResolved)
+        {
+            return null;
+        }
+
         var record = await dbContext.EntityRecords
-            .Where(r => r.EntityType == entityType && !r.IsDraft)
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
+                     && r.EntityType == entityType 
+                     && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .FirstOrDefaultAsync();
 
@@ -60,10 +77,17 @@ public class ContentQueries
     /// Get all CMS data for the portfolio site in a single query (legacy - kept for backwards compatibility)
     /// </summary>
     [Obsolete("Use GetContentByTypes instead for a more flexible approach")]
-    public async Task<PortfolioContent> GetPortfolioContent([Service] CmsDbContext dbContext)
+    public async Task<PortfolioContent> GetPortfolioContent(
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
+        if (!tenantContext.IsResolved)
+        {
+            return new PortfolioContent();
+        }
+
         var records = await dbContext.EntityRecords
-            .Where(r => !r.IsDraft)
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId && !r.IsDraft)
             .ToListAsync();
 
         var contentByType = records
@@ -81,7 +105,12 @@ public class ContentQueries
             Services = GetContentData(contentByType, "services"),
             Contact = GetContentData(contentByType, "contact"),
             Navigation = GetContentData(contentByType, "navigation"),
-            Footer = GetContentData(contentByType, "footer")
+            Footer = GetContentData(contentByType, "footer"),
+            // Additional content types for Jessica portfolio
+            Portfolio = GetContentData(contentByType, "portfolio"),
+            // Additional content types for Busybee portfolio
+            Stats = GetContentData(contentByType, "stats"),
+            Testimonials = GetContentData(contentByType, "testimonials")
         };
     }
 
@@ -91,10 +120,25 @@ public class ContentQueries
     /// </summary>
     public async Task<List<ContentByTypeResult>> GetContentByTypes(
         List<string> entityTypes,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
+        if (!tenantContext.IsResolved)
+        {
+            return entityTypes.Select(type => new ContentByTypeResult
+            {
+                EntityType = type,
+                Data = null,
+                Id = null,
+                Version = 0,
+                UpdatedAt = null
+            }).ToList();
+        }
+
         var records = await dbContext.EntityRecords
-            .Where(r => entityTypes.Contains(r.EntityType) && !r.IsDraft)
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
+                     && entityTypes.Contains(r.EntityType) 
+                     && !r.IsDraft)
             .ToListAsync();
 
         var contentByType = records
@@ -119,10 +163,17 @@ public class ContentQueries
     /// <summary>
     /// Get all published content records (for all entity types)
     /// </summary>
-    public async Task<List<ContentRecord>> GetAllPublishedContent([Service] CmsDbContext dbContext)
+    public async Task<List<ContentRecord>> GetAllPublishedContent(
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
+        if (!tenantContext.IsResolved)
+        {
+            return new List<ContentRecord>();
+        }
+
         var records = await dbContext.EntityRecords
-            .Where(r => !r.IsDraft)
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync();
 
@@ -200,4 +251,15 @@ public class PortfolioContent
     
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Footer { get; set; }
+
+    // Additional content types for Jessica portfolio
+    [GraphQLType(typeof(AnyType))]
+    public JsonElement? Portfolio { get; set; }
+
+    // Additional content types for Busybee portfolio
+    [GraphQLType(typeof(AnyType))]
+    public JsonElement? Stats { get; set; }
+
+    [GraphQLType(typeof(AnyType))]
+    public JsonElement? Testimonials { get; set; }
 }

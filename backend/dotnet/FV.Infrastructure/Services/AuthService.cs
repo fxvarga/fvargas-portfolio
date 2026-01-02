@@ -24,6 +24,14 @@ public class AuthResult
     public string? Token { get; set; }
     public CmsUser? User { get; set; }
     public string? ErrorMessage { get; set; }
+    public List<PortfolioAccess>? Portfolios { get; set; }
+}
+
+public class PortfolioAccess
+{
+    public Guid Id { get; set; }
+    public string Slug { get; set; } = default!;
+    public string Name { get; set; } = default!;
 }
 
 public class AuthService : IAuthService
@@ -40,6 +48,8 @@ public class AuthService : IAuthService
     public async Task<AuthResult> LoginAsync(string username, string password)
     {
         var user = await _context.Users
+            .Include(u => u.UserPortfolios)
+            .ThenInclude(up => up.Portfolio)
             .FirstOrDefaultAsync(u => u.Username == username && u.IsActive);
 
         if (user == null)
@@ -56,13 +66,25 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        var token = GenerateJwtToken(user);
+        // Get user's portfolios
+        var portfolios = user.UserPortfolios?
+            .Where(up => up.Portfolio.IsActive)
+            .Select(up => new PortfolioAccess
+            {
+                Id = up.Portfolio.Id,
+                Slug = up.Portfolio.Slug,
+                Name = up.Portfolio.Name
+            })
+            .ToList() ?? new List<PortfolioAccess>();
+
+        var token = GenerateJwtToken(user, portfolios);
 
         return new AuthResult
         {
             Success = true,
             Token = token,
-            User = user
+            User = user,
+            Portfolios = portfolios
         };
     }
 
@@ -99,7 +121,7 @@ public class AuthService : IAuthService
         return BCrypt.Net.BCrypt.Verify(password, hash);
     }
 
-    private string GenerateJwtToken(CmsUser user)
+    private string GenerateJwtToken(CmsUser user, List<PortfolioAccess> portfolios)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
         var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
@@ -110,7 +132,7 @@ public class AuthService : IAuthService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.Username),
@@ -118,6 +140,12 @@ public class AuthService : IAuthService
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
         };
+
+        // Add portfolio claims
+        foreach (var portfolio in portfolios)
+        {
+            claims.Add(new Claim("portfolio", portfolio.Id.ToString()));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

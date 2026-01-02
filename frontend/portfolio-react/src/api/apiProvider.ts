@@ -23,18 +23,32 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 
 // Storage key for auth token (must match AuthContext)
 const AUTH_TOKEN_KEY = 'cms_auth_token';
+const SELECTED_PORTFOLIO_KEY = 'cms_selected_portfolio';
 
 // Create auth link (assuming you have authentication)
 const createAuthLink = () => {
   return setContext((_, { headers }) => {
     // Get the authentication token from local storage if it exists
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
+    
+    // Get the selected portfolio ID
+    let portfolioId: string | null = null;
+    const portfolioStr = localStorage.getItem(SELECTED_PORTFOLIO_KEY);
+    if (portfolioStr) {
+      try {
+        const portfolio = JSON.parse(portfolioStr);
+        portfolioId = portfolio.id;
+      } catch {
+        // Invalid stored data
+      }
+    }
 
     // Return the headers to the context so httpLink can read them
     return {
       headers: {
         ...headers,
         authorization: token ? `Bearer ${token}` : "",
+        ...(portfolioId ? { 'X-Portfolio-ID': portfolioId } : {}),
       }
     };
   });

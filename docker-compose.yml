@@ -21,13 +21,12 @@ services:
       retries: 3
       start_period: 15s
 
-  frontend:
+  # Fernando Vargas portfolio (main site + admin)
+  frontend-fernando:
     build:
       context: ./frontend/portfolio-react
       dockerfile: Dockerfile
-    container_name: portfolio-frontend
-    ports:
-      - "80:80"
+    container_name: portfolio-frontend-fernando
     depends_on:
       backend:
         condition: service_healthy
@@ -41,10 +40,76 @@ services:
       retries: 3
       start_period: 5s
 
+  # Jessica Sutherland portfolio (photographer)
+  frontend-jessica:
+    build:
+      context: ./frontend/portfolio-jessica
+      dockerfile: Dockerfile
+    container_name: portfolio-frontend-jessica
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Busy Bee marketing agency portfolio
+  frontend-busybee:
+    build:
+      context: ./frontend/portfolio-busybee
+      dockerfile: Dockerfile
+    container_name: portfolio-frontend-busybee
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Caddy reverse proxy for multi-domain routing (local dev)
+  caddy:
+    image: caddy:2-alpine
+    container_name: portfolio-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    environment:
+      - DOMAIN_FERNANDO=${DOMAIN_FERNANDO:-localhost}
+      - DOMAIN_JESSICA=${DOMAIN_JESSICA:-jessica.localhost}
+      - DOMAIN_BUSYBEE=${DOMAIN_BUSYBEE:-busybee.localhost}
+    depends_on:
+      - frontend-fernando
+      - frontend-jessica
+      - frontend-busybee
+      - backend
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+
 networks:
   portfolio-network:
     driver: bridge
 
 volumes:
   cms-data:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
     driver: local

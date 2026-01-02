@@ -33,7 +33,13 @@ public class AuthMutations
                 Id = result.User.Id,
                 Username = result.User.Username,
                 Role = result.User.Role
-            } : null
+            } : null,
+            Portfolios = result.Portfolios?.Select(p => new PortfolioAccessPayload
+            {
+                Id = p.Id,
+                Slug = p.Slug,
+                Name = p.Name
+            }).ToList()
         };
     }
 
@@ -92,6 +98,14 @@ public class LoginPayload
     public string? Token { get; set; }
     public UserPayload? User { get; set; }
     public string? ErrorMessage { get; set; }
+    public List<PortfolioAccessPayload>? Portfolios { get; set; }
+}
+
+public class PortfolioAccessPayload
+{
+    public Guid Id { get; set; }
+    public string Slug { get; set; } = default!;
+    public string Name { get; set; } = default!;
 }
 
 public class UserPayload

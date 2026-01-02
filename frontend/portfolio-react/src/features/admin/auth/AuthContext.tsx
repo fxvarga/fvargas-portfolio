@@ -9,10 +9,17 @@ export interface User {
   role: string;
 }
 
+export interface Portfolio {
+  id: string;
+  slug: string;
+  name: string;
+}
+
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
   token: string | null;
+  portfolios: Portfolio[];
   isLoading: boolean;
 }
 
@@ -32,6 +39,11 @@ const LOGIN_MUTATION = gql`
         username
         role
       }
+      portfolios {
+        id
+        slug
+        name
+      }
       errorMessage
     }
   }
@@ -40,6 +52,7 @@ const LOGIN_MUTATION = gql`
 // Storage keys
 const TOKEN_KEY = 'cms_auth_token';
 const USER_KEY = 'cms_auth_user';
+const PORTFOLIOS_KEY = 'cms_auth_portfolios';
 
 // Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,6 +63,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     isAuthenticated: false,
     user: null,
     token: null,
+    portfolios: [],
     isLoading: true,
   });
 
@@ -57,20 +71,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   useEffect(() => {
     const token = localStorage.getItem(TOKEN_KEY);
     const userStr = localStorage.getItem(USER_KEY);
+    const portfoliosStr = localStorage.getItem(PORTFOLIOS_KEY);
 
     if (token && userStr) {
       try {
         const user = JSON.parse(userStr) as User;
+        const portfolios = portfoliosStr ? JSON.parse(portfoliosStr) as Portfolio[] : [];
         setState({
           isAuthenticated: true,
           user,
           token,
+          portfolios,
           isLoading: false,
         });
       } catch {
         // Invalid stored data, clear it
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
+        localStorage.removeItem(PORTFOLIOS_KEY);
         setState(prev => ({ ...prev, isLoading: false }));
       }
     } else {
@@ -91,14 +109,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const result = data.login;
 
       if (result.success && result.token && result.user) {
+        const portfolios: Portfolio[] = result.portfolios || [];
+
         // Store in localStorage
         localStorage.setItem(TOKEN_KEY, result.token);
         localStorage.setItem(USER_KEY, JSON.stringify(result.user));
+        localStorage.setItem(PORTFOLIOS_KEY, JSON.stringify(portfolios));
 
         setState({
           isAuthenticated: true,
           user: result.user,
           token: result.token,
+          portfolios,
           isLoading: false,
         });
 
@@ -115,10 +137,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const logout = useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(PORTFOLIOS_KEY);
     setState({
       isAuthenticated: false,
       user: null,
       token: null,
+      portfolios: [],
       isLoading: false,
     });
   }, []);

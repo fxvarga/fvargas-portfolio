@@ -10,6 +10,11 @@ public class CmsDbContext : DbContext
     {
     }
 
+    // Multi-tenant entities
+    public DbSet<Portfolio> Portfolios { get; set; } = null!;
+    public DbSet<UserPortfolio> UserPortfolios { get; set; } = null!;
+    
+    // Existing entities
     public DbSet<CmsUser> Users { get; set; } = null!;
     public DbSet<EntityDefinition> EntityDefinitions { get; set; } = null!;
     public DbSet<EntityRecord> EntityRecords { get; set; } = null!;
@@ -19,6 +24,35 @@ public class CmsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        // Portfolio configuration
+        modelBuilder.Entity<Portfolio>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Slug).IsUnique();
+            entity.HasIndex(e => e.Domain).IsUnique();
+            entity.Property(e => e.Slug).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Domain).IsRequired().HasMaxLength(255);
+        });
+
+        // UserPortfolio configuration (many-to-many junction table)
+        modelBuilder.Entity<UserPortfolio>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.PortfolioId });
+            
+            entity.HasOne(e => e.User)
+                .WithMany(u => u.UserPortfolios)
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.HasOne(e => e.Portfolio)
+                .WithMany(p => p.UserPortfolios)
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            entity.Property(e => e.Role).IsRequired().HasMaxLength(50);
+        });
 
         // CmsUser configuration
         modelBuilder.Entity<CmsUser>(entity =>
@@ -34,8 +68,18 @@ public class CmsDbContext : DbContext
         modelBuilder.Entity<EntityDefinition>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.Name).IsUnique();
+            
+            // Unique constraint on Name within a Portfolio (not globally unique anymore)
+            entity.HasIndex(e => new { e.PortfolioId, e.Name }).IsUnique();
+            
             entity.Property(e => e.Name).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.PortfolioId).IsRequired();
+            
+            // Foreign key to Portfolio
+            entity.HasOne(e => e.Portfolio)
+                .WithMany(p => p.EntityDefinitions)
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
             
             // Store Attributes as JSON
             entity.Property(e => e.Attributes)
@@ -56,10 +100,17 @@ public class CmsDbContext : DbContext
         modelBuilder.Entity<EntityRecord>(entity =>
         {
             entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.EntityType);
-            entity.HasIndex(e => new { e.EntityType, e.IsDraft });
+            entity.HasIndex(e => new { e.PortfolioId, e.EntityType });
+            entity.HasIndex(e => new { e.PortfolioId, e.EntityType, e.IsDraft });
             entity.Property(e => e.EntityType).IsRequired().HasMaxLength(100);
             entity.Property(e => e.JsonData).IsRequired();
+            entity.Property(e => e.PortfolioId).IsRequired();
+            
+            // Foreign key to Portfolio
+            entity.HasOne(e => e.Portfolio)
+                .WithMany(p => p.EntityRecords)
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // EntityRecordVersion configuration (for version history)
@@ -68,17 +119,33 @@ public class CmsDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.EntityRecordId);
             entity.HasIndex(e => new { e.EntityRecordId, e.Version });
+            entity.HasIndex(e => e.PortfolioId);
             entity.Property(e => e.EntityType).IsRequired().HasMaxLength(100);
             entity.Property(e => e.JsonData).IsRequired();
+            entity.Property(e => e.PortfolioId).IsRequired();
+            
+            // Foreign key to Portfolio
+            entity.HasOne(e => e.Portfolio)
+                .WithMany()
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // MediaAsset configuration
         modelBuilder.Entity<MediaAsset>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.PortfolioId);
             entity.Property(e => e.FileName).IsRequired().HasMaxLength(255);
             entity.Property(e => e.FilePath).IsRequired().HasMaxLength(500);
             entity.Property(e => e.MimeType).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.PortfolioId).IsRequired();
+            
+            // Foreign key to Portfolio
+            entity.HasOne(e => e.Portfolio)
+                .WithMany()
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

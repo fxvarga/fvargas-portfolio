@@ -19,16 +19,29 @@ public class UpdateEntityDefinitionCommand
 public class UpdateEntityDefinitionCommandHandler
 {
     private readonly IUnitOfWork _uow;
+    private readonly ITenantContext _tenantContext;
 
-    public UpdateEntityDefinitionCommandHandler(IUnitOfWork uow)
+    public UpdateEntityDefinitionCommandHandler(IUnitOfWork uow, ITenantContext tenantContext)
     {
         _uow = uow;
+        _tenantContext = tenantContext;
     }
 
     public async Task HandleAsync(UpdateEntityDefinitionCommand command)
     {
+        if (!_tenantContext.IsResolved || !_tenantContext.PortfolioId.HasValue)
+        {
+            throw new InvalidOperationException("Tenant context not resolved");
+        }
+
         var entity = await _uow.EntityDefinitions.GetByIdAsync(command.Id);
         if (entity == null) throw new Exception("Entity not found.");
+
+        // Verify tenant access
+        if (entity.PortfolioId != _tenantContext.PortfolioId.Value)
+        {
+            throw new UnauthorizedAccessException("Entity does not belong to current tenant");
+        }
 
         if (!string.IsNullOrWhiteSpace(command.Name))
             entity.Name = command.Name;

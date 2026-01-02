@@ -989,3 +989,33 @@
   font-weight: 500;
   color: var(--admin-text);
 }
+
+/* Portfolio Switcher */
+.admin-portfolio-switcher {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.5rem;
+  background-color: var(--admin-sidebar-hover);
+  color: #fff;
+  border: 1px solid var(--admin-sidebar-hover);
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.admin-portfolio-switcher:hover {
+  background-color: #475569;
+  border-color: var(--admin-primary);
+}
+
+.admin-portfolio-switcher:focus {
+  outline: none;
+  border-color: var(--admin-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.3);
+}
+
+.admin-portfolio-switcher option {
+  background-color: var(--admin-sidebar-bg);
+  color: #fff;
+}

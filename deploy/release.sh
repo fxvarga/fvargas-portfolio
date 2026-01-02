@@ -86,6 +86,16 @@ validate_registry() {
 }
 
 # ============================================
+# Frontend Image Names
+# ============================================
+get_frontend_images() {
+    local tag="${1:-latest}"
+    FRONTEND_FERNANDO_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_FERNANDO:-portfolio-frontend-fernando}:${tag}"
+    FRONTEND_JESSICA_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_JESSICA:-portfolio-frontend-jessica}:${tag}"
+    FRONTEND_BUSYBEE_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BUSYBEE:-portfolio-frontend-busybee}:${tag}"
+}
+
+# ============================================
 # Create New Droplet
 # ============================================
 create_droplet() {
@@ -220,8 +230,9 @@ build_and_push() {
     validate_registry
     
     local backend_image="${DOCKER_USERNAME}/${IMAGE_BACKEND:-portfolio-backend}"
-    local frontend_image="${DOCKER_USERNAME}/${IMAGE_FRONTEND:-portfolio-frontend}"
     local tag="${1:-latest}"
+    
+    get_frontend_images "$tag"
     
     log_info "Building images locally..."
     
@@ -229,9 +240,17 @@ build_and_push() {
     log_info "Building backend image: ${backend_image}:${tag}"
     docker build -t "${backend_image}:${tag}" -f "$PROJECT_ROOT/backend/dotnet/Dockerfile" "$PROJECT_ROOT/backend/dotnet"
     
-    # Build frontend
-    log_info "Building frontend image: ${frontend_image}:${tag}"
-    docker build -t "${frontend_image}:${tag}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    # Build frontend - Fernando (main site + admin)
+    log_info "Building frontend image (Fernando): ${FRONTEND_FERNANDO_IMAGE}"
+    docker build -t "${FRONTEND_FERNANDO_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    
+    # Build frontend - Jessica (photographer)
+    log_info "Building frontend image (Jessica): ${FRONTEND_JESSICA_IMAGE}"
+    docker build -t "${FRONTEND_JESSICA_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-jessica/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-jessica"
+    
+    # Build frontend - Busy Bee (marketing agency)
+    log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
+    docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
     
     log_success "Images built successfully"
     
@@ -239,13 +258,14 @@ build_and_push() {
     log_info "Pushing images to Docker Hub..."
     
     docker push "${backend_image}:${tag}"
-    docker push "${frontend_image}:${tag}"
+    docker push "${FRONTEND_FERNANDO_IMAGE}"
+    docker push "${FRONTEND_JESSICA_IMAGE}"
+    docker push "${FRONTEND_BUSYBEE_IMAGE}"
     
     log_success "Images pushed to Docker Hub"
     
     # Export for use in deploy
     export BACKEND_IMAGE="${backend_image}:${tag}"
-    export FRONTEND_IMAGE="${frontend_image}:${tag}"
 }
 
 # ============================================
@@ -254,19 +274,24 @@ build_and_push() {
 deploy() {
     local tag="${1:-latest}"
     local backend_image="${DOCKER_USERNAME}/${IMAGE_BACKEND:-portfolio-backend}:${tag}"
-    local frontend_image="${DOCKER_USERNAME}/${IMAGE_FRONTEND:-portfolio-frontend}:${tag}"
-    local domain="${DOMAIN_NAME:-}"
+    
+    get_frontend_images "$tag"
+    
+    local domain_fernando="${DOMAIN_FERNANDO:-}"
+    local domain_jessica="${DOMAIN_JESSICA:-}"
+    local domain_busybee="${DOMAIN_BUSYBEE:-}"
     
     log_info "Deploying to $DROPLET_IP..."
     log_info "Using images:"
-    log_info "  Backend:  $backend_image"
-    log_info "  Frontend: $frontend_image"
+    log_info "  Backend:          $backend_image"
+    log_info "  Frontend Fernando: $FRONTEND_FERNANDO_IMAGE"
+    log_info "  Frontend Jessica:  $FRONTEND_JESSICA_IMAGE"
+    log_info "  Frontend BusyBee:  $FRONTEND_BUSYBEE_IMAGE"
     
-    if [[ -n "$domain" ]]; then
-        log_info "  Domain:   $domain (with Caddy/HTTPS)"
-    else
-        log_info "  Domain:   None (HTTP only via nginx)"
-    fi
+    log_info "Domains:"
+    log_info "  Fernando: ${domain_fernando:-localhost}"
+    log_info "  Jessica:  ${domain_jessica:-jessica.localhost}"
+    log_info "  BusyBee:  ${domain_busybee:-busybee.localhost}"
 
     # Create production docker-compose on server
     ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << DEPLOY_SCRIPT
@@ -298,9 +323,41 @@ services:
       retries: 3
       start_period: 15s
 
-  frontend:
-    image: ${frontend_image}
-    container_name: portfolio-frontend
+  frontend-fernando:
+    image: ${FRONTEND_FERNANDO_IMAGE}
+    container_name: portfolio-frontend-fernando
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-jessica:
+    image: ${FRONTEND_JESSICA_IMAGE}
+    container_name: portfolio-frontend-jessica
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-busybee:
+    image: ${FRONTEND_BUSYBEE_IMAGE}
+    container_name: portfolio-frontend-busybee
     depends_on:
       backend:
         condition: service_healthy
@@ -325,10 +382,10 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
       - caddy-config:/config
-    environment:
-      - DOMAIN_NAME=${domain}
     depends_on:
-      - frontend
+      - frontend-fernando
+      - frontend-jessica
+      - frontend-busybee
       - backend
     networks:
       - portfolio-network
@@ -347,30 +404,66 @@ volumes:
     driver: local
 COMPOSE_EOF
 
-        # Create Caddyfile with domain directly embedded
+        # Create Caddyfile with domains directly embedded
         cat > Caddyfile << CADDY_EOF
-${domain:-localhost} {
-    # API and GraphQL routes to backend
+# Fernando Vargas Portfolio (main site + admin)
+${domain_fernando:-localhost} {
     handle /graphql* {
         reverse_proxy backend:5000
     }
-
     handle /api/* {
         reverse_proxy backend:5000
     }
-
     handle /healthcheck {
         reverse_proxy backend:5000
     }
-
-    # Everything else to frontend
     handle {
-        reverse_proxy frontend:80
+        reverse_proxy frontend-fernando:80
     }
 }
 
-www.${domain:-localhost} {
-    redir https://${domain:-localhost}{uri} permanent
+www.${domain_fernando:-localhost} {
+    redir https://${domain_fernando:-localhost}{uri} permanent
+}
+
+# Jessica Sutherland Portfolio
+${domain_jessica:-jessica.localhost} {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-jessica:80
+    }
+}
+
+www.${domain_jessica:-jessica.localhost} {
+    redir https://${domain_jessica:-jessica.localhost}{uri} permanent
+}
+
+# Busy Bee Marketing Agency
+${domain_busybee:-busybee.localhost} {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-busybee:80
+    }
+}
+
+www.${domain_busybee:-busybee.localhost} {
+    redir https://${domain_busybee:-busybee.localhost}{uri} permanent
 }
 CADDY_EOF
 
@@ -396,19 +489,19 @@ DEPLOY_SCRIPT
 
     log_success "Deployment complete!"
     echo ""
-    if [[ -n "$domain" ]]; then
-        log_info "Your application is now running at:"
-        echo "  https://$domain"
-        echo "  https://$domain/admin"
-        echo ""
-        log_info "Make sure your DNS is configured:"
-        echo "  $domain      -> A record -> $DROPLET_IP"
-        echo "  www.$domain  -> A record -> $DROPLET_IP (or CNAME to $domain)"
-    else
-        log_info "Your application is now running at:"
-        echo "  http://$DROPLET_IP"
-        echo "  http://$DROPLET_IP/admin"
+    log_info "Your applications are now running at:"
+    if [[ -n "$domain_fernando" ]]; then
+        echo "  Fernando: https://$domain_fernando"
+        echo "  Fernando Admin: https://$domain_fernando/admin"
     fi
+    if [[ -n "$domain_jessica" ]]; then
+        echo "  Jessica: https://$domain_jessica"
+    fi
+    if [[ -n "$domain_busybee" ]]; then
+        echo "  BusyBee: https://$domain_busybee"
+    fi
+    echo ""
+    log_info "Make sure your DNS is configured for all domains to point to: $DROPLET_IP"
 }
 
 # ============================================
@@ -505,8 +598,9 @@ backup_db() {
 # ============================================
 build_only() {
     local backend_image="${DOCKER_USERNAME:-local}/${IMAGE_BACKEND:-portfolio-backend}"
-    local frontend_image="${DOCKER_USERNAME:-local}/${IMAGE_FRONTEND:-portfolio-frontend}"
     local tag="${1:-latest}"
+    
+    get_frontend_images "$tag"
     
     log_info "Building images locally..."
     
@@ -514,15 +608,25 @@ build_only() {
     log_info "Building backend image: ${backend_image}:${tag}"
     docker build -t "${backend_image}:${tag}" -f "$PROJECT_ROOT/backend/dotnet/Dockerfile" "$PROJECT_ROOT/backend/dotnet"
     
-    # Build frontend
-    log_info "Building frontend image: ${frontend_image}:${tag}"
-    docker build -t "${frontend_image}:${tag}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    # Build frontend - Fernando
+    log_info "Building frontend image (Fernando): ${FRONTEND_FERNANDO_IMAGE}"
+    docker build -t "${FRONTEND_FERNANDO_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    
+    # Build frontend - Jessica
+    log_info "Building frontend image (Jessica): ${FRONTEND_JESSICA_IMAGE}"
+    docker build -t "${FRONTEND_JESSICA_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-jessica/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-jessica"
+    
+    # Build frontend - Busy Bee
+    log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
+    docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
     
     log_success "Images built successfully"
     echo ""
     log_info "Images:"
     echo "  ${backend_image}:${tag}"
-    echo "  ${frontend_image}:${tag}"
+    echo "  ${FRONTEND_FERNANDO_IMAGE}"
+    echo "  ${FRONTEND_JESSICA_IMAGE}"
+    echo "  ${FRONTEND_BUSYBEE_IMAGE}"
 }
 
 # ============================================
@@ -558,6 +662,11 @@ usage() {
     echo "  DROPLET_IP                Server IP (or use 'new' to create)"
     echo "  CMS_ADMIN_PASSWORD        Admin password"
     echo "  JWT_SECRET_KEY            JWT signing key"
+    echo ""
+    echo "Multi-tenant domain variables (optional):"
+    echo "  DOMAIN_FERNANDO           Domain for Fernando's portfolio (e.g., fernando-vargas.com)"
+    echo "  DOMAIN_JESSICA            Domain for Jessica's portfolio (e.g., jessicasutherland.me)"
+    echo "  DOMAIN_BUSYBEE            Domain for BusyBee's portfolio (e.g., thebusybeeweb.com)"
     echo ""
 }
 

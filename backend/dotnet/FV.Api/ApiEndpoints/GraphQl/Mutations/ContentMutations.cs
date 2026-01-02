@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FV.Domain.Entities;
+using FV.Domain.Interfaces;
 using FV.Infrastructure.Persistence;
 using FV.Api.ApiEndpoints.GraphQl.Queries;
 using FV.Application.Services;
@@ -19,13 +20,25 @@ public class ContentMutations
     [Authorize]
     public async Task<ContentMutationPayload> CreateContent(
         CreateContentInput input,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
         try
         {
-            // Validate against schema if entity definition exists
+            if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Tenant context not resolved"
+                };
+            }
+
+            var portfolioId = tenantContext.PortfolioId.Value;
+
+            // Validate against schema if entity definition exists (scoped to tenant)
             var definition = await dbContext.EntityDefinitions
-                .FirstOrDefaultAsync(d => d.Name == input.EntityType);
+                .FirstOrDefaultAsync(d => d.Name == input.EntityType && d.PortfolioId == portfolioId);
             
             if (definition != null)
             {
@@ -52,7 +65,8 @@ public class ContentMutations
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 Version = 1,
-                PublishedAt = input.IsDraft == false ? DateTime.UtcNow : null
+                PublishedAt = input.IsDraft == false ? DateTime.UtcNow : null,
+                PortfolioId = portfolioId
             };
 
             dbContext.EntityRecords.Add(record);
@@ -80,11 +94,25 @@ public class ContentMutations
     [Authorize]
     public async Task<ContentMutationPayload> UpdateContent(
         UpdateContentInput input,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
         try
         {
-            var record = await dbContext.EntityRecords.FindAsync(input.Id);
+            if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Tenant context not resolved"
+                };
+            }
+
+            var portfolioId = tenantContext.PortfolioId.Value;
+
+            // Find record scoped to tenant
+            var record = await dbContext.EntityRecords
+                .FirstOrDefaultAsync(r => r.Id == input.Id && r.PortfolioId == portfolioId);
             if (record == null)
             {
                 return new ContentMutationPayload
@@ -94,9 +122,9 @@ public class ContentMutations
                 };
             }
 
-            // Validate against schema if entity definition exists
+            // Validate against schema if entity definition exists (scoped to tenant)
             var definition = await dbContext.EntityDefinitions
-                .FirstOrDefaultAsync(d => d.Name == record.EntityType);
+                .FirstOrDefaultAsync(d => d.Name == record.EntityType && d.PortfolioId == portfolioId);
             
             if (definition != null)
             {
@@ -122,7 +150,8 @@ public class ContentMutations
                 EntityType = record.EntityType,
                 JsonData = record.JsonData,
                 Version = record.Version,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                PortfolioId = portfolioId
             };
             dbContext.EntityRecordVersions.Add(versionRecord);
 
@@ -161,11 +190,25 @@ public class ContentMutations
     [Authorize]
     public async Task<ContentMutationPayload> PublishContent(
         Guid id,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
         try
         {
-            var record = await dbContext.EntityRecords.FindAsync(id);
+            if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Tenant context not resolved"
+                };
+            }
+
+            var portfolioId = tenantContext.PortfolioId.Value;
+
+            // Find record scoped to tenant
+            var record = await dbContext.EntityRecords
+                .FirstOrDefaultAsync(r => r.Id == id && r.PortfolioId == portfolioId);
             if (record == null)
             {
                 return new ContentMutationPayload
@@ -203,11 +246,25 @@ public class ContentMutations
     [Authorize(Roles = new[] { "Admin" })]
     public async Task<ContentMutationPayload> DeleteContent(
         Guid id,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
         try
         {
-            var record = await dbContext.EntityRecords.FindAsync(id);
+            if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+            {
+                return new ContentMutationPayload
+                {
+                    Success = false,
+                    ErrorMessage = "Tenant context not resolved"
+                };
+            }
+
+            var portfolioId = tenantContext.PortfolioId.Value;
+
+            // Find record scoped to tenant
+            var record = await dbContext.EntityRecords
+                .FirstOrDefaultAsync(r => r.Id == id && r.PortfolioId == portfolioId);
             if (record == null)
             {
                 return new ContentMutationPayload
@@ -242,9 +299,17 @@ public class ContentMutations
     [GraphQLName("getAllContentAdmin")]
     public async Task<List<Queries.ContentRecord>> GetAllContentAdmin(
         string? entityType,
-        [Service] CmsDbContext dbContext)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
-        var query = dbContext.EntityRecords.AsQueryable();
+        if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+        {
+            return new List<Queries.ContentRecord>();
+        }
+
+        var portfolioId = tenantContext.PortfolioId.Value;
+        var query = dbContext.EntityRecords
+            .Where(r => r.PortfolioId == portfolioId);
 
         if (!string.IsNullOrEmpty(entityType))
         {
