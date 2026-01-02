@@ -1,5 +1,7 @@
 using FV.Application.Queries.EntityDefinition;
 using FV.Domain.Entities;
+using FV.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace FV.Api.ApiEndpoints.GraphQl.Queries;
 
@@ -7,15 +9,24 @@ namespace FV.Api.ApiEndpoints.GraphQl.Queries;
 public class EntityDefinitionQueries
 {
     public async Task<List<EntityDefinition>> GetAllEntityDefinitions(
-        [Service] GetAllEntityDefinitionsQueryHandler handler)
+        [Service] CmsDbContext dbContext)
     {
-        return await handler.HandleAsync();
+        return await dbContext.EntityDefinitions.ToListAsync();
     }
 
     public async Task<EntityDefinition?> GetEntityDefinitionById(
         Guid id,
-        [Service] GetEntityDefinitionByIdQueryHandler handler)
+        [Service] CmsDbContext dbContext)
     {
-        return await handler.HandleAsync(new GetEntityDefinitionByIdQuery { Id = id });
+        return await dbContext.EntityDefinitions
+            .FirstOrDefaultAsync(e => e.Id == id);
+    }
+
+    public async Task<EntityDefinition?> GetEntityDefinitionByName(
+        string name,
+        [Service] CmsDbContext dbContext)
+    {
+        return await dbContext.EntityDefinitions
+            .FirstOrDefaultAsync(e => e.Name == name);
     }
 }

@@ -57,8 +57,9 @@ public class ContentQueries
     }
 
     /// <summary>
-    /// Get all CMS data for the portfolio site in a single query
+    /// Get all CMS data for the portfolio site in a single query (legacy - kept for backwards compatibility)
     /// </summary>
+    [Obsolete("Use GetContentByTypes instead for a more flexible approach")]
     public async Task<PortfolioContent> GetPortfolioContent([Service] CmsDbContext dbContext)
     {
         var records = await dbContext.EntityRecords
@@ -84,6 +85,64 @@ public class ContentQueries
         };
     }
 
+    /// <summary>
+    /// Get all published content for multiple entity types in a single query.
+    /// Returns a dictionary keyed by entity type.
+    /// </summary>
+    public async Task<List<ContentByTypeResult>> GetContentByTypes(
+        List<string> entityTypes,
+        [Service] CmsDbContext dbContext)
+    {
+        var records = await dbContext.EntityRecords
+            .Where(r => entityTypes.Contains(r.EntityType) && !r.IsDraft)
+            .ToListAsync();
+
+        var contentByType = records
+            .GroupBy(r => r.EntityType)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderByDescending(r => r.UpdatedAt).First()
+            );
+
+        return entityTypes.Select(type => new ContentByTypeResult
+        {
+            EntityType = type,
+            Data = contentByType.TryGetValue(type, out var record) 
+                ? JsonSerializer.Deserialize<JsonElement>(record.JsonData)
+                : null,
+            Id = contentByType.TryGetValue(type, out var r) ? r.Id : null,
+            Version = contentByType.TryGetValue(type, out var v) ? v.Version : 0,
+            UpdatedAt = contentByType.TryGetValue(type, out var u) ? u.UpdatedAt : null
+        }).ToList();
+    }
+
+    /// <summary>
+    /// Get all published content records (for all entity types)
+    /// </summary>
+    public async Task<List<ContentRecord>> GetAllPublishedContent([Service] CmsDbContext dbContext)
+    {
+        var records = await dbContext.EntityRecords
+            .Where(r => !r.IsDraft)
+            .OrderByDescending(r => r.UpdatedAt)
+            .ToListAsync();
+
+        // Group by type and take the most recent for each
+        var latestByType = records
+            .GroupBy(r => r.EntityType)
+            .Select(g => g.First())
+            .ToList();
+
+        return latestByType.Select(r => new ContentRecord
+        {
+            Id = r.Id,
+            EntityType = r.EntityType,
+            Data = JsonSerializer.Deserialize<JsonElement>(r.JsonData),
+            Version = r.Version,
+            PublishedAt = r.PublishedAt,
+            UpdatedAt = r.UpdatedAt
+        }).ToList();
+    }
+
     private static JsonElement? GetContentData(
         Dictionary<string, EntityRecord> contentByType, 
         string entityType)
@@ -105,6 +164,18 @@ public class ContentRecord
     public int Version { get; set; }
     public DateTime? PublishedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+}
+
+public class ContentByTypeResult
+{
+    public string EntityType { get; set; } = default!;
+    public Guid? Id { get; set; }
+    
+    [GraphQLType(typeof(AnyType))]
+    public JsonElement? Data { get; set; }
+    
+    public int Version { get; set; }
+    public DateTime? UpdatedAt { get; set; }
 }
 
 public class PortfolioContent

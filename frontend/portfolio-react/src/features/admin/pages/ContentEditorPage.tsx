@@ -13,6 +13,8 @@ import {
   SiteConfigEditor,
   ServicesEditor,
 } from '../components/editors';
+import { DynamicEntityEditor } from '../components/dynamic';
+import { EntityDefinition, ValidationError, validateData } from '../types/entityDefinition';
 import '../styles/admin.css';
 
 // Types
@@ -27,7 +29,7 @@ interface ContentRecord {
 
 type EditorMode = 'visual' | 'json';
 
-// GraphQL mutations
+// GraphQL queries and mutations
 const GET_CONTENT_BY_TYPE = gql`
   mutation GetContentByType($entityType: String!) {
     getAllContentAdmin(entityType: $entityType) {
@@ -41,11 +43,76 @@ const GET_CONTENT_BY_TYPE = gql`
   }
 `;
 
+const GET_ENTITY_DEFINITION_BY_NAME = gql`
+  query GetEntityDefinitionByName($name: String!) {
+    entityDefinitionByName(name: $name) {
+      id
+      name
+      displayName
+      description
+      icon
+      isSingleton
+      category
+      attributes {
+        id
+        name
+        type
+        isRequired
+        label
+        helpText
+        placeholder
+        defaultValue
+        targetEntity
+        validation
+        order
+        options {
+          value
+          label
+        }
+        children {
+          id
+          name
+          type
+          isRequired
+          label
+          helpText
+          placeholder
+          defaultValue
+          targetEntity
+          order
+          options {
+            value
+            label
+          }
+          children {
+            id
+            name
+            type
+            isRequired
+            label
+            helpText
+            placeholder
+            order
+            options {
+              value
+              label
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 const UPDATE_CONTENT = gql`
   mutation UpdateContent($input: UpdateContentInput!) {
     updateContent(input: $input) {
       success
       errorMessage
+      validationErrors {
+        field
+        message
+      }
       record {
         id
         entityType
@@ -75,6 +142,7 @@ const PUBLISH_CONTENT = gql`
   }
 `;
 
+// Legacy content type labels (fallback when no definition exists)
 const CONTENT_TYPE_LABELS: Record<string, string> = {
   'hero': 'Hero Section',
   'about': 'About Section',
@@ -85,8 +153,8 @@ const CONTENT_TYPE_LABELS: Record<string, string> = {
   'footer': 'Footer',
 };
 
-// Content types that have custom visual editors
-const VISUAL_EDITOR_TYPES = ['hero', 'about', 'services', 'contact', 'navigation', 'site-config', 'footer'];
+// Legacy content types that have custom visual editors
+const LEGACY_EDITOR_TYPES = ['hero', 'about', 'services', 'contact', 'navigation', 'site-config', 'footer'];
 
 // Helper function to parse data that might be a JSON string
 const parseRecordData = (data: unknown): Record<string, unknown> => {
@@ -116,8 +184,33 @@ const ContentEditorPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
+  const [entityDefinition, setEntityDefinition] = useState<EntityDefinition | null>(null);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
 
-  const hasVisualEditor = entityType && VISUAL_EDITOR_TYPES.includes(entityType);
+  // Determine if we have a visual editor available
+  const hasLegacyEditor = entityType && LEGACY_EDITOR_TYPES.includes(entityType);
+  const hasDynamicEditor = entityDefinition && entityDefinition.attributes.length > 0;
+  const hasVisualEditor = hasLegacyEditor || hasDynamicEditor;
+
+  const fetchEntityDefinition = useCallback(async () => {
+    if (!entityType) return;
+    
+    try {
+      const client = getClient();
+      const { data } = await client.query({
+        query: GET_ENTITY_DEFINITION_BY_NAME,
+        variables: { name: entityType },
+        fetchPolicy: 'network-only',
+      });
+
+      if (data?.entityDefinitionByName) {
+        setEntityDefinition(data.entityDefinitionByName);
+      }
+    } catch (err) {
+      // Entity definition not found - will fall back to legacy editor or JSON
+      console.log('No entity definition found for:', entityType);
+    }
+  }, [entityType]);
 
   const fetchContent = useCallback(async () => {
     if (!entityType) return;
@@ -159,8 +252,9 @@ const ContentEditorPage: React.FC = () => {
   }, [entityType]);
 
   useEffect(() => {
+    fetchEntityDefinition();
     fetchContent();
-  }, [fetchContent]);
+  }, [fetchEntityDefinition, fetchContent]);
 
   // Sync formData to jsonData when switching to JSON mode
   useEffect(() => {
@@ -174,6 +268,7 @@ const ContentEditorPage: React.FC = () => {
     setHasChanges(true);
     setError(null);
     setSuccess(null);
+    setValidationErrors([]); // Clear validation errors when data changes
   };
 
   const handleJsonChange = (value: string) => {
@@ -224,8 +319,19 @@ const ContentEditorPage: React.FC = () => {
     const dataToSave = getCurrentData();
     if (!dataToSave) return;
 
+    // Client-side validation
+    if (entityDefinition) {
+      const clientValidation = validateData(dataToSave, entityDefinition.attributes);
+      if (!clientValidation.isValid) {
+        setValidationErrors(clientValidation.errors);
+        setError('Please fix the validation errors below');
+        return;
+      }
+    }
+
     try {
       setIsSaving(true);
+      setValidationErrors([]);
       const client = getClient();
       const token = getAuthToken();
 
@@ -251,8 +357,15 @@ const ContentEditorPage: React.FC = () => {
         setJsonData(JSON.stringify(parsedData, null, 2));
         setSuccess('Content saved successfully!');
         setHasChanges(false);
+        setValidationErrors([]);
       } else {
-        setError(data.updateContent.errorMessage || 'Failed to save content');
+        // Handle validation errors from server
+        if (data.updateContent.validationErrors && data.updateContent.validationErrors.length > 0) {
+          setValidationErrors(data.updateContent.validationErrors);
+          setError('Validation failed. Please fix the errors below.');
+        } else {
+          setError(data.updateContent.errorMessage || 'Failed to save content');
+        }
       }
     } catch (err) {
       console.error('Failed to save content:', err);
@@ -300,8 +413,19 @@ const ContentEditorPage: React.FC = () => {
     const dataToSave = getCurrentData();
     if (!dataToSave) return;
 
+    // Client-side validation
+    if (entityDefinition) {
+      const clientValidation = validateData(dataToSave, entityDefinition.attributes);
+      if (!clientValidation.isValid) {
+        setValidationErrors(clientValidation.errors);
+        setError('Please fix the validation errors below');
+        return;
+      }
+    }
+
     try {
       setIsSaving(true);
+      setValidationErrors([]);
       const client = getClient();
       const token = getAuthToken();
 
@@ -328,8 +452,15 @@ const ContentEditorPage: React.FC = () => {
         setJsonData(JSON.stringify(parsedData, null, 2));
         setSuccess('Content saved and published successfully!');
         setHasChanges(false);
+        setValidationErrors([]);
       } else {
-        setError(data.updateContent.errorMessage || 'Failed to save content');
+        // Handle validation errors from server
+        if (data.updateContent.validationErrors && data.updateContent.validationErrors.length > 0) {
+          setValidationErrors(data.updateContent.validationErrors);
+          setError('Validation failed. Please fix the errors below.');
+        } else {
+          setError(data.updateContent.errorMessage || 'Failed to save content');
+        }
       }
     } catch (err) {
       console.error('Failed to save content:', err);
@@ -351,10 +482,14 @@ const ContentEditorPage: React.FC = () => {
   };
 
   const getLabel = (): string => {
+    // Prefer displayName from entity definition
+    if (entityDefinition?.displayName) {
+      return entityDefinition.displayName;
+    }
     return CONTENT_TYPE_LABELS[entityType || ''] || entityType || 'Content';
   };
 
-  const renderVisualEditor = () => {
+  const renderLegacyEditor = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const editorProps = { data: formData as any, onChange: handleFormDataChange as any };
 
@@ -378,6 +513,27 @@ const ContentEditorPage: React.FC = () => {
     }
   };
 
+  const renderVisualEditor = () => {
+    // If we have a dynamic definition with attributes, use DynamicEntityEditor
+    if (hasDynamicEditor && entityDefinition) {
+      return (
+        <DynamicEntityEditor
+          definition={entityDefinition}
+          data={formData}
+          onChange={handleFormDataChange}
+          validationErrors={validationErrors}
+        />
+      );
+    }
+
+    // Fall back to legacy hardcoded editors
+    if (hasLegacyEditor) {
+      return renderLegacyEditor();
+    }
+
+    return null;
+  };
+
   const renderJsonEditor = () => (
     <div className="admin-json-editor">
       <textarea
@@ -393,7 +549,14 @@ const ContentEditorPage: React.FC = () => {
       <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <h1>Edit {getLabel()}</h1>
-          <p>Modify the content data for this section</p>
+          <p>
+            {entityDefinition?.description || 'Modify the content data for this section'}
+            {hasDynamicEditor && (
+              <span className="admin-badge admin-badge-info" style={{ marginLeft: '0.5rem' }}>
+                Dynamic Schema
+              </span>
+            )}
+          </p>
         </div>
         <button
           className="admin-btn admin-btn-secondary"

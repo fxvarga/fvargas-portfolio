@@ -1,0 +1,50 @@
+services:
+  backend:
+    build:
+      context: ./backend/dotnet
+      dockerfile: Dockerfile
+    container_name: portfolio-backend
+    volumes:
+      # Persist SQLite database in a separate data directory
+      - cms-data:/app/data
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - CMS_DB_PATH=/app/data/cms.db
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/graphql?query=%7B__typename%7D"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ./frontend/portfolio-react
+      dockerfile: Dockerfile
+    container_name: portfolio-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+networks:
+  portfolio-network:
+    driver: bridge
+
+volumes:
+  cms-data:
+    driver: local

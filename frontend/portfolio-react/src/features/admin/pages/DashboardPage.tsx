@@ -16,7 +16,16 @@ interface ContentRecord {
   updatedAt: string;
 }
 
-// GraphQL query for admin content
+interface EntityDefinitionSummary {
+  id: string;
+  name: string;
+  displayName?: string;
+  icon?: string;
+  isSingleton: boolean;
+  category?: string;
+}
+
+// GraphQL queries
 const GET_ALL_CONTENT_ADMIN = gql`
   mutation GetAllContentAdmin($entityType: String) {
     getAllContentAdmin(entityType: $entityType) {
@@ -30,44 +39,67 @@ const GET_ALL_CONTENT_ADMIN = gql`
   }
 `;
 
-const CONTENT_TYPES = [
-  { key: 'hero', label: 'Hero Section', icon: '&#9733;' },
-  { key: 'about', label: 'About Section', icon: '&#9786;' },
-  { key: 'services', label: 'Services', icon: '&#9881;' },
-  { key: 'contact', label: 'Contact', icon: '&#9993;' },
-  { key: 'navigation', label: 'Navigation', icon: '&#9776;' },
-  { key: 'site-config', label: 'Site Config', icon: '&#9881;' },
-  { key: 'footer', label: 'Footer', icon: '&#9638;' },
+const GET_ALL_ENTITY_DEFINITIONS = gql`
+  query GetAllEntityDefinitions {
+    allEntityDefinitions {
+      id
+      name
+      displayName
+      icon
+      isSingleton
+      category
+    }
+  }
+`;
+
+// Fallback content types when no entity definitions are loaded
+const FALLBACK_CONTENT_TYPES = [
+  { name: 'hero', displayName: 'Hero Section', icon: '&#9733;' },
+  { name: 'about', displayName: 'About Section', icon: '&#9786;' },
+  { name: 'services', displayName: 'Services', icon: '&#9881;' },
+  { name: 'contact', displayName: 'Contact', icon: '&#9993;' },
+  { name: 'navigation', displayName: 'Navigation', icon: '&#9776;' },
+  { name: 'site-config', displayName: 'Site Config', icon: '&#9881;' },
+  { name: 'footer', displayName: 'Footer', icon: '&#9638;' },
 ];
 
 const DashboardPage: React.FC = () => {
   const [content, setContent] = useState<ContentRecord[]>([]);
+  const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchContent();
+    fetchData();
   }, []);
 
-  const fetchContent = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       const client = getClient();
       const token = getAuthToken();
 
-      const { data } = await client.mutate({
-        mutation: GET_ALL_CONTENT_ADMIN,
-        context: {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : '',
+      // Fetch content and entity definitions in parallel
+      const [contentResult, definitionsResult] = await Promise.all([
+        client.mutate({
+          mutation: GET_ALL_CONTENT_ADMIN,
+          context: {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : '',
+            },
           },
-        },
-      });
+        }),
+        client.query({
+          query: GET_ALL_ENTITY_DEFINITIONS,
+          fetchPolicy: 'network-only',
+        }),
+      ]);
 
-      setContent(data.getAllContentAdmin || []);
+      setContent(contentResult.data?.getAllContentAdmin || []);
+      setEntityDefinitions(definitionsResult.data?.allEntityDefinitions || []);
       setError(null);
     } catch (err) {
-      console.error('Failed to fetch content:', err);
+      console.error('Failed to fetch data:', err);
       setError('Failed to load content. Make sure the backend is running.');
     } finally {
       setIsLoading(false);
@@ -89,6 +121,19 @@ const DashboardPage: React.FC = () => {
     });
   };
 
+  // Use entity definitions if available, otherwise fall back to hardcoded types
+  const contentTypes = entityDefinitions.length > 0
+    ? entityDefinitions.map((def) => ({
+        key: def.name,
+        label: def.displayName || def.name,
+        icon: def.icon || '&#9632;',
+      }))
+    : FALLBACK_CONTENT_TYPES.map((t) => ({
+        key: t.name,
+        label: t.displayName,
+        icon: t.icon,
+      }));
+
   return (
     <AdminLayout>
       <div className="admin-header">
@@ -104,7 +149,7 @@ const DashboardPage: React.FC = () => {
       <div className="admin-stats-grid">
         <div className="admin-stat-card">
           <div className="admin-stat-label">Content Types</div>
-          <div className="admin-stat-value">{CONTENT_TYPES.length}</div>
+          <div className="admin-stat-value">{contentTypes.length}</div>
         </div>
         <div className="admin-stat-card">
           <div className="admin-stat-label">Published</div>
@@ -130,7 +175,7 @@ const DashboardPage: React.FC = () => {
           <h2 className="admin-card-title">Content Sections</h2>
           <button
             className="admin-btn admin-btn-secondary admin-btn-sm"
-            onClick={fetchContent}
+            onClick={fetchData}
             disabled={isLoading}
           >
             {isLoading ? 'Loading...' : 'Refresh'}
@@ -153,7 +198,7 @@ const DashboardPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {CONTENT_TYPES.map((type) => {
+                {contentTypes.map((type) => {
                   const record = getContentByType(type.key);
                   return (
                     <tr key={type.key}>
@@ -208,7 +253,7 @@ const DashboardPage: React.FC = () => {
           <h2 className="admin-card-title">Quick Actions</h2>
         </div>
         <div className="admin-card-body">
-          <div className="admin-btn-group">
+          <div className="admin-btn-group" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
             <a
               href="/"
               target="_blank"
@@ -220,9 +265,68 @@ const DashboardPage: React.FC = () => {
             <Link to="/admin/content" className="admin-btn admin-btn-primary">
               Manage Content
             </Link>
+            <Link to="/admin/schema" className="admin-btn admin-btn-secondary">
+              Manage Content Types
+            </Link>
+            <Link to="/admin/schema/new" className="admin-btn admin-btn-primary">
+              + New Content Type
+            </Link>
           </div>
         </div>
       </div>
+
+      {/* Dynamic Schema Info */}
+      {entityDefinitions.length > 0 && (
+        <div className="admin-card">
+          <div className="admin-card-header">
+            <h2 className="admin-card-title">Dynamic Schema</h2>
+            <span className="admin-badge admin-badge-success">Active</span>
+          </div>
+          <div className="admin-card-body">
+            <p style={{ marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>
+              Your CMS is using dynamic content types. You can create and modify content type schemas from the Content Types page.
+            </p>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              {entityDefinitions.slice(0, 6).map((def) => (
+                <Link
+                  key={def.id}
+                  to={`/admin/schema/${def.id}`}
+                  className="admin-schema-chip"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'var(--admin-bg)',
+                    borderRadius: '4px',
+                    textDecoration: 'none',
+                    color: 'var(--admin-text)',
+                    border: '1px solid var(--admin-border)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  {def.icon && <span>{def.icon}</span>}
+                  <span>{def.displayName || def.name}</span>
+                  <span className="admin-badge admin-badge-info" style={{ fontSize: '0.7rem' }}>
+                    {def.isSingleton ? 'Singleton' : 'Collection'}
+                  </span>
+                </Link>
+              ))}
+              {entityDefinitions.length > 6 && (
+                <Link
+                  to="/admin/schema"
+                  style={{
+                    padding: '0.5rem 1rem',
+                    color: 'var(--admin-primary)',
+                    textDecoration: 'none',
+                  }}
+                >
+                  +{entityDefinitions.length - 6} more...
+                </Link>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </AdminLayout>
   );
 };

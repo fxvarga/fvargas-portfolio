@@ -2,6 +2,7 @@ using System.Text.Json;
 using FV.Domain.Entities;
 using FV.Infrastructure.Persistence;
 using FV.Api.ApiEndpoints.GraphQl.Queries;
+using FV.Application.Services;
 using HotChocolate.Authorization;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,6 +11,8 @@ namespace FV.Api.ApiEndpoints.GraphQl.Mutations;
 [ExtendObjectType(OperationTypeNames.Mutation)]
 public class ContentMutations
 {
+    private readonly SchemaValidationService _validationService = new();
+
     /// <summary>
     /// Create a new content record (protected - requires authentication)
     /// </summary>
@@ -20,6 +23,26 @@ public class ContentMutations
     {
         try
         {
+            // Validate against schema if entity definition exists
+            var definition = await dbContext.EntityDefinitions
+                .FirstOrDefaultAsync(d => d.Name == input.EntityType);
+            
+            if (definition != null)
+            {
+                var validationResult = _validationService.Validate(definition, input.Data);
+                if (!validationResult.IsValid)
+                {
+                    return new ContentMutationPayload
+                    {
+                        Success = false,
+                        ErrorMessage = "Validation failed",
+                        ValidationErrors = validationResult.Errors
+                            .Select(e => new ContentValidationError { Field = e.Field, Message = e.Message })
+                            .ToList()
+                    };
+                }
+            }
+
             var record = new EntityRecord
             {
                 Id = Guid.NewGuid(),
@@ -69,6 +92,26 @@ public class ContentMutations
                     Success = false,
                     ErrorMessage = "Content record not found"
                 };
+            }
+
+            // Validate against schema if entity definition exists
+            var definition = await dbContext.EntityDefinitions
+                .FirstOrDefaultAsync(d => d.Name == record.EntityType);
+            
+            if (definition != null)
+            {
+                var validationResult = _validationService.Validate(definition, input.Data);
+                if (!validationResult.IsValid)
+                {
+                    return new ContentMutationPayload
+                    {
+                        Success = false,
+                        ErrorMessage = "Validation failed",
+                        ValidationErrors = validationResult.Errors
+                            .Select(e => new ContentValidationError { Field = e.Field, Message = e.Message })
+                            .ToList()
+                    };
+                }
             }
 
             // Save version history before updating
@@ -248,4 +291,14 @@ public class ContentMutationPayload
     public bool Success { get; set; }
     public Queries.ContentRecord? Record { get; set; }
     public string? ErrorMessage { get; set; }
+    public List<ContentValidationError>? ValidationErrors { get; set; }
+}
+
+/// <summary>
+/// Represents a validation error for a specific field
+/// </summary>
+public class ContentValidationError
+{
+    public string Field { get; set; } = default!;
+    public string Message { get; set; } = default!;
 }

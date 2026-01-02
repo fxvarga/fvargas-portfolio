@@ -4,6 +4,11 @@ public class EntityDefinition
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = default!;
+    public string? DisplayName { get; set; }
+    public string? Description { get; set; }
+    public string? Icon { get; set; }
+    public bool IsSingleton { get; set; } = true; // Single record vs collection
+    public string? Category { get; set; } // For grouping in admin nav
     public List<AttributeDefinition> Attributes { get; set; } = new();
     public List<RelationshipDefinition>? Relationships { get; set; } = new();
     public int Version { get; set; } = 1;
@@ -18,9 +23,23 @@ public class AttributeDefinition
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = default!;
-    public string Type { get; set; } = default!; // string, int, reference, block-array, etc.
+    public string Type { get; set; } = default!; // string, text, number, boolean, image, array, object, select, reference, richtext
     public bool IsRequired { get; set; }
-    public string? TargetEntity { get; set; } // for reference type
+    public string? Label { get; set; } // Display label for UI
+    public string? HelpText { get; set; } // Help text shown below field
+    public string? Placeholder { get; set; } // Input placeholder
+    public string? DefaultValue { get; set; } // Default value as JSON string
+    public string? TargetEntity { get; set; } // For reference type
+    public string? Validation { get; set; } // JSON validation rules (min, max, pattern, etc.)
+    public List<SelectOption>? Options { get; set; } // For select/enum types
+    public List<AttributeDefinition>? Children { get; set; } // For nested object/array types
+    public int Order { get; set; } // Display order in form
+}
+
+public class SelectOption
+{
+    public string Value { get; set; } = default!;
+    public string Label { get; set; } = default!;
 }
 
 public class RelationshipDefinition

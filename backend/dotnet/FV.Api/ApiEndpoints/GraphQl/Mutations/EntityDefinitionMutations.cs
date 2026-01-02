@@ -1,4 +1,5 @@
 using FV.Application.Commands.EntityDefinition;
+using FV.Application.Dtos;
 
 namespace FV.Api.ApiEndpoints.GraphQl.Mutations;
 
@@ -12,13 +13,12 @@ public class EntityDefinitionMutations
         var command = new CreateEntityDefinitionCommand
         {
             Name = input.Name,
-            Attributes = input.Attributes.Select(a => new AttributeDto
-            {
-                Name = a.Name,
-                Type = a.Type,
-                IsRequired = a.IsRequired,
-                TargetEntity = a.TargetEntity
-            }).ToList(),
+            DisplayName = input.DisplayName,
+            Description = input.Description,
+            Icon = input.Icon,
+            IsSingleton = input.IsSingleton,
+            Category = input.Category,
+            Attributes = MapAttributeInputs(input.Attributes),
             Relationships = input.Relationships?.Select(r => new RelationshipDto
             {
                 Name = r.Name,
@@ -37,7 +37,13 @@ public class EntityDefinitionMutations
         var command = new UpdateEntityDefinitionCommand
         {
             Id = input.Id,
-            Name = input.Name
+            Name = input.Name,
+            DisplayName = input.DisplayName,
+            Description = input.Description,
+            Icon = input.Icon,
+            IsSingleton = input.IsSingleton,
+            Category = input.Category,
+            Attributes = input.Attributes != null ? MapAttributeInputs(input.Attributes) : null
         };
 
         await handler.HandleAsync(command);
@@ -50,5 +56,29 @@ public class EntityDefinitionMutations
     {
         await handler.HandleAsync(new DeleteEntityDefinitionCommand { Id = id });
         return true;
+    }
+
+    private static List<AttributeDto> MapAttributeInputs(List<AttributeInput> inputs)
+    {
+        return inputs.Select(a => new AttributeDto
+        {
+            Id = a.Id,
+            Name = a.Name,
+            Type = a.Type,
+            IsRequired = a.IsRequired,
+            Label = a.Label,
+            HelpText = a.HelpText,
+            Placeholder = a.Placeholder,
+            DefaultValue = a.DefaultValue,
+            TargetEntity = a.TargetEntity,
+            Validation = a.Validation,
+            Options = a.Options?.Select(o => new SelectOptionDto
+            {
+                Value = o.Value,
+                Label = o.Label
+            }).ToList(),
+            Children = a.Children != null ? MapAttributeInputs(a.Children) : null,
+            Order = a.Order
+        }).ToList();
     }
 }

@@ -7,6 +7,8 @@ import LoginPage from './auth/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import ContentListPage from './pages/ContentListPage';
 import ContentEditorPage from './pages/ContentEditorPage';
+import SchemaListPage from './pages/SchemaListPage';
+import SchemaEditorPage from './pages/SchemaEditorPage';
 import './styles/admin.css';
 
 const AdminApp: React.FC = () => {
@@ -40,6 +42,25 @@ const AdminApp: React.FC = () => {
           element={
             <ProtectedRoute>
               <ContentEditorPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Schema management routes */}
+        <Route
+          path="schema"
+          element={
+            <ProtectedRoute>
+              <SchemaListPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="schema/:id"
+          element={
+            <ProtectedRoute>
+              <SchemaEditorPage />
             </ProtectedRoute>
           }
         />

@@ -30,11 +30,323 @@ public class DatabaseSeeder : IDatabaseSeeder
             await _authService.CreateUserAsync("admin", "admin123", "Admin");
         }
 
+        // Seed entity definitions (content types) if not exists
+        if (!await _context.EntityDefinitions.AnyAsync())
+        {
+            await SeedEntityDefinitionsAsync();
+        }
+
         // Seed content if not exists
         if (!await _context.EntityRecords.AnyAsync())
         {
             await SeedPortfolioContentAsync();
         }
+    }
+
+    private async Task SeedEntityDefinitionsAsync()
+    {
+        var now = DateTime.UtcNow;
+
+        // Site Config Definition
+        var siteConfigDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "site-config",
+            DisplayName = "Site Configuration",
+            Description = "Global site settings including owner info, contact details, and social links",
+            Icon = "settings",
+            IsSingleton = true,
+            Category = "Settings",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "owner", Type = "object", IsRequired = true, Label = "Owner", Order = 1,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "name", Type = "string", IsRequired = true, Label = "Name", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 2 },
+                        new() { Id = Guid.NewGuid(), Name = "tagline", Type = "string", Label = "Tagline", Order = 3 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "contact", Type = "object", IsRequired = true, Label = "Contact", Order = 2,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "phone", Type = "string", Label = "Phone", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "email", Type = "string", IsRequired = true, Label = "Email", Order = 2 },
+                        new() { Id = Guid.NewGuid(), Name = "formEndpoint", Type = "string", Label = "Form Endpoint URL", Order = 3 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "socialLinks", Type = "array", Label = "Social Links", Order = 3,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "platform", Type = "string", IsRequired = true, Label = "Platform", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "url", Type = "string", IsRequired = true, Label = "URL", Order = 2 },
+                        new() { Id = Guid.NewGuid(), Name = "icon", Type = "string", Label = "Icon Class", Order = 3 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "copyright", Type = "string", Label = "Copyright Text", Order = 4 }
+            }
+        };
+
+        // Hero Section Definition
+        var heroDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "hero",
+            DisplayName = "Hero Section",
+            Description = "Main hero/banner section of the portfolio",
+            Icon = "star",
+            IsSingleton = true,
+            Category = "Sections",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 1 },
+                new() { Id = Guid.NewGuid(), Name = "name", Type = "string", IsRequired = true, Label = "Name", Order = 2 },
+                new() { Id = Guid.NewGuid(), Name = "backgroundText", Type = "string", Label = "Background Text", Order = 3 },
+                new() { Id = Guid.NewGuid(), Name = "image", Type = "object", Label = "Image", Order = 4,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "url", Type = "string", IsRequired = true, Label = "URL", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "alt", Type = "string", Label = "Alt Text", Order = 2 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "ctaButton", Type = "object", Label = "CTA Button", Order = 5,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "label", Type = "string", IsRequired = true, Label = "Label", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "scrollTo", Type = "string", Label = "Scroll To Section", Order = 2 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "insightsDialog", Type = "object", Label = "Insights Dialog", Order = 6,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "title", Type = "string", Label = "Title", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "description", Type = "text", Label = "Description", Order = 2 },
+                        new() { Id = Guid.NewGuid(), Name = "prompt", Type = "text", Label = "AI Prompt", Order = 3 }
+                    }
+                }
+            }
+        };
+
+        // About Section Definition
+        var aboutDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "about",
+            DisplayName = "About Section",
+            Description = "About me section with bio and experience details",
+            Icon = "person",
+            IsSingleton = true,
+            Category = "Sections",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "greeting", Type = "string", Label = "Greeting", Order = 1 },
+                new() { Id = Guid.NewGuid(), Name = "headline", Type = "string", IsRequired = true, Label = "Headline", Order = 2 },
+                new() { Id = Guid.NewGuid(), Name = "subheadline", Type = "text", Label = "Subheadline", Order = 3 },
+                new() { Id = Guid.NewGuid(), Name = "bio", Type = "text", IsRequired = true, Label = "Bio", Order = 4 },
+                new() { Id = Guid.NewGuid(), Name = "experienceYears", Type = "string", Label = "Years of Experience", Order = 5 },
+                new() { Id = Guid.NewGuid(), Name = "sectionTitle", Type = "string", Label = "Section Title", Order = 6 },
+                new() { Id = Guid.NewGuid(), Name = "image", Type = "object", Label = "Image", Order = 7,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "url", Type = "string", IsRequired = true, Label = "URL", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "alt", Type = "string", Label = "Alt Text", Order = 2 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "insightsDialog", Type = "object", Label = "Insights Dialog", Order = 8,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "title", Type = "string", Label = "Title", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "description", Type = "text", Label = "Description", Order = 2 }
+                    }
+                }
+            }
+        };
+
+        // Services Section Definition
+        var servicesDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "services",
+            DisplayName = "Services",
+            Description = "Featured projects and services section",
+            Icon = "work",
+            IsSingleton = true,
+            Category = "Sections",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "label", Type = "string", Label = "Label", Order = 1 },
+                new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 2 },
+                new() { Id = Guid.NewGuid(), Name = "backgroundText", Type = "string", Label = "Background Text", Order = 3 },
+                new() { Id = Guid.NewGuid(), Name = "services", Type = "array", IsRequired = true, Label = "Services", Order = 4,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "id", Type = "string", IsRequired = true, Label = "ID", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 2 },
+                        new() { Id = Guid.NewGuid(), Name = "description", Type = "text", IsRequired = true, Label = "Description", Order = 3 },
+                        new() { Id = Guid.NewGuid(), Name = "icon", Type = "string", Label = "Icon", Order = 4 },
+                        new() { Id = Guid.NewGuid(), Name = "image", Type = "object", Label = "Image", Order = 5,
+                            Children = new List<AttributeDefinition>
+                            {
+                                new() { Id = Guid.NewGuid(), Name = "url", Type = "string", IsRequired = true, Label = "URL", Order = 1 },
+                                new() { Id = Guid.NewGuid(), Name = "alt", Type = "string", Label = "Alt Text", Order = 2 }
+                            }
+                        },
+                        new() { Id = Guid.NewGuid(), Name = "dialogTitle", Type = "string", Label = "Dialog Title", Order = 6 },
+                        new() { Id = Guid.NewGuid(), Name = "leadIn", Type = "text", Label = "Lead In Text", Order = 7 },
+                        new() { Id = Guid.NewGuid(), Name = "technologies", Type = "tags", Label = "Technologies", Order = 8 },
+                        new() { Id = Guid.NewGuid(), Name = "approach", Type = "array", Label = "Approach Steps", Order = 9,
+                            Children = new List<AttributeDefinition>
+                            {
+                                new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 1 },
+                                new() { Id = Guid.NewGuid(), Name = "content", Type = "text", IsRequired = true, Label = "Content", Order = 2 }
+                            }
+                        },
+                        new() { Id = Guid.NewGuid(), Name = "cta", Type = "object", Label = "CTA", Order = 10,
+                            Children = new List<AttributeDefinition>
+                            {
+                                new() { Id = Guid.NewGuid(), Name = "title", Type = "string", Label = "Title", Order = 1 },
+                                new() { Id = Guid.NewGuid(), Name = "description", Type = "text", Label = "Description", Order = 2 }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Contact Section Definition
+        var contactDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "contact",
+            DisplayName = "Contact",
+            Description = "Contact form section",
+            Icon = "mail",
+            IsSingleton = true,
+            Category = "Sections",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 1 },
+                new() { Id = Guid.NewGuid(), Name = "description", Type = "text", Label = "Description", Order = 2 },
+                new() { Id = Guid.NewGuid(), Name = "backgroundText", Type = "string", Label = "Background Text", Order = 3 },
+                new() { Id = Guid.NewGuid(), Name = "successMessage", Type = "string", Label = "Success Message", Order = 4 },
+                new() { Id = Guid.NewGuid(), Name = "errorMessage", Type = "string", Label = "Error Message", Order = 5 },
+                new() { Id = Guid.NewGuid(), Name = "submitButtonText", Type = "string", Label = "Submit Button Text", Order = 6 },
+                new() { Id = Guid.NewGuid(), Name = "formFields", Type = "object", Label = "Form Fields", Order = 7,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "name", Type = "object", Label = "Name Field", Order = 1,
+                            Children = new List<AttributeDefinition>
+                            {
+                                new() { Id = Guid.NewGuid(), Name = "label", Type = "string", Label = "Label", Order = 1 },
+                                new() { Id = Guid.NewGuid(), Name = "placeholder", Type = "string", Label = "Placeholder", Order = 2 }
+                            }
+                        },
+                        new() { Id = Guid.NewGuid(), Name = "email", Type = "object", Label = "Email Field", Order = 2,
+                            Children = new List<AttributeDefinition>
+                            {
+                                new() { Id = Guid.NewGuid(), Name = "label", Type = "string", Label = "Label", Order = 1 },
+                                new() { Id = Guid.NewGuid(), Name = "placeholder", Type = "string", Label = "Placeholder", Order = 2 }
+                            }
+                        },
+                        new() { Id = Guid.NewGuid(), Name = "message", Type = "object", Label = "Message Field", Order = 3,
+                            Children = new List<AttributeDefinition>
+                            {
+                                new() { Id = Guid.NewGuid(), Name = "label", Type = "string", Label = "Label", Order = 1 },
+                                new() { Id = Guid.NewGuid(), Name = "placeholder", Type = "string", Label = "Placeholder", Order = 2 }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+
+        // Navigation Definition
+        var navigationDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "navigation",
+            DisplayName = "Navigation",
+            Description = "Site navigation and header settings",
+            Icon = "menu",
+            IsSingleton = true,
+            Category = "Layout",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "logo", Type = "object", Label = "Logo", Order = 1,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "url", Type = "string", IsRequired = true, Label = "URL", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "alt", Type = "string", Label = "Alt Text", Order = 2 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "menuItems", Type = "array", IsRequired = true, Label = "Menu Items", Order = 2,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "id", Type = "number", IsRequired = true, Label = "ID", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 2 },
+                        new() { Id = Guid.NewGuid(), Name = "link", Type = "string", IsRequired = true, Label = "Link", Order = 3 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "searchPlaceholder", Type = "string", Label = "Search Placeholder", Order = 3 },
+                new() { Id = Guid.NewGuid(), Name = "devModeLabel", Type = "string", Label = "Dev Mode Label", Order = 4 },
+                new() { Id = Guid.NewGuid(), Name = "insightsLabel", Type = "string", Label = "Insights Label", Order = 5 }
+            }
+        };
+
+        // Footer Definition
+        var footerDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            Name = "footer",
+            DisplayName = "Footer",
+            Description = "Site footer settings",
+            Icon = "bottom_navigation",
+            IsSingleton = true,
+            Category = "Layout",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "logo", Type = "object", Label = "Logo", Order = 1,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "url", Type = "string", IsRequired = true, Label = "URL", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "alt", Type = "string", Label = "Alt Text", Order = 2 }
+                    }
+                }
+            }
+        };
+
+        _context.EntityDefinitions.AddRange(
+            siteConfigDef,
+            heroDef,
+            aboutDef,
+            servicesDef,
+            contactDef,
+            navigationDef,
+            footerDef
+        );
+
+        await _context.SaveChangesAsync();
     }
 
     private async Task SeedPortfolioContentAsync()

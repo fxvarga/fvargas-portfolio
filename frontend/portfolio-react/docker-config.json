@@ -1,0 +1,12 @@
+{
+  "apiUrl": "/graphql",
+  "apiWsUrl": "/graphql",
+  "environment": "production",
+  "version": "1.0.0",
+  "flags": {
+    "showDevTools": false,
+    "enableAnalytics": true,
+    "enableContactForm": true,
+    "showExperimental": false
+  }
+}

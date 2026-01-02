@@ -16,6 +16,13 @@ interface ContentRecord {
   updatedAt: string;
 }
 
+interface EntityDefinitionSummary {
+  id: string;
+  name: string;
+  displayName: string | null;
+  category: string | null;
+}
+
 // GraphQL query for admin content
 const GET_ALL_CONTENT_ADMIN = gql`
   mutation GetAllContentAdmin($entityType: String) {
@@ -30,45 +37,71 @@ const GET_ALL_CONTENT_ADMIN = gql`
   }
 `;
 
-const CONTENT_TYPE_LABELS: Record<string, string> = {
-  'hero': 'Hero Section',
-  'about': 'About Section',
-  'services': 'Services',
-  'contact': 'Contact',
-  'navigation': 'Navigation',
-  'site-config': 'Site Configuration',
-  'footer': 'Footer',
-};
+// GraphQL query to fetch entity definitions (content types)
+const GET_ALL_ENTITY_DEFINITIONS = gql`
+  query GetAllEntityDefinitions {
+    allEntityDefinitions {
+      id
+      name
+      displayName
+      category
+    }
+  }
+`;
 
 const ContentListPage: React.FC = () => {
   const [content, setContent] = useState<ContentRecord[]>([]);
+  const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionSummary[]>([]);
+  const [contentTypeLabels, setContentTypeLabels] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
 
   useEffect(() => {
-    fetchContent();
+    fetchData();
   }, []);
 
-  const fetchContent = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
       const client = getClient();
       const token = getAuthToken();
 
-      const { data } = await client.mutate({
-        mutation: GET_ALL_CONTENT_ADMIN,
-        context: {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : '',
+      // Fetch entity definitions and content in parallel
+      const [definitionsResult, contentResult] = await Promise.all([
+        client.query({
+          query: GET_ALL_ENTITY_DEFINITIONS,
+          context: {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : '',
+            },
           },
-        },
-      });
+          fetchPolicy: 'network-only',
+        }),
+        client.mutate({
+          mutation: GET_ALL_CONTENT_ADMIN,
+          context: {
+            headers: {
+              Authorization: token ? `Bearer ${token}` : '',
+            },
+          },
+        }),
+      ]);
 
-      setContent(data.getAllContentAdmin || []);
+      // Process entity definitions into labels map
+      const definitions: EntityDefinitionSummary[] = definitionsResult.data?.allEntityDefinitions || [];
+      setEntityDefinitions(definitions);
+      
+      const labels: Record<string, string> = {};
+      definitions.forEach((def) => {
+        labels[def.name] = def.displayName || def.name;
+      });
+      setContentTypeLabels(labels);
+
+      setContent(contentResult.data?.getAllContentAdmin || []);
       setError(null);
     } catch (err) {
-      console.error('Failed to fetch content:', err);
+      console.error('Failed to fetch data:', err);
       setError('Failed to load content. Make sure the backend is running.');
     } finally {
       setIsLoading(false);
@@ -91,7 +124,7 @@ const ContentListPage: React.FC = () => {
   };
 
   const getLabel = (entityType: string): string => {
-    return CONTENT_TYPE_LABELS[entityType] || entityType;
+    return contentTypeLabels[entityType] || entityType;
   };
 
   return (
@@ -120,16 +153,16 @@ const ContentListPage: React.FC = () => {
               }}
             >
               <option value="all">All Types</option>
-              {Object.entries(CONTENT_TYPE_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>
-                  {label}
+              {entityDefinitions.map((def) => (
+                <option key={def.name} value={def.name}>
+                  {def.displayName || def.name}
                 </option>
               ))}
             </select>
           </div>
           <button
             className="admin-btn admin-btn-secondary admin-btn-sm"
-            onClick={fetchContent}
+            onClick={fetchData}
             disabled={isLoading}
           >
             {isLoading ? 'Loading...' : 'Refresh'}

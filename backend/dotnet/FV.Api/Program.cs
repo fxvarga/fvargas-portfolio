@@ -20,7 +20,8 @@ var config = builder.Configuration;
 var isDevelopment = builder.Environment.IsDevelopment();
 
 // Add CMS Database (SQLite)
-var cmsDbPath = System.IO.Path.Combine(builder.Environment.ContentRootPath, "cms.db");
+var cmsDbPath = Environment.GetEnvironmentVariable("CMS_DB_PATH") 
+    ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "cms.db");
 services.AddDbContext<CmsDbContext>(options =>
     options.UseSqlite($"Data Source={cmsDbPath}"));
 
