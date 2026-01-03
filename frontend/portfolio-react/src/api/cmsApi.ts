@@ -77,6 +77,7 @@ export interface ApproachItem {
 
 export interface Service {
   id: string;
+  slug: string;
   title: string;
   description: string;
   icon: string;
@@ -184,6 +185,14 @@ const resolveImageUrl = (url: string): string => {
   return imageMap[url] || url;
 };
 
+// Helper to generate slug from title
+export const generateSlug = (title: string): string => {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
+};
+
 // Helper to parse JSON string or return object as-is
 const parseJsonField = <T>(value: T | string): T => {
   if (typeof value === 'string') {
@@ -236,11 +245,14 @@ const fetchFromApiOrMock = async <T>(
   mockData: T
 ): Promise<T> => {
   if (!useApi) {
+    console.log('API disabled, using mock data');
     return mockData;
   }
   
   try {
-    return await fetcher();
+    const result = await fetcher();
+    console.log('Successfully fetched from API');
+    return result;
   } catch (error) {
     console.warn('Failed to fetch from API, using mock data:', error);
     return mockData;
@@ -313,6 +325,7 @@ export const mockCMSData: CMSData = {
     services: [
       {
         id: "1",
+        slug: "ai-workflow-orchestration",
         title: "AI Workflow Orchestration",
         description: "Built an AI-driven orchestration system that transformed natural-language process documents into executable workflows.",
         icon: "flaticon-vector",
@@ -328,6 +341,7 @@ export const mockCMSData: CMSData = {
       },
       {
         id: "2",
+        slug: "financial-dashboard",
         title: "Financial Dashboard Applications",
         description: "Designed a micro-frontend dashboard platform to unify financial data across five siloed systems.",
         icon: "flaticon-smartphone",
@@ -343,6 +357,7 @@ export const mockCMSData: CMSData = {
       },
       {
         id: "3",
+        slug: "content-management-systems",
         title: "Content Management Systems",
         description: "Engineered a dynamic, schema-driven CMS supporting reusable templates.",
         icon: "flaticon-palette",
@@ -358,6 +373,7 @@ export const mockCMSData: CMSData = {
       },
       {
         id: "4",
+        slug: "elastic-search-platform",
         title: "Elastic Search Platform",
         description: "Developed a fuzzy search engine using Elasticsearch.",
         icon: "flaticon-bar-chart",
@@ -393,7 +409,7 @@ export const mockCMSData: CMSData = {
     menuItems: [
       { id: 1, title: "Home", link: "hero" },
       { id: 2, title: "About", link: "about" },
-      { id: 3, title: "Featured Work", link: "service" },
+      { id: 3, title: "Featured Work", link: "services" },
       { id: 4, title: "Contact", link: "contact" },
     ],
     searchPlaceholder: "Search here...",
@@ -410,14 +426,21 @@ export const mockCMSData: CMSData = {
 export const fetchCMSData = async (): Promise<CMSData> => {
   return fetchFromApiOrMock(async () => {
     const client = getClient();
+    console.log('Fetching portfolio content from GraphQL...');
     const { data } = await client.query({
       query: GET_PORTFOLIO_CONTENT,
       fetchPolicy: 'network-only',
     });
     
     const content = data.portfolioContent;
+    console.log('Raw portfolio content:', content);
+    
+    if (!content) {
+      throw new Error('No portfolio content returned from API');
+    }
+    
     // Parse JSON strings from GraphQL response (AnyType returns strings)
-    return resolveImages({
+    const parsed = resolveImages({
       siteConfig: parseJsonField<SiteConfig>(content.siteConfig),
       hero: parseJsonField<HeroSection>(content.hero),
       about: parseJsonField<AboutSection>(content.about),
@@ -426,6 +449,8 @@ export const fetchCMSData = async (): Promise<CMSData> => {
       navigation: parseJsonField<Navigation>(content.navigation),
       footer: parseJsonField<Footer>(content.footer),
     });
+    console.log('Parsed CMS data:', parsed);
+    return parsed;
   }, mockCMSData);
 };
 
@@ -468,6 +493,14 @@ export const fetchServices = async (): Promise<ServicesSection> => {
 export const fetchServiceById = async (id: string): Promise<Service | undefined> => {
   const services = await fetchServices();
   return services.services.find((s) => s.id === id);
+};
+
+export const fetchServiceBySlug = async (slug: string): Promise<Service | undefined> => {
+  const services = await fetchServices();
+  // First try exact slug match, then fallback to generated slug from title
+  return services.services.find((s) => 
+    s.slug === slug || generateSlug(s.title) === slug
+  );
 };
 
 export const fetchContactSection = async (): Promise<ContactSection> => {

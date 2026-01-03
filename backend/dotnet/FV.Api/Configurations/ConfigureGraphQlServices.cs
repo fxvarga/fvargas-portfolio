@@ -30,6 +30,7 @@ public static class ConfigureGraphQlServices
             .AddTypeExtension<EntityRecordQueries>()
             .AddTypeExtension<ContentQueries>()
             .AddTypeExtension<PortfolioQueries>()
+            .AddTypeExtension<SearchQueries>()
             .AddMutationType()
             .AddTypeExtension<EntityDefinitionMutations>()
             .AddTypeExtension<EntityRecordMutations>()

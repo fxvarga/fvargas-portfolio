@@ -303,6 +303,33 @@ deploy() {
         # Create docker-compose.yml for production
         cat > docker-compose.yml << 'COMPOSE_EOF'
 services:
+  # Elasticsearch for search functionality
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: portfolio-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.name=portfolio-search
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -E 'green|yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
   backend:
     image: ${backend_image}
     container_name: portfolio-backend
@@ -314,6 +341,13 @@ services:
       - CMS_DB_PATH=/app/data/cms.db
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - CMS_ADMIN_PASSWORD=${CMS_ADMIN_PASSWORD}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
+      - AZURE_OPENAI_EMBEDDING_DEPLOYMENT=${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-text-embedding-ada-002}
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -397,6 +431,8 @@ networks:
     driver: bridge
 
 volumes:
+  elasticsearch-data:
+    driver: local
   cms-data:
     driver: local
   caddy-data:

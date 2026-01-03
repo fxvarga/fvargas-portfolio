@@ -5,21 +5,25 @@ import { useFooter } from '../../../shared/hooks/useCMS';
 const Footer = () => {
   const { footer, siteConfig } = useFooter();
 
+  // Safely extract logo data
+  const logoUrl = footer?.logo?.url;
+  const logoAlt = footer?.logo?.alt || 'Logo';
+
   return (
     <div className="tp-site-footer text-center">
       <div className="container">
         <div className="row">
-          <div className="col-12">
+            <div className="col-12">
             <div className="footer-image">
               <Link className="logo" to="/">
-                {footer && <img style={{ width: 100 }} src={footer.logo.url} alt={footer.logo.alt} className="App-Logo" />}
+                {logoUrl && <img style={{ width: 100 }} src={logoUrl} alt={logoAlt} className="App-Logo" />}
               </Link>
             </div>
           </div>
           <div className="col-12">
             <div className="link-widget">
               <ul>
-                {siteConfig?.socialLinks.map((link, index) => (
+                {siteConfig?.socialLinks?.map((link, index) => (
                   <li key={index}>
                     <Link to={link.url}><i className={link.icon}></i></Link>
                   </li>

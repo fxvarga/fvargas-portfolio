@@ -1,5 +1,114 @@
-import { useState, useEffect, useCallback } from 'react';
-import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useLocation } from 'react-router-dom';
+
+// Search types
+interface SearchResultItem {
+  id: string;
+  title: string;
+  snippet: string;
+  url: string;
+  entityType: string;
+  section?: string;
+}
+
+// Search Component
+function SearchBox() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `query Search($query: String!, $limit: Int) {
+              search(query: $query, limit: $limit) {
+                results { id title snippet url entityType section }
+              }
+            }`,
+            variables: { query, limit: 5 }
+          })
+        });
+        const data = await response.json();
+        setResults(data.data?.search?.results || []);
+        setIsOpen(true);
+      } catch (error) {
+        console.error('Search failed:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const handleResultClick = (result: SearchResultItem) => {
+    setIsOpen(false);
+    setQuery('');
+    // Append section anchor if present and URL doesn't already have a hash
+    let targetUrl = result.url;
+    if (result.section && !targetUrl.includes('#')) {
+      targetUrl = `${targetUrl}#${result.section}`;
+    }
+    navigate(targetUrl);
+  };
+
+  return (
+    <div className="search-box" ref={searchRef}>
+      <input
+        type="text"
+        placeholder="Search..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => results.length > 0 && setIsOpen(true)}
+        className="search-input"
+      />
+      {isLoading && <span className="search-loading">...</span>}
+      {isOpen && results.length > 0 && (
+        <div className="search-dropdown">
+          {results.map((result) => (
+            <div
+              key={result.id}
+              className="search-result"
+              onClick={() => handleResultClick(result)}
+            >
+              <div className="search-result-title">{result.title}</div>
+              <div 
+                className="search-result-snippet"
+                dangerouslySetInnerHTML={{ __html: result.snippet }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Types matching CMS data structure for Jessica's portfolio
 interface SiteConfig {
@@ -453,19 +562,22 @@ function NavBar({ navigation, siteConfig, isDetailPage = false }: { navigation: 
           <span></span>
           <span></span>
         </button>
-        <ul className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
-          {isDetailPage ? (
-            <li>
-              <Link to="/#case-studies" onClick={() => setMobileMenuOpen(false)}>Back To Case Studies</Link>
-            </li>
-          ) : (
-            navigation.links.map((link, i) => (
-              <li key={i}>
-                <a href={link.href} onClick={() => setMobileMenuOpen(false)}>{link.label}</a>
+        <div className="nav-right">
+          <SearchBox />
+          <ul className={`nav-menu ${mobileMenuOpen ? 'open' : ''}`}>
+            {isDetailPage ? (
+              <li>
+                <Link to="/#case-studies" onClick={() => setMobileMenuOpen(false)}>Back To Case Studies</Link>
               </li>
-            ))
-          )}
-        </ul>
+            ) : (
+              navigation.links.map((link, i) => (
+                <li key={i}>
+                  <a href={link.href} onClick={() => setMobileMenuOpen(false)}>{link.label}</a>
+                </li>
+              ))
+            )}
+          </ul>
+        </div>
       </div>
     </nav>
   );
@@ -502,12 +614,25 @@ function FooterComponent({ footer }: { footer: Footer }) {
 function CaseStudyDetailPage({ content }: { content: CMSContent }) {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const caseStudyPage = content.caseStudyPages.find(p => p.slug === slug);
 
   useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [slug]);
+    // Handle hash-based scrolling
+    if (location.hash) {
+      const elementId = location.hash.slice(1); // Remove the '#'
+      // Small delay to ensure DOM is rendered
+      setTimeout(() => {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [slug, location.hash]);
 
   if (!caseStudyPage) {
     return (
@@ -548,7 +673,11 @@ function CaseStudyDetailPage({ content }: { content: CMSContent }) {
       {/* Content Sections */}
       <div className="case-study-detail-content">
         {caseStudyPage.sections.map((section, index) => (
-          <div key={index} className={`content-section ${section.imagePosition === 'left' ? 'reverse' : ''}`}>
+          <div 
+            key={index} 
+            id={`section-${index}`}
+            className={`content-section ${section.imagePosition === 'left' ? 'reverse' : ''}`}
+          >
             <div className="section-text">
               <h2>{section.heading}</h2>
               <p>{section.content}</p>
@@ -604,6 +733,20 @@ function HomePage({ content }: { content: CMSContent }) {
   const [lightboxImages, setLightboxImages] = useState<GalleryImage[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
   const [showLightbox, setShowLightbox] = useState(false);
+  const location = useLocation();
+
+  // Handle hash-based scrolling when navigating to home with a hash
+  useEffect(() => {
+    if (location.hash) {
+      const elementId = location.hash.slice(1);
+      setTimeout(() => {
+        const element = document.getElementById(elementId);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    }
+  }, [location.hash]);
 
   const openLightbox = useCallback((images: GalleryImage[]) => {
     setLightboxImages(images);

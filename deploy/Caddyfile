@@ -1,10 +1,12 @@
-# Global options - disable automatic HTTPS for local development
+# Global options - use internal certs for local development
 {
-    auto_https off
+    local_certs
 }
 
 # Fernando Vargas Portfolio (main site + admin)
-http://{$DOMAIN_FERNANDO:localhost} {
+https://{$DOMAIN_FERNANDO:localhost} {
+    tls internal
+
     # API and GraphQL routes to backend
     handle /graphql* {
         reverse_proxy backend:5000
@@ -25,10 +27,12 @@ http://{$DOMAIN_FERNANDO:localhost} {
 }
 
 # Jessica Sutherland Portfolio (photographer)
-http://{$DOMAIN_JESSICA:jessica.localhost} {
+https://{$DOMAIN_JESSICA:jessica.localhost} {
+    tls internal
+
     # Redirect /admin to main Fernando admin
     handle /admin* {
-        redir http://{$DOMAIN_FERNANDO:localhost}{uri} permanent
+        redir https://{$DOMAIN_FERNANDO:localhost}{uri} permanent
     }
 
     # API and GraphQL routes to backend
@@ -51,10 +55,12 @@ http://{$DOMAIN_JESSICA:jessica.localhost} {
 }
 
 # Busy Bee Marketing Agency Portfolio
-http://{$DOMAIN_BUSYBEE:busybee.localhost} {
+https://{$DOMAIN_BUSYBEE:busybee.localhost} {
+    tls internal
+
     # Redirect /admin to main Fernando admin
     handle /admin* {
-        redir http://{$DOMAIN_FERNANDO:localhost}{uri} permanent
+        redir https://{$DOMAIN_FERNANDO:localhost}{uri} permanent
     }
 
     # API and GraphQL routes to backend

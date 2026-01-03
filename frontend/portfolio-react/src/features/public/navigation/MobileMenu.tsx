@@ -25,7 +25,7 @@ const MobileMenu = () => {
         </div>
 
         <ul className="responsivemenu">
-          {navigation?.menuItems.map((item) => (
+          {navigation?.menuItems?.map((item) => (
             <ListItem key={item.id}>
               <Link to={item.link} spy={true} smooth={true} duration={500} onClick={ClickHandler}>
                 {item.title}

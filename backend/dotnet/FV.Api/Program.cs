@@ -64,6 +64,7 @@ services.AddHealthChecks();
 services.AddOpenTelemetryConfiguration(config);
 services.AddApplicationServices();
 services.AddInfrastructureServices();
+services.AddSearchServices();
 
 // Register CORS services
 services.AddCors(options =>

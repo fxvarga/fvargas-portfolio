@@ -1,4 +1,112 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
+// Search types
+interface SearchResultItem {
+  id: string;
+  title: string;
+  snippet: string;
+  url: string;
+  entityType: string;
+  section?: string;
+}
+
+// Search Component
+function SearchBox() {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResultItem[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    if (query.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/graphql', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: `query Search($query: String!, $limit: Int) {
+              search(query: $query, limit: $limit) {
+                results { id title snippet url entityType section }
+              }
+            }`,
+            variables: { query, limit: 5 }
+          })
+        });
+        const data = await response.json();
+        setResults(data.data?.search?.results || []);
+        setIsOpen(true);
+      } catch (error) {
+        console.error('Search failed:', error);
+        setResults([]);
+      } finally {
+        setIsLoading(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  const handleResultClick = useCallback((result: SearchResultItem) => {
+    setIsOpen(false);
+    setQuery('');
+    // Append section anchor if present and URL doesn't already have a hash
+    let targetUrl = result.url;
+    if (result.section && !targetUrl.includes('#')) {
+      targetUrl = `${targetUrl}#${result.section}`;
+    }
+    window.location.href = targetUrl;
+  }, []);
+
+  return (
+    <div className="search-box" ref={searchRef}>
+      <input
+        type="text"
+        placeholder="Search..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        onFocus={() => results.length > 0 && setIsOpen(true)}
+        className="search-input"
+      />
+      {isLoading && <span className="search-loading">...</span>}
+      {isOpen && results.length > 0 && (
+        <div className="search-dropdown">
+          {results.map((result) => (
+            <div
+              key={result.id}
+              className="search-result"
+              onClick={() => handleResultClick(result)}
+            >
+              <div className="search-result-title">{result.title}</div>
+              <div 
+                className="search-result-snippet"
+                dangerouslySetInnerHTML={{ __html: result.snippet }}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Types matching CMS data structure
 interface NavLink {
@@ -324,12 +432,15 @@ function App() {
             <span></span>
           </button>
 
-          <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
+          <div className="nav-right">
+            <SearchBox />
+            <ul className={`nav-links ${menuOpen ? 'open' : ''}`}>
             {navigation.links.map((link, i) => (
               <li key={i}><a href={link.href}>{link.label}</a></li>
             ))}
             <li><a href={navigation.ctaLink} className="btn btn-nav">{navigation.ctaText}</a></li>
           </ul>
+          </div>
         </div>
       </nav>
 

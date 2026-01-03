@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { Link } from 'react-router';
 import { CircularProgress } from '@mui/material';
-import ServiceDetail from './ServiceDetail';
 import { useServices } from '../../../shared/hooks/useCMS';
-import { Service } from '../../../api/cmsApi';
+import { generateSlug } from '../../../api/cmsApi';
 
 interface ServiceSectionProps {
   className?: string;
@@ -10,18 +10,6 @@ interface ServiceSectionProps {
 
 const ServiceSection: React.FC<ServiceSectionProps> = () => {
   const { services, isLoading } = useServices();
-  const [open, setOpen] = useState(false);
-  const [selectedService, setSelectedService] = useState<Service | null>(null);
-
-  const handleClose = () => {
-    setOpen(false);
-    setSelectedService(null);
-  };
-
-  const handleClickOpen = (service: Service) => {
-    setOpen(true);
-    setSelectedService(service);
-  };
 
   if (isLoading || !services) {
     return (
@@ -35,6 +23,10 @@ const ServiceSection: React.FC<ServiceSectionProps> = () => {
     );
   }
 
+  // Helper to get slug - use service.slug if available, otherwise generate from title
+  const getSlug = (service: { slug?: string; title: string }) => 
+    service.slug || generateSlug(service.title);
+
   return (
     <div className="tp-service-area section-padding">
       <div className="container">
@@ -44,15 +36,17 @@ const ServiceSection: React.FC<ServiceSectionProps> = () => {
         </div>
         <div className="tp-service-wrap">
           <div className="row align-items-center">
-            {services.services.map((service) => (
-              <div className="col col-lg-3 col-md-6 col-12" key={service.id}>
+            {services.services.map((service, index) => (
+              <div className="col col-lg-3 col-md-6 col-12" key={service.id} id={`service-${index + 1}`}>
                 <div className="tp-service-item">
                   <i className={`fi ${service.icon}`}></i>
-                  <h2 onClick={() => handleClickOpen(service)}>{service.title}</h2>
+                  <Link to={`/work/${getSlug(service)}`}>
+                    <h2>{service.title}</h2>
+                  </Link>
                   <p>{service.description}</p>
-                  <button className="read-more" onClick={() => handleClickOpen(service)}>
+                  <Link to={`/work/${getSlug(service)}`} className="read-more">
                     <i className="fi flaticon-right-arrow"></i>
-                  </button>
+                  </Link>
                 </div>
               </div>
             ))}
@@ -62,13 +56,6 @@ const ServiceSection: React.FC<ServiceSectionProps> = () => {
       <div className="visible-rotate-text">
         <h1>{services.backgroundText}</h1>
       </div>
-      {selectedService && (
-        <ServiceDetail
-          open={open}
-          onClose={handleClose}
-          service={selectedService}
-        />
-      )}
     </div>
   );
 };

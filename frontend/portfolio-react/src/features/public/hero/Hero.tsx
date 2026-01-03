@@ -158,7 +158,7 @@ const Hero = () => {
       </div>
       <div className="social-link">
         <ul>
-          {siteConfig?.socialLinks.map((link, index) => (
+          {siteConfig?.socialLinks?.map((link, index) => (
             <li key={index}>
               <NavLink to={link.url}>{link.platform}</NavLink>
             </li>

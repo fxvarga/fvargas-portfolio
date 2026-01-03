@@ -27,7 +27,7 @@ public class AppConfigProvider
         // }
         var featureFlags = new Dictionary<string, bool>
         {
-            { "DevMode", true } // DevMode is set to "on"
+            { "Search", true }
         };
         _config.Flags = JsonSerializer.Serialize(featureFlags);
 

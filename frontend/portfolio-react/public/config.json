@@ -7,6 +7,8 @@
     "showDevTools": false,
     "enableAnalytics": true,
     "enableContactForm": true,
-    "showExperimental": false
+    "showExperimental": false,
+    "Search": true,
+    "DevMode": true
   }
 }

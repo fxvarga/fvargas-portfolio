@@ -1,0 +1,66 @@
+.search-box {
+  position: relative;
+}
+
+.search-box-input {
+  transition: width 0.3s ease-in-out;
+}
+
+.search-box-expanded {
+  width: 100%;
+}
+
+.search-highlight {
+  background-color: rgba(255, 235, 59, 0.4);
+  font-weight: 500;
+  border-radius: 2px;
+  padding: 0 2px;
+}
+
+/* Dark mode support */
+.dark .search-highlight {
+  background-color: rgba(255, 235, 59, 0.3);
+}
+
+/* Animation for dropdown */
+.search-dropdown-enter {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.search-dropdown-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 200ms ease-out, transform 200ms ease-out;
+}
+
+.search-dropdown-exit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.search-dropdown-exit-active {
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: opacity 150ms ease-in, transform 150ms ease-in;
+}
+
+/* Result item hover effects */
+.search-result-item {
+  transition: background-color 0.15s ease;
+}
+
+.search-result-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.dark .search-result-item:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Entity type chip styling */
+.entity-type-chip {
+  font-size: 0.7rem;
+  height: 20px;
+  margin-left: 8px;
+}
