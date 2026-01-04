@@ -271,6 +271,21 @@
 	}
 }
 
+@media (max-width: 767px) {
+  .tp-site-header .header-right .header-search-form-wrapper,
+  .tp-site-header .header-right .os-toggle-button {
+    display: none !important;
+  }
+}
+
+.insights-trigger-btn {
+  border: 1px solid rgba(255, 165, 0, 0.8); /* Orange border */
+  background: rgba(255, 255, 255, 0.1); /* Slight white tint */
+  backdrop-filter: blur(10px); /* Glass blur */
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 20px; /* Rounded corners */
+}
+
 .tp-site-header .header-right {
 	display: flex;
 	justify-content: flex-end;

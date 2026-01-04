@@ -40,11 +40,23 @@ const CustomDialog: React.FC<CustomDialogProps> = ({
     <>
       <IconButton
         onClick={handleClickOpen}
+        className="insights-trigger-btn"
         style={{
           color: '#FF5722',
-          padding: '6px',
-          border: '1px solid #FF5722',
-          backgroundColor: 'transparent'
+          padding: '8px',
+          border: '1px solid rgba(255, 87, 34, 0.5)',
+          backgroundColor: 'rgba(255, 87, 34, 0.1)',
+          backdropFilter: 'blur(4px)',
+          boxShadow: '0 0 15px rgba(255, 87, 34, 0.2)',
+          transition: 'all 0.3s ease',
+        }}
+        sx={{
+          '&:hover': {
+             backgroundColor: 'rgba(255, 87, 34, 0.2) !important',
+             transform: 'scale(1.1)',
+             boxShadow: '0 0 20px rgba(255, 87, 34, 0.4) !important',
+             border: '1px solid #FF5722 !important'
+          }
         }}
       >
         <AutoFixHighIcon fontSize="small" />

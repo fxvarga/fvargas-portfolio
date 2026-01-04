@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link as RouterLink, useLocation, useNavigate } from 'react-router';
 import { Link as ScrollLink } from 'react-scroll';
 import MobileMenu from './MobileMenu';
 import { useConfig } from '../../../app/providers/ConfigProvider';
 import { useNavigation } from '../../../shared/hooks/useCMS';
-import SearchBox from '../../../shared/components/SearchBox';
+import { FullScreenSearchModal } from '../../../shared/components/FullScreenSearchModal';
 
 interface HeaderProps {
   topbarNone?: string;
@@ -16,6 +16,7 @@ const Header: React.FC<HeaderProps> = (props) => {
   const { navigation } = useNavigation();
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchOpen, setSearchOpen] = useState(false);
   
   // Check if we're on the homepage
   const isHomePage = location.pathname === '/';
@@ -89,19 +90,27 @@ const Header: React.FC<HeaderProps> = (props) => {
                 <div className="header-right d-flex align-items-center justify-content-end gap-3">
                   {isFeatureEnabled('Search') && (
                     <div className="header-search-form-wrapper">
-                      <SearchBox
-                        placeholder={navigation?.searchPlaceholder || 'Search...'}
-                        maxWidth={280}
-                        limit={5}
-                        sx={{
-                          '& .MuiOutlinedInput-root': {
-                            backgroundColor: 'rgba(255,255,255,0.9)',
-                            '&:hover': {
-                              backgroundColor: '#fff',
-                            },
-                          },
+                        <button
+                        onClick={() => setSearchOpen(true)}
+                        className="theme-btn"
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            padding: '8px 14px',
+                            background: 'rgba(255, 255, 255, 0.9)',
+                            border: '1px solid #eee',
+                            color: '#666',
+                            borderRadius: '4px',
+                            fontSize: '14px',
+                            width: '280px',
+                            textAlign: 'left',
+                            cursor: 'text'
                         }}
-                      />
+                        >
+                        <i className="ti-search"></i>
+                        {navigation?.searchPlaceholder || 'Search...'}
+                        </button>
                     </div>
                   )}
                   <button
@@ -137,6 +146,11 @@ const Header: React.FC<HeaderProps> = (props) => {
           </div>
         </nav>
       </div>
+      <FullScreenSearchModal 
+        isOpen={searchOpen} 
+        onClose={() => setSearchOpen(false)}
+        placeholder={navigation?.searchPlaceholder || 'Search...'}
+      />
     </header>
   );
 };

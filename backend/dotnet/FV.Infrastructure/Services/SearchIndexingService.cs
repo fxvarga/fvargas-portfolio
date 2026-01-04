@@ -377,6 +377,12 @@ public class SearchIndexingService : BackgroundService
                     {
                         serviceTitle = serviceTitleText;
                         serviceContent.Add(serviceTitleText);
+
+                        // Generate slug from title if not provided (matches frontend generateSlug logic)
+                        if (string.IsNullOrWhiteSpace(serviceSlug))
+                        {
+                            serviceSlug = GenerateSlug(serviceTitleText);
+                        }
                     }
                 }
 
@@ -429,11 +435,32 @@ public class SearchIndexingService : BackgroundService
 
                 if (serviceContent.Count > 0)
                 {
-                    // Use slug-based URL if available, otherwise fall back to hash navigation
-                    var serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug) 
-                        ? $"/work/{serviceSlug}" 
-                        : url;
-                    var section = !string.IsNullOrWhiteSpace(serviceSlug) 
+                    // Use slug-based URL if available
+                    // For fvargas-portfolio specifically, services should link to /work/{slug}
+                    // For other portfolios, we might need different logic, but using a direct link is generally safer than hash
+                    // If this logic needs to be portfolio-specific, we can check portfolio.Slug
+                    
+                    string serviceUrl;
+                    if (portfolio.Slug == "fernando") // Fernando's portfolio uses /work/{slug} routes
+                    {
+                         serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug) 
+                            ? $"/work/{serviceSlug}" 
+                            : url;
+                    }
+                    else
+                    {
+                        // Default behavior for other portfolios (like busybee, jessica)
+                        // Preserve existing hash-based navigation if that's what they use
+                        serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug) 
+                            ? url  // If they don't have dedicated pages, stick to the main page
+                            : url;
+                        
+                        // If you want them to also use /service/slug, change above. 
+                        // But per your request "jessica and busybee... should not be affected",
+                        // we stick to the generated 'url' passed into this method (which is usually /#services)
+                    }
+
+                    var section = !string.IsNullOrWhiteSpace(serviceSlug) && portfolio.Slug == "fernando"
                         ? null  // No section hash needed for dedicated pages
                         : $"service-{serviceIndex + 1}";
 
@@ -648,5 +675,20 @@ public class SearchIndexingService : BackgroundService
         var result = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]*>", " ");
         result = System.Text.RegularExpressions.Regex.Replace(result, @"\s+", " ");
         return result.Trim();
+    }
+
+    /// <summary>
+    /// Generate a URL-friendly slug from a title string
+    /// Matches the frontend's generateSlug logic: lowercase, replace non-alphanumeric with hyphens
+    /// </summary>
+    private static string GenerateSlug(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return string.Empty;
+
+        // Convert to lowercase and replace non-alphanumeric characters with hyphens
+        var slug = System.Text.RegularExpressions.Regex.Replace(title.ToLowerInvariant(), @"[^a-z0-9]+", "-");
+        // Trim leading/trailing hyphens
+        return slug.Trim('-');
     }
 }

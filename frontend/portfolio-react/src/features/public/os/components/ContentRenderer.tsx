@@ -2,7 +2,7 @@ import React from 'react';
 import { CircularProgress } from '@mui/material';
 import { WindowApp, useWindowManager } from '../context/WindowManagerContext';
 import { useHero, useAbout, useServices, useContact } from '../../../../shared/hooks/useCMS';
-import { fetchServiceBySlug } from '../../../../api/cmsApi';
+import { fetchServiceBySlug, generateSlug } from '../../../../api/cmsApi';
 
 interface ContentRendererProps {
   app: WindowApp;
@@ -78,12 +78,13 @@ const ServicesContent: React.FC = () => {
   }
 
   const handleServiceClick = (service: { id: string; title: string; icon?: string; slug?: string }) => {
+    const serviceSlug = service.slug || generateSlug(service.title);
     openWindow({
-      id: `work-${service.slug || service.id}`,
+      id: `work-${serviceSlug}`,
       title: service.title,
       sectionType: 'work',
       icon: service.icon,
-      slug: service.slug,
+      slug: serviceSlug,
     });
   };
 

@@ -24,9 +24,21 @@ const OSExperienceInner: React.FC = () => {
       {/* Mobile notice - only shown on small screens via CSS */}
       <div className="os-mobile-notice">
         Best experienced on desktop with keyboard.{' '}
-        <a href="#" onClick={(e) => { e.preventDefault(); navigate('/'); }}>
+        <button 
+          className="link-button" 
+          onClick={() => navigate('/')}
+          style={{ 
+            background: 'none', 
+            border: 'none', 
+            padding: 0, 
+            color: 'inherit', 
+            textDecoration: 'underline', 
+            cursor: 'pointer',
+            font: 'inherit'
+          }}
+        >
           Switch to standard view
-        </a>
+        </button>
       </div>
     </div>
   );

@@ -31,6 +31,8 @@ export interface SearchBoxProps extends UseSearchOptions {
   expandedByDefault?: boolean;
   /** Callback when a result is selected */
   onResultSelect?: (result: SearchResultItem) => void;
+  /** Callback triggered when a search is executed/result selected */
+  onSearchCallback?: () => void;
   /** Custom class name for the container */
   className?: string;
   /** Maximum width of the search box */
@@ -48,6 +50,7 @@ export function SearchBox({
   placeholder = 'Search...',
   expandedByDefault = false,
   onResultSelect,
+  onSearchCallback,
   className,
   maxWidth = 400,
   showEntityTypes = true,
@@ -109,6 +112,7 @@ export function SearchBox({
           }
         } else if (query.trim()) {
           executeSearch();
+          onSearchCallback?.();
         }
         break;
       case 'Escape':
@@ -145,12 +149,13 @@ export function SearchBox({
           }
         }
       } else {
-        // Different page - use navigate
+      // Different page - use navigate
         navigate(url);
       }
     }
     clearResults();
     setIsFocused(false);
+    onSearchCallback?.();
   };
 
   const handleClear = () => {

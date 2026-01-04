@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useWindowManager, WindowApp, SectionType } from '../context/WindowManagerContext';
 import { useServices } from '../../../../shared/hooks/useCMS';
+import { generateSlug } from '../../../../api/cmsApi';
 
 interface LauncherItem {
   id: string;
@@ -28,12 +29,12 @@ const Launcher: React.FC = () => {
 
   // Build work items from CMS services
   const workItems: LauncherItem[] = services?.services?.map((service) => ({
-    id: `work-${service.slug || service.id}`,
+    id: `work-${service.slug || generateSlug(service.title)}`,
     title: service.title,
     subtitle: service.description,
     sectionType: 'work' as SectionType,
     icon: service.icon,
-    slug: service.slug,
+    slug: service.slug || generateSlug(service.title),
   })) || [];
 
   // All items combined
