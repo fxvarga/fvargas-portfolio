@@ -6,8 +6,9 @@ import { ConfigProvider } from './providers/ConfigProvider';
 import AppWithApollo from './providers/ApolloProvider';
 import { CMSProvider } from '../shared/hooks/useCMS';
 
-// Lazy load admin for code splitting
+// Lazy load admin and OS experience for code splitting
 const AdminApp = lazy(() => import('../features/admin'));
+const OSExperience = lazy(() => import('../features/public/os').then(m => ({ default: m.OSExperience })));
 
 const AllRoute = () => {
 
@@ -22,6 +23,16 @@ const AllRoute = () => {
                 <Route path="/" element={<Homepage />} />
                 <Route path="home" element={<Homepage />} />
                 <Route path="/work/:slug" element={<WorkDetailPage />} />
+                
+                {/* OS Experience - Hyprland-style tiling window manager */}
+                <Route 
+                  path="/os" 
+                  element={
+                    <Suspense fallback={<div style={{ background: '#0a0a0f', color: 'white', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading FV-OS...</div>}>
+                      <OSExperience />
+                    </Suspense>
+                  } 
+                />
                 
                 {/* Admin routes - lazy loaded */}
                 <Route 
