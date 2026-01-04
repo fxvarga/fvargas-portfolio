@@ -1,0 +1,116 @@
+.animated-counter-demo {
+  padding: 2rem;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16162a 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.animated-counter-demo .demo-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.animated-counter-demo .demo-header h4 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.animated-counter-demo .demo-header p {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.counters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.counter-item {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.3s ease, border-color 0.3s ease;
+}
+
+.counter-item:hover {
+  transform: translateY(-4px);
+  border-color: rgba(194, 106, 45, 0.3);
+}
+
+.counter-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #c26a2d;
+  margin-bottom: 0.5rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.counter-number {
+  display: inline-block;
+  min-width: 60px;
+}
+
+.counter-label {
+  color: #888;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.demo-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.reset-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(194, 106, 45, 0.15);
+  border: 1px solid rgba(194, 106, 45, 0.4);
+  color: #c26a2d;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.reset-button:hover {
+  background: rgba(194, 106, 45, 0.25);
+  transform: scale(1.02);
+}
+
+.demo-info {
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.demo-info h5 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.demo-info ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.demo-info li {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.demo-info li::marker {
+  color: #c26a2d;
+}

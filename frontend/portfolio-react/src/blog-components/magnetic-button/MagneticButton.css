@@ -1,0 +1,214 @@
+.magnetic-button-demo {
+  padding: 2rem;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16162a 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.magnetic-button-demo .demo-header {
+  text-align: center;
+  margin-bottom: 2.5rem;
+}
+
+.magnetic-button-demo .demo-header h4 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.magnetic-button-demo .demo-header p {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.buttons-showcase {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+/* Base Magnetic Button */
+.magnetic-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #fff;
+  background: linear-gradient(135deg, #c26a2d 0%, #a85a25 100%);
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  overflow: hidden;
+  transition: transform 0.15s ease-out, box-shadow 0.3s ease;
+  will-change: transform;
+}
+
+.magnetic-button:hover {
+  box-shadow: 0 10px 40px rgba(194, 106, 45, 0.4);
+}
+
+.magnetic-button-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: transform 0.1s ease-out;
+}
+
+.magnetic-button-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #d47a3d 0%, #c26a2d 100%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.magnetic-button.is-hovered .magnetic-button-bg {
+  opacity: 1;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  transition: transform 0.3s ease;
+}
+
+.magnetic-button:hover .btn-icon {
+  transform: translateX(4px);
+}
+
+/* Secondary variant */
+.magnetic-button.secondary {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.magnetic-button.secondary:hover {
+  box-shadow: 0 10px 40px rgba(255, 255, 255, 0.15);
+}
+
+.magnetic-button.secondary .magnetic-button-bg {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Icon only variant */
+.magnetic-button.icon-only {
+  width: 60px;
+  height: 60px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Outline variant */
+.magnetic-button.outline {
+  background: transparent;
+  border: 2px solid rgba(194, 106, 45, 0.6);
+}
+
+.magnetic-button.outline:hover {
+  border-color: #c26a2d;
+  box-shadow: 0 10px 40px rgba(194, 106, 45, 0.25);
+}
+
+.magnetic-button.outline .magnetic-button-bg {
+  background: rgba(194, 106, 45, 0.15);
+}
+
+/* Demo Controls */
+.demo-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 8px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 200px;
+}
+
+.control-group label {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+  accent-color: #c26a2d;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.click-counter {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+.click-counter span {
+  color: #c26a2d;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  margin-left: 0.25rem;
+}
+
+/* Demo Info */
+.demo-info {
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.demo-info h5 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.demo-info ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.demo-info li {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.demo-info li::marker {
+  color: #c26a2d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .buttons-showcase {
+    padding: 2rem 1rem;
+  }
+  
+  .magnetic-button {
+    padding: 0.875rem 1.5rem;
+    font-size: 0.9rem;
+  }
+}

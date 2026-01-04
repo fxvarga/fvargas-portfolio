@@ -30,6 +30,7 @@ public class SearchIndexingOptions
     public List<string> IndexableEntityTypes { get; set; } = new()
     {
         "case-study-page",
+        "blog-post",
         "hero",
         "about",
         "experience",
@@ -223,6 +224,10 @@ public class SearchIndexingService : BackgroundService
                 documents.AddRange(ExtractCaseStudyDocuments(record, portfolio, root, url, title));
                 break;
 
+            case "blog-post":
+                documents.AddRange(ExtractBlogPostDocuments(record, portfolio, root, url, title));
+                break;
+
             case "services":
                 documents.AddRange(ExtractServicesDocuments(record, portfolio, root, url, title));
                 break;
@@ -311,6 +316,154 @@ public class SearchIndexingService : BackgroundService
                         Title = sectionTitle,
                         Content = string.Join(" ", sectionContent.Where(s => !string.IsNullOrWhiteSpace(s))),
                         Url = url,
+                        Section = $"section-{sectionIndex}",
+                        UpdatedAt = record.UpdatedAt
+                    });
+                }
+
+                sectionIndex++;
+            }
+        }
+
+        return documents;
+    }
+
+    /// <summary>
+    /// Extract documents from a blog post with deep linking to /blog/{slug}
+    /// </summary>
+    private List<SearchDocument> ExtractBlogPostDocuments(
+        EntityRecord record, Portfolio portfolio, JsonElement root, string url, string title)
+    {
+        var documents = new List<SearchDocument>();
+        var baseDocId = $"{portfolio.Id:N}_{record.EntityType}_{record.Id:N}";
+
+        // Get the blog post slug for deep linking
+        var blogSlug = "";
+        if (root.TryGetProperty("slug", out var slugProp))
+        {
+            blogSlug = slugProp.GetString() ?? "";
+        }
+
+        // Build the deep link URL
+        var blogUrl = !string.IsNullOrWhiteSpace(blogSlug) 
+            ? $"/blog/{blogSlug}" 
+            : "/blog";
+
+        // Extract main content
+        var mainContent = new List<string>();
+
+        // Get excerpt/summary
+        if (root.TryGetProperty("excerpt", out var excerpt))
+        {
+            var excerptText = excerpt.GetString();
+            if (!string.IsNullOrWhiteSpace(excerptText))
+                mainContent.Add(excerptText);
+        }
+
+        // Get category
+        if (root.TryGetProperty("category", out var category))
+        {
+            var categoryText = category.GetString();
+            if (!string.IsNullOrWhiteSpace(categoryText))
+                mainContent.Add(categoryText);
+        }
+
+        // Get tags
+        if (root.TryGetProperty("tags", out var tags) && tags.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var tag in tags.EnumerateArray())
+            {
+                var tagText = tag.GetString();
+                if (!string.IsNullOrWhiteSpace(tagText))
+                    mainContent.Add(tagText);
+            }
+        }
+
+        // Get author
+        if (root.TryGetProperty("author", out var author))
+        {
+            var authorText = author.GetString();
+            if (!string.IsNullOrWhiteSpace(authorText))
+                mainContent.Add(authorText);
+        }
+
+        // Main blog post document
+        documents.Add(new SearchDocument
+        {
+            Id = $"{baseDocId}_main",
+            PortfolioId = portfolio.Id,
+            PortfolioSlug = portfolio.Slug,
+            EntityType = record.EntityType,
+            EntityId = record.Id,
+            Title = title,
+            Content = string.Join(" ", mainContent.Where(s => !string.IsNullOrWhiteSpace(s))),
+            Url = blogUrl,
+            Section = null,
+            UpdatedAt = record.UpdatedAt
+        });
+
+        // Extract content sections if present
+        if (root.TryGetProperty("content", out var content))
+        {
+            var contentText = content.GetString();
+            if (!string.IsNullOrWhiteSpace(contentText))
+            {
+                // Strip HTML and add as a separate document for better search relevance
+                var strippedContent = StripHtml(contentText);
+                if (!string.IsNullOrWhiteSpace(strippedContent))
+                {
+                    documents.Add(new SearchDocument
+                    {
+                        Id = $"{baseDocId}_content",
+                        PortfolioId = portfolio.Id,
+                        PortfolioSlug = portfolio.Slug,
+                        EntityType = record.EntityType,
+                        EntityId = record.Id,
+                        Title = title,
+                        Content = strippedContent,
+                        Url = blogUrl,
+                        Section = "content",
+                        UpdatedAt = record.UpdatedAt
+                    });
+                }
+            }
+        }
+
+        // Extract sections if present (for structured blog posts)
+        if (root.TryGetProperty("sections", out var sections) && sections.ValueKind == JsonValueKind.Array)
+        {
+            var sectionIndex = 0;
+            foreach (var section in sections.EnumerateArray())
+            {
+                var sectionTitle = title;
+                var sectionContent = new List<string>();
+
+                // Try to get section heading/title
+                if (section.TryGetProperty("heading", out var heading))
+                {
+                    var headingText = heading.GetString();
+                    if (!string.IsNullOrWhiteSpace(headingText))
+                    {
+                        sectionTitle = $"{title} - {headingText}";
+                        sectionContent.Add(headingText);
+                    }
+                }
+
+                // Extract text content from section
+                ExtractTextFromElement(section, sectionContent);
+
+                if (sectionContent.Count > 0)
+                {
+                    documents.Add(new SearchDocument
+                    {
+                        Id = $"{baseDocId}_section_{sectionIndex}",
+                        PortfolioId = portfolio.Id,
+                        PortfolioSlug = portfolio.Slug,
+                        EntityType = record.EntityType,
+                        EntityId = record.Id,
+                        Title = sectionTitle,
+                        Content = string.Join(" ", sectionContent.Where(s => !string.IsNullOrWhiteSpace(s))),
+                        Url = blogUrl,
                         Section = $"section-{sectionIndex}",
                         UpdatedAt = record.UpdatedAt
                     });
@@ -606,6 +759,7 @@ public class SearchIndexingService : BackgroundService
                 return entityType switch
                 {
                     "case-study-page" => $"/case-study/{slug}",
+                    "blog-post" => $"/blog/{slug}",
                     _ => $"/{slug}"
                 };
             }
@@ -620,6 +774,7 @@ public class SearchIndexingService : BackgroundService
             "skills" => "/#skills",
             "services" => "/#services",
             "contact" => "/#contact",
+            "blog-post" => "/blog",
             _ => "/"
         };
     }

@@ -21,7 +21,8 @@ const Header: React.FC<HeaderProps> = (props) => {
   // Check if we're on the homepage
   const isHomePage = location.pathname === '/';
 
-  // Handle OS Experience toggle
+  // Handle OS Experience toggle (kept for future use when OS feature is ready)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleOSToggle = () => {
     navigate('/os');
   };
@@ -83,6 +84,15 @@ const Header: React.FC<HeaderProps> = (props) => {
                         );
                       }
                     })}
+                    {/* Blog / Learning Lab link */}
+                    <li>
+                      <RouterLink 
+                        to="/blog" 
+                        className={location.pathname.startsWith('/blog') ? 'active' : ''}
+                      >
+                        Learning Lab
+                      </RouterLink>
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -92,10 +102,11 @@ const Header: React.FC<HeaderProps> = (props) => {
                     <div className="header-search-form-wrapper">
                         <button
                         onClick={() => setSearchOpen(true)}
-                        className="theme-btn"
+                        className="theme-btn search-button"
                         style={{
                             display: 'flex',
                             alignItems: 'center',
+                            justifyContent: 'center',
                             gap: '8px',
                             padding: '8px 14px',
                             background: 'rgba(255, 255, 255, 0.9)',
@@ -103,16 +114,17 @@ const Header: React.FC<HeaderProps> = (props) => {
                             color: '#666',
                             borderRadius: '4px',
                             fontSize: '14px',
-                            width: '280px',
-                            textAlign: 'left',
-                            cursor: 'text'
+                            cursor: 'pointer'
                         }}
                         >
                         <i className="ti-search"></i>
-                        {navigation?.searchPlaceholder || 'Search...'}
+                        <span className="search-text d-lg-none">
+                          {navigation?.searchPlaceholder || 'Search...'}
+                        </span>
                         </button>
                     </div>
                   )}
+{/* OS button temporarily hidden - feature still in development
                   <button
                     onClick={handleOSToggle}
                     className="os-toggle-button"
@@ -140,6 +152,7 @@ const Header: React.FC<HeaderProps> = (props) => {
                     </svg>
                     OS
                   </button>
+                  */}
                 </div>
               </div>
             </div>

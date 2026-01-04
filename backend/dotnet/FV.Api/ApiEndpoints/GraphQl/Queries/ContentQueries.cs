@@ -228,6 +228,88 @@ public class ContentQueries
         if (!contentByType.TryGetValue(entityType, out var record)) return null;
         return JsonSerializer.Deserialize<JsonElement>(record.JsonData);
     }
+
+    /// <summary>
+    /// Get all published blog posts
+    /// </summary>
+    public async Task<List<ContentRecord>> GetBlogPosts(
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
+    {
+        if (!tenantContext.IsResolved)
+        {
+            return new List<ContentRecord>();
+        }
+
+        var records = await dbContext.EntityRecords
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
+                     && r.EntityType == "blog-post" 
+                     && !r.IsDraft)
+            .OrderByDescending(r => r.UpdatedAt)
+            .ToListAsync();
+
+        // Filter to only published posts
+        var publishedRecords = records.Where(r => 
+        {
+            var data = JsonSerializer.Deserialize<JsonElement>(r.JsonData);
+            if (data.TryGetProperty("isPublished", out var isPublished))
+            {
+                return isPublished.ValueKind == JsonValueKind.True;
+            }
+            return true; // Default to published if field not set
+        }).ToList();
+
+        return publishedRecords.Select(r => new ContentRecord
+        {
+            Id = r.Id,
+            EntityType = r.EntityType,
+            Data = JsonSerializer.Deserialize<JsonElement>(r.JsonData),
+            Version = r.Version,
+            PublishedAt = r.PublishedAt,
+            UpdatedAt = r.UpdatedAt
+        }).ToList();
+    }
+
+    /// <summary>
+    /// Get a blog post by its slug
+    /// </summary>
+    public async Task<ContentRecord?> GetBlogPostBySlug(
+        string slug,
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
+    {
+        if (!tenantContext.IsResolved)
+        {
+            return null;
+        }
+
+        var records = await dbContext.EntityRecords
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
+                     && r.EntityType == "blog-post" 
+                     && !r.IsDraft)
+            .ToListAsync();
+
+        // Find the record where the slug matches
+        foreach (var record in records)
+        {
+            var data = JsonSerializer.Deserialize<JsonElement>(record.JsonData);
+            if (data.TryGetProperty("slug", out var slugProp) && 
+                slugProp.GetString() == slug)
+            {
+                return new ContentRecord
+                {
+                    Id = record.Id,
+                    EntityType = record.EntityType,
+                    Data = data,
+                    Version = record.Version,
+                    PublishedAt = record.PublishedAt,
+                    UpdatedAt = record.UpdatedAt
+                };
+            }
+        }
+
+        return null;
+    }
 }
 
 // GraphQL types for content

@@ -457,6 +457,42 @@ public class DatabaseSeeder : IDatabaseSeeder
             }
         };
 
+        // Blog Post Definition - for technical blog with interactive demos
+        var blogPostDef = new EntityDefinition
+        {
+            Id = Guid.NewGuid(),
+            PortfolioId = portfolioId,
+            Name = "blog-post",
+            DisplayName = "Blog Post",
+            Description = "Technical blog posts with interactive demos",
+            Icon = "article",
+            IsSingleton = false,
+            Category = "Content",
+            CreatedAt = now,
+            UpdatedAt = now,
+            Version = 1,
+            Attributes = new List<AttributeDefinition>
+            {
+                new() { Id = Guid.NewGuid(), Name = "slug", Type = "string", IsRequired = true, Label = "URL Slug", Order = 1 },
+                new() { Id = Guid.NewGuid(), Name = "title", Type = "string", IsRequired = true, Label = "Title", Order = 2 },
+                new() { Id = Guid.NewGuid(), Name = "excerpt", Type = "text", IsRequired = true, Label = "Excerpt", Order = 3 },
+                new() { Id = Guid.NewGuid(), Name = "category", Type = "string", Label = "Category", Order = 4 },
+                new() { Id = Guid.NewGuid(), Name = "tags", Type = "tags", Label = "Tags", Order = 5 },
+                new() { Id = Guid.NewGuid(), Name = "featuredImage", Type = "object", Label = "Featured Image", Order = 6,
+                    Children = new List<AttributeDefinition>
+                    {
+                        new() { Id = Guid.NewGuid(), Name = "url", Type = "string", Label = "URL", Order = 1 },
+                        new() { Id = Guid.NewGuid(), Name = "alt", Type = "string", Label = "Alt Text", Order = 2 }
+                    }
+                },
+                new() { Id = Guid.NewGuid(), Name = "demoComponent", Type = "string", Label = "Demo Component Name", Order = 7 },
+                new() { Id = Guid.NewGuid(), Name = "mdxFile", Type = "string", Label = "MDX File Path", Order = 8 },
+                new() { Id = Guid.NewGuid(), Name = "readTime", Type = "string", Label = "Read Time", Order = 9 },
+                new() { Id = Guid.NewGuid(), Name = "publishedDate", Type = "string", IsRequired = true, Label = "Published Date", Order = 10 },
+                new() { Id = Guid.NewGuid(), Name = "isPublished", Type = "boolean", Label = "Is Published", Order = 11 }
+            }
+        };
+
         _context.EntityDefinitions.AddRange(
             siteConfigDef,
             heroDef,
@@ -464,7 +500,8 @@ public class DatabaseSeeder : IDatabaseSeeder
             servicesDef,
             contactDef,
             navigationDef,
-            footerDef
+            footerDef,
+            blogPostDef
         );
 
         await _context.SaveChangesAsync();
@@ -691,6 +728,102 @@ public class DatabaseSeeder : IDatabaseSeeder
                 url = "/assets/images/logo.png",
                 alt = "Logo"
             }
+        });
+
+        // Blog Posts - Using Unsplash images for featured images
+        await CreateContentAsync(portfolioId, "blog-post", new
+        {
+            slug = "codrops-dropdown-navigation",
+            title = "Building a Codrops-Style Dropdown Navigation with React",
+            excerpt = "Learn how to create an animated dropdown navigation menu inspired by Codrops, featuring sliding indicators, staggered animations, and smooth hover transitions using React and CSS.",
+            category = "Frontend",
+            tags = new[] { "React", "CSS", "Animation", "Navigation", "UI/UX" },
+            featuredImage = new
+            {
+                url = "https://images.unsplash.com/photo-1507721999472-8ed4421c4af2?w=800&h=450&fit=crop",
+                alt = "Dropdown Navigation Demo - Code on screen"
+            },
+            demoComponent = "dropdown-navigation",
+            mdxFile = "/content/blog/codrops-dropdown-navigation.md",
+            readTime = "8 min read",
+            publishedDate = "2025-01-03",
+            isPublished = true
+        });
+
+        await CreateContentAsync(portfolioId, "blog-post", new
+        {
+            slug = "magnetic-button-effect",
+            title = "Creating Magnetic Button Effects with React",
+            excerpt = "Build captivating magnetic button effects that follow the cursor, adding delightful micro-interactions to your web applications using React and CSS transforms.",
+            category = "Frontend",
+            tags = new[] { "React", "CSS", "Animation", "Micro-interactions", "UI/UX" },
+            featuredImage = new
+            {
+                url = "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=450&fit=crop",
+                alt = "Magnetic Button Demo - Abstract magnetic field"
+            },
+            demoComponent = "magnetic-button",
+            mdxFile = "/content/blog/magnetic-button-effect.md",
+            readTime = "6 min read",
+            publishedDate = "2025-01-04",
+            isPublished = true
+        });
+
+        await CreateContentAsync(portfolioId, "blog-post", new
+        {
+            slug = "animated-counters",
+            title = "Building Scroll-Triggered Animated Counters",
+            excerpt = "Create engaging animated number counters that trigger on scroll, perfect for displaying statistics and achievements with smooth easing animations.",
+            category = "Frontend",
+            tags = new[] { "React", "Animation", "Intersection Observer", "Statistics", "UI/UX" },
+            featuredImage = new
+            {
+                url = "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=450&fit=crop",
+                alt = "Animated Counters Demo - Data dashboard"
+            },
+            demoComponent = "animated-counter",
+            mdxFile = "/content/blog/animated-counters.md",
+            readTime = "7 min read",
+            publishedDate = "2025-01-05",
+            isPublished = true
+        });
+
+        await CreateContentAsync(portfolioId, "blog-post", new
+        {
+            slug = "typing-effect-animation",
+            title = "Creating a Typewriter Effect with React",
+            excerpt = "Build a dynamic typing effect component that cycles through phrases with realistic typing and deleting animations, perfect for hero sections and landing pages.",
+            category = "Frontend",
+            tags = new[] { "React", "Animation", "TypeScript", "Typography", "UI/UX" },
+            featuredImage = new
+            {
+                url = "https://images.unsplash.com/photo-1516321165247-4aa89a48be28?w=800&h=450&fit=crop",
+                alt = "Typing Effect Demo - Vintage typewriter"
+            },
+            demoComponent = "typing-effect",
+            mdxFile = "/content/blog/typing-effect-animation.md",
+            readTime = "8 min read",
+            publishedDate = "2025-01-06",
+            isPublished = true
+        });
+
+        await CreateContentAsync(portfolioId, "blog-post", new
+        {
+            slug = "workflow-execution-gui",
+            title = "Building a Workflow Execution GUI with React",
+            excerpt = "Create a visual workflow builder with real-time execution progress tracking, animated connectors, and status indicators inspired by tools like Asana, Zapier, and n8n.",
+            category = "Frontend",
+            tags = new[] { "React", "TypeScript", "Animation", "UI/UX", "Workflow" },
+            featuredImage = new
+            {
+                url = "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=450&fit=crop",
+                alt = "Workflow Execution GUI - Data flow visualization"
+            },
+            demoComponent = "workflow-executor",
+            mdxFile = "/content/blog/workflow-execution-gui.md",
+            readTime = "12 min read",
+            publishedDate = "2025-01-07",
+            isPublished = true
         });
 
         await _context.SaveChangesAsync();

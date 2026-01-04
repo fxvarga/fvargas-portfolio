@@ -108,14 +108,15 @@ public class TenantResolutionMiddleware
                     }
                 }
                 
-                // If still not found and host is localhost, default to first portfolio (Fernando)
-                if (portfolio == null && (host == "localhost" || host == "127.0.0.1"))
+                // If still not found and host is localhost or blog.localhost, default to first portfolio (Fernando)
+                // blog.localhost is the Learning Lab subdomain which uses Fernando's blog content
+                if (portfolio == null && (host == "localhost" || host == "127.0.0.1" || host == "blog.localhost"))
                 {
                     portfolio = await GetFirstPortfolioAsync(dbContext, cache);
                     
                     if (portfolio != null)
                     {
-                        _logger.LogDebug("Localhost request, defaulting to first portfolio: {PortfolioSlug}", 
+                        _logger.LogDebug("Localhost/blog request, defaulting to first portfolio: {PortfolioSlug}", 
                             portfolio.Slug);
                     }
                 }

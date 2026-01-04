@@ -6,9 +6,11 @@ import { ConfigProvider } from './providers/ConfigProvider';
 import AppWithApollo from './providers/ApolloProvider';
 import { CMSProvider } from '../shared/hooks/useCMS';
 
-// Lazy load admin and OS experience for code splitting
+// Lazy load admin, OS experience, and blog for code splitting
 const AdminApp = lazy(() => import('../features/admin'));
 const OSExperience = lazy(() => import('../features/public/os').then(m => ({ default: m.OSExperience })));
+const BlogList = lazy(() => import('../features/public/blog/BlogList'));
+const BlogPost = lazy(() => import('../features/public/blog/BlogPost'));
 
 const AllRoute = () => {
 
@@ -30,6 +32,24 @@ const AllRoute = () => {
                   element={
                     <Suspense fallback={<div style={{ background: '#0a0a0f', color: 'white', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading FV-OS...</div>}>
                       <OSExperience />
+                    </Suspense>
+                  } 
+                />
+                
+                {/* Blog / Learning Lab */}
+                <Route 
+                  path="/blog" 
+                  element={
+                    <Suspense fallback={<div style={{ background: '#0a0a0a', color: 'white', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading Learning Lab...</div>}>
+                      <BlogList />
+                    </Suspense>
+                  } 
+                />
+                <Route 
+                  path="/blog/:slug" 
+                  element={
+                    <Suspense fallback={<div style={{ background: '#0a0a0a', color: 'white', height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading post...</div>}>
+                      <BlogPost />
                     </Suspense>
                   } 
                 />

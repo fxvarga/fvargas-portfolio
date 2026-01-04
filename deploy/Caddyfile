@@ -26,6 +26,33 @@ https://{$DOMAIN_FERNANDO:localhost} {
     }
 }
 
+# Blog / Learning Lab subdomain (routes to same frontend with /blog path)
+https://{$DOMAIN_BLOG:blog.localhost} {
+    tls internal
+
+    # API and GraphQL routes to backend (for fetching blog content)
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+
+    # Proxy all requests to frontend (which serves the /blog route)
+    handle {
+        reverse_proxy frontend-fernando:80
+    }
+
+    # For the root path only, redirect to /blog
+    @root path /
+    redir @root /blog permanent
+}
+
 # Jessica Sutherland Portfolio (photographer)
 https://{$DOMAIN_JESSICA:jessica.localhost} {
     tls internal

@@ -21,6 +21,8 @@ const MobileMenu = () => {
     window.scrollTo(10, 0);
   };
   
+  // Handle OS Experience toggle (kept for future use when OS feature is ready)
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleOSToggle = () => {
     setMenuState(false);
     navigate('/os');
@@ -63,6 +65,7 @@ const MobileMenu = () => {
              </li>
           )}
           
+          {/* OS button temporarily hidden - feature still in development
           <li style={{ padding: '0 15px' }}>
              <button
                 onClick={handleOSToggle}
@@ -86,6 +89,7 @@ const MobileMenu = () => {
                 Launch OS Experience
              </button>
           </li>
+          */}
 
           {navigation?.menuItems?.map((item) => (
             <ListItem key={item.id}>
