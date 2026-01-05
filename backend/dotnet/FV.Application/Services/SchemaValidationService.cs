@@ -18,7 +18,7 @@ public class SchemaValidationService
     public ValidationResult Validate(EntityDefinition definition, JsonElement data)
     {
         var result = new ValidationResult();
-        
+
         if (definition.Attributes == null || definition.Attributes.Count == 0)
         {
             return result; // No schema to validate against
@@ -137,7 +137,7 @@ public class SchemaValidationService
                     foreach (var item in value.EnumerateArray())
                     {
                         var itemPath = $"{fieldPath}[{index}]";
-                        
+
                         if (item.ValueKind == JsonValueKind.Object)
                         {
                             foreach (var childAttr in attribute.Children)
@@ -150,7 +150,7 @@ public class SchemaValidationService
                             // Simple array (e.g., array of strings)
                             ValidateSimpleArrayItem(attribute.Children[0], item, itemPath, result);
                         }
-                        
+
                         index++;
                     }
                 }

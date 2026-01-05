@@ -1,40 +1,67 @@
-# Building a Workflow Execution GUI with React
+# Building a Workflow Execution GUI with React Flow
 
-Workflow automation tools like Asana, Zapier, and n8n have popularized visual workflow builders that let users create complex automations without code. In this tutorial, we'll build a workflow execution GUI with real-time progress tracking using React.
+React Flow is the go-to library for building node-based editors, workflow builders, and interactive diagrams. In this tutorial, we'll build a visual workflow execution GUI with real-time progress tracking, animated edges, and custom nodes using React Flow.
 
 ## What We're Building
 
 Our workflow execution component includes:
 
-- **Visual workflow nodes** with icons, descriptions, and form fields
-- **Real-time execution progress** with animated status indicators
-- **Smooth connector animations** showing data flow between steps
-- **Multiple node types**: triggers, actions, notifications, and conditions
-- **Error state handling** with visual feedback
+- **Custom workflow nodes** with status indicators and form fields
+- **Animated edges** showing data flow during execution
+- **Branching logic** with conditional paths (Yes/No)
+- **MiniMap** for overview navigation
+- **Controls** for zoom and pan
+- **Real-time execution progress** with visual feedback
 
-TIP: Click "Execute Workflow" in the demo above to see the real-time progress animation in action!
+TIP: Click "Execute Workflow" in the demo above to see the real-time progress animation in action! Try dragging nodes to rearrange the workflow.
 
 ## Prerequisites
 
 Before we start, make sure you have:
 
 - React 18+ with TypeScript
-- Basic understanding of React state management
-- Familiarity with CSS animations and transitions
+- Basic understanding of React hooks
+- Familiarity with React Flow concepts (nodes, edges, handles)
 
-## Step 1: Defining the Data Types
+## Step 1: Install React Flow
 
-First, let's define our TypeScript types for workflow nodes and their states:
+Install the React Flow package:
+
+```bash
+npm install @xyflow/react
+```
+
+Then import the required components and styles:
+
+```tsx
+import {
+  ReactFlow,
+  Node,
+  Edge,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  Handle,
+  Position,
+  NodeProps,
+  BackgroundVariant,
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+```
+
+## Step 2: Define Your Data Types
+
+Create TypeScript interfaces for type-safe workflow operations:
 
 ```tsx
 type NodeStatus = 'idle' | 'running' | 'completed' | 'error';
 
-interface WorkflowNode {
-  id: string;
-  type: 'trigger' | 'action' | 'notification' | 'condition';
-  title: string;
+interface WorkflowNodeData {
+  label: string;
   description: string;
-  icon: React.ReactNode;
+  type: 'trigger' | 'action' | 'notification' | 'condition';
   color: string;
   field?: {
     label: string;
@@ -45,99 +72,244 @@ interface WorkflowNode {
 }
 ```
 
-The `status` field is key - it drives all the visual state changes during execution.
+NOTE: React Flow nodes have a generic `data` property that we extend with our custom `WorkflowNodeData` interface.
 
-## Step 2: Creating the Node Card Component
+## Step 3: Create Custom Node Components
 
-Each workflow step is rendered as a card with an icon, title, description, and optional form field:
+React Flow allows you to create custom node components for rich UI:
 
 ```tsx
-interface WorkflowNodeCardProps {
-  node: WorkflowNode;
-  isLast: boolean;
-}
-
-const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({ node, isLast }) => {
-  const getStatusIndicator = () => {
-    switch (node.status) {
-      case 'running':
-        return <SpinnerIcon />;
-      case 'completed':
-        return <CheckIcon />;
-      case 'error':
-        return <ErrorIcon />;
-      default:
-        return null;
-    }
-  };
-
+const WorkflowNode: React.FC<NodeProps<Node<WorkflowNodeData>>> = ({ data }) => {
+  const nodeData = data as WorkflowNodeData;
+  
   return (
-    <div className={`workflow-node-wrapper ${isLast ? 'is-last' : ''}`}>
-      <div className={`workflow-node status-${node.status}`}>
-        {/* Status indicator badge */}
-        <div className={`node-status-indicator status-${node.status}`}>
-          {getStatusIndicator()}
-        </div>
-
-        {/* Header with icon and title */}
-        <div className="node-header">
-          <div 
-            className="node-icon" 
-            style={{ 
-              backgroundColor: `${node.color}15`, 
-              color: node.color 
-            }}
-          >
-            {node.icon}
-          </div>
-          <div className="node-title-group">
-            <h4 className="node-title">{node.title}</h4>
-            <p className="node-description">{node.description}</p>
-          </div>
-        </div>
-
-        {/* Optional field */}
-        {node.field && (
-          <div className="node-field">
-            <label className="node-field-label">{node.field.label}</label>
-            <div className="node-field-value">{node.field.value}</div>
-          </div>
-        )}
+    <div className={`workflow-node status-${nodeData.status}`}>
+      {/* Input Handle - where edges connect FROM other nodes */}
+      <Handle 
+        type="target" 
+        position={Position.Left}
+        className="workflow-handle"
+      />
+      
+      {/* Status Indicator Badge */}
+      <div className={`node-status-indicator status-${nodeData.status}`}>
+        {getStatusIndicator(nodeData.status)}
       </div>
 
-      {/* Connector to next node */}
-      {!isLast && (
-        <div className={`workflow-connector status-${node.status}`}>
-          <div className="connector-line" />
-          <div className="connector-progress" />
+      {/* Node Content */}
+      <div className="node-header">
+        <div className="node-icon" style={{ backgroundColor: `${nodeData.color}15` }}>
+          {getNodeIcon(nodeData.type)}
+        </div>
+        <div className="node-title-group">
+          <h4 className="node-title">{nodeData.label}</h4>
+          <p className="node-description">{nodeData.description}</p>
+        </div>
+      </div>
+
+      {/* Optional Field */}
+      {nodeData.field && (
+        <div className="node-field">
+          <label>{nodeData.field.label}</label>
+          <div>{nodeData.field.value}</div>
         </div>
       )}
+
+      {/* Output Handle - where edges connect TO other nodes */}
+      <Handle 
+        type="source" 
+        position={Position.Right}
+        className="workflow-handle"
+      />
+    </div>
+  );
+};
+
+// Register custom node types
+const nodeTypes = {
+  workflow: WorkflowNode,
+};
+```
+
+Key concepts:
+- **Handle** components define connection points for edges
+- `type="target"` receives incoming connections
+- `type="source"` creates outgoing connections
+- `position` determines where on the node the handle appears
+
+## Step 4: Define Initial Nodes and Edges
+
+Create your workflow structure with nodes and edges:
+
+```tsx
+const createInitialNodes = (): Node<WorkflowNodeData>[] => [
+  {
+    id: '1',
+    type: 'workflow', // Uses our custom node type
+    position: { x: 0, y: 100 },
+    data: {
+      label: 'When a task is assigned',
+      description: 'Workflow trigger',
+      type: 'trigger',
+      color: '#8b5cf6',
+      status: 'idle',
+      duration: 800,
+    },
+  },
+  {
+    id: '2',
+    type: 'workflow',
+    position: { x: 350, y: 100 },
+    data: {
+      label: "Add to 'My Tasks'",
+      description: 'Automatic action',
+      type: 'action',
+      color: '#10b981',
+      status: 'idle',
+      duration: 1200,
+    },
+  },
+  // ... more nodes
+];
+
+const createInitialEdges = (): Edge[] => [
+  { 
+    id: 'e1-2', 
+    source: '1',  // From node with id '1'
+    target: '2',  // To node with id '2'
+    animated: false,
+    style: { stroke: '#64748b', strokeWidth: 2 },
+  },
+  { 
+    id: 'e2-3', 
+    source: '2', 
+    target: '3',
+    label: 'Yes',  // Edge labels for branching
+    labelStyle: { fill: '#94a3b8' },
+  },
+  // ... more edges
+];
+```
+
+## Step 5: Set Up the React Flow Canvas
+
+Use React Flow's hooks for state management:
+
+```tsx
+const WorkflowExecutorDemo: React.FC = () => {
+  const [nodes, setNodes, onNodesChange] = useNodesState(createInitialNodes());
+  const [edges, setEdges, onEdgesChange] = useEdgesState(createInitialEdges());
+
+  return (
+    <div className="workflow-canvas" style={{ height: 400 }}>
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        nodeTypes={nodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.2 }}
+        minZoom={0.5}
+        maxZoom={1.5}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={20} />
+        <Controls />
+        <MiniMap 
+          nodeColor={(node) => {
+            const data = node.data as WorkflowNodeData;
+            if (data.status === 'completed') return '#10b981';
+            if (data.status === 'running') return '#c26a2d';
+            return data.color;
+          }}
+        />
+      </ReactFlow>
     </div>
   );
 };
 ```
 
-NOTE: The `status-${node.status}` class pattern allows CSS to style each state differently using a single class.
+Key props:
+- `fitView` - Automatically fits all nodes in the viewport
+- `nodeTypes` - Registers our custom node component
+- `onNodesChange` / `onEdgesChange` - Handles drag, select, and delete
 
-## Step 3: Styling the Workflow Cards
+## Step 6: Implement Workflow Execution
 
-The visual design uses a light card on a dark background, inspired by modern workflow tools:
+The execution logic updates node status sequentially:
+
+```tsx
+// Update a single node's status
+const updateNodeStatus = useCallback((nodeId: string, status: NodeStatus) => {
+  setNodes((nds) =>
+    nds.map((node) =>
+      node.id === nodeId
+        ? { ...node, data: { ...node.data, status } }
+        : node
+    )
+  );
+}, [setNodes]);
+
+// Update edge animation based on execution state
+const updateEdgeAnimation = useCallback((sourceId: string, animated: boolean) => {
+  setEdges((eds) =>
+    eds.map((edge) =>
+      edge.source === sourceId
+        ? { 
+            ...edge, 
+            animated,
+            style: { 
+              ...edge.style, 
+              stroke: animated ? '#c26a2d' : '#10b981',
+            }
+          }
+        : edge
+    )
+  );
+}, [setEdges]);
+```
+
+The main execution function walks through nodes:
+
+```tsx
+const executeWorkflow = useCallback(async () => {
+  setIsExecuting(true);
+  setWorkflowStatus('running');
+
+  const executionOrder = ['1', '2', '3', '4', '5', '6'];
+
+  for (const nodeId of executionOrder) {
+    // Set node to running
+    updateNodeStatus(nodeId, 'running');
+    updateEdgeAnimation(nodeId, true);
+
+    // Wait for execution (simulated)
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Set node to completed
+    updateNodeStatus(nodeId, 'completed');
+    updateEdgeAnimation(nodeId, false);
+  }
+
+  setWorkflowStatus('completed');
+  setIsExecuting(false);
+}, [updateNodeStatus, updateEdgeAnimation]);
+```
+
+## Step 7: Style the Custom Nodes
+
+Use CSS to create status-based visual feedback:
 
 ```css
 .workflow-node {
-  position: relative;
   width: 260px;
   background: rgba(255, 255, 255, 0.95);
   border-radius: 12px;
   padding: 1rem;
-  box-shadow: 
-    0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -1px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
-  color: #1e293b;
 }
 
-/* Status-based border colors */
+/* Status-based borders */
 .workflow-node.status-running {
   box-shadow: 0 0 0 2px #c26a2d;
 }
@@ -149,11 +321,8 @@ The visual design uses a light card on a dark background, inspired by modern wor
 .workflow-node.status-error {
   box-shadow: 0 0 0 2px #ef4444;
 }
-```
 
-The status indicator badge appears in the corner:
-
-```css
+/* Status indicator badge */
 .node-status-indicator {
   position: absolute;
   top: -8px;
@@ -161,316 +330,139 @@ The status indicator badge appears in the corner:
   width: 24px;
   height: 24px;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   opacity: 0;
   transform: scale(0);
   transition: all 0.3s ease;
 }
 
 .node-status-indicator.status-running,
-.node-status-indicator.status-completed,
-.node-status-indicator.status-error {
+.node-status-indicator.status-completed {
   opacity: 1;
   transform: scale(1);
 }
 
-.node-status-indicator.status-running {
-  background: #c26a2d;
-  color: white;
-}
-
-.node-status-indicator.status-completed {
-  background: #10b981;
-  color: white;
+/* Custom handle styling */
+.workflow-handle {
+  width: 12px !important;
+  height: 12px !important;
+  background: #64748b !important;
+  border: 2px solid #fff !important;
 }
 ```
 
-## Step 4: Animating the Connectors
+## Step 8: Add Error Handling
 
-The connectors between nodes show progress as the workflow executes:
-
-```css
-.workflow-connector {
-  width: 60px;
-  height: 3px;
-  position: relative;
-}
-
-.connector-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: #e2e8f0;
-  border-radius: 2px;
-}
-
-.connector-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, #10b981, #34d399);
-  border-radius: 2px;
-  transition: width 0.4s ease;
-}
-
-.workflow-connector.status-completed .connector-progress {
-  width: 100%;
-}
-
-.workflow-connector.status-running .connector-progress {
-  width: 50%;
-  animation: connectorPulse 1s ease-in-out infinite;
-}
-```
-
-## Step 5: Implementing the Execution Logic
-
-The execution engine walks through nodes sequentially, updating status as it goes:
-
-```tsx
-const executeWorkflow = useCallback(async () => {
-  if (isExecuting) return;
-  
-  resetWorkflow();
-  setIsExecuting(true);
-  setWorkflowStatus('running');
-
-  for (let i = 0; i < nodes.length; i++) {
-    setCurrentStep(i);
-    
-    // Set current node to running
-    setNodes(prev => prev.map((node, idx) => 
-      idx === i ? { ...node, status: 'running' as NodeStatus } : node
-    ));
-
-    // Simulate execution time
-    await new Promise(resolve => 
-      setTimeout(resolve, nodes[i].duration || 1000)
-    );
-
-    // Set current node to completed
-    setNodes(prev => prev.map((node, idx) => 
-      idx === i ? { ...node, status: 'completed' as NodeStatus } : node
-    ));
-  }
-
-  setWorkflowStatus('completed');
-  setIsExecuting(false);
-}, [isExecuting, nodes, resetWorkflow]);
-```
-
-This pattern of updating state in a loop with `await` ensures React re-renders between each step, showing the animation.
-
-## Step 6: Adding a Progress Bar
-
-A progress bar at the top gives users a quick overview of execution status:
-
-```tsx
-interface ProgressBarProps {
-  current: number;
-  total: number;
-  status: 'idle' | 'running' | 'completed' | 'error';
-}
-
-const ProgressBar: React.FC<ProgressBarProps> = ({ current, total, status }) => {
-  const percentage = total > 0 ? (current / total) * 100 : 0;
-
-  return (
-    <div className="workflow-progress">
-      <div className="progress-header">
-        <span className="progress-label">
-          {status === 'idle' && 'Ready to execute'}
-          {status === 'running' && `Executing step ${current + 1} of ${total}...`}
-          {status === 'completed' && 'Workflow completed successfully'}
-          {status === 'error' && 'Workflow failed'}
-        </span>
-        <span className="progress-percentage">{Math.round(percentage)}%</span>
-      </div>
-      <div className="progress-bar">
-        <div 
-          className={`progress-fill status-${status}`} 
-          style={{ width: `${percentage}%` }}
-        />
-      </div>
-    </div>
-  );
-};
-```
-
-## Step 7: Handling Errors
-
-Error handling is crucial for workflows. Here's how to visualize failures:
+Simulate failures to demonstrate error states:
 
 ```tsx
 const simulateError = useCallback(async () => {
-  if (isExecuting) return;
-  
   resetWorkflow();
   setIsExecuting(true);
   setWorkflowStatus('running');
 
   // Execute first two nodes successfully
   for (let i = 0; i < 2; i++) {
-    setNodes(prev => prev.map((node, idx) => 
-      idx === i ? { ...node, status: 'running' } : node
-    ));
+    updateNodeStatus(executionOrder[i], 'running');
     await new Promise(resolve => setTimeout(resolve, 1000));
-    setNodes(prev => prev.map((node, idx) => 
-      idx === i ? { ...node, status: 'completed' } : node
-    ));
+    updateNodeStatus(executionOrder[i], 'completed');
   }
 
   // Fail on third node
-  setNodes(prev => prev.map((node, idx) => 
-    idx === 2 ? { ...node, status: 'running' } : node
-  ));
+  updateNodeStatus(executionOrder[2], 'running');
   await new Promise(resolve => setTimeout(resolve, 1000));
-  setNodes(prev => prev.map((node, idx) => 
-    idx === 2 ? { ...node, status: 'error' } : node
-  ));
+  updateNodeStatus(executionOrder[2], 'error');
+
+  // Update edge to error color
+  setEdges((eds) =>
+    eds.map((edge) =>
+      edge.source === executionOrder[2]
+        ? { ...edge, style: { ...edge.style, stroke: '#ef4444' } }
+        : edge
+    )
+  );
 
   setWorkflowStatus('error');
   setIsExecuting(false);
-}, [isExecuting, resetWorkflow]);
+}, [resetWorkflow, updateNodeStatus, setEdges]);
 ```
 
-WARNING: In production, you'd want to implement retry logic and error recovery mechanisms rather than just stopping execution.
+WARNING: In production, implement retry logic and proper error recovery rather than just stopping execution.
 
-## Step 8: Complete Component
+## React Flow Features Used
 
-Here's the main demo component bringing it all together:
+| Feature | Description |
+|---------|-------------|
+| `ReactFlow` | Main container component |
+| `useNodesState` | Hook for managing node state with built-in handlers |
+| `useEdgesState` | Hook for managing edge state with built-in handlers |
+| `Handle` | Connection points for edges |
+| `Background` | Customizable grid/dot background |
+| `Controls` | Zoom and pan controls |
+| `MiniMap` | Overview navigation panel |
+| `fitView` | Auto-fit all nodes in viewport |
 
-```tsx
-const WorkflowExecutorDemo: React.FC<DemoProps> = ({ className }) => {
-  const [executionSpeed, setExecutionSpeed] = useState(1000);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const [currentStep, setCurrentStep] = useState(-1);
-  const [workflowStatus, setWorkflowStatus] = useState<WorkflowStatus>('idle');
-  const [nodes, setNodes] = useState<WorkflowNode[]>(initialNodes);
+## Advanced: Branching Logic
 
-  const completedSteps = nodes.filter(n => n.status === 'completed').length;
-
-  return (
-    <div className="workflow-executor-demo">
-      <ProgressBar 
-        current={completedSteps} 
-        total={nodes.length} 
-        status={workflowStatus}
-      />
-
-      <div className="workflow-canvas">
-        <div className="workflow-nodes">
-          {nodes.map((node, index) => (
-            <WorkflowNodeCard 
-              key={node.id} 
-              node={node} 
-              isLast={index === nodes.length - 1}
-            />
-          ))}
-        </div>
-      </div>
-
-      <div className="demo-controls">
-        <button onClick={executeWorkflow} disabled={isExecuting}>
-          Execute Workflow
-        </button>
-        <button onClick={simulateError} disabled={isExecuting}>
-          Simulate Error
-        </button>
-        <button onClick={resetWorkflow} disabled={isExecuting}>
-          Reset
-        </button>
-      </div>
-    </div>
-  );
-};
-```
-
-## Extending with React Flow
-
-For more complex workflows with drag-and-drop, branching, and custom edges, consider using [React Flow](https://reactflow.dev/). Here's how you'd integrate it:
+React Flow supports multiple edges from a single node for branching:
 
 ```tsx
-import ReactFlow, { 
-  Node, 
-  Edge, 
-  useNodesState, 
-  useEdgesState 
-} from 'reactflow';
-import 'reactflow/dist/style.css';
-
-const initialNodes: Node[] = [
-  { id: '1', type: 'trigger', position: { x: 0, y: 0 }, data: { label: 'Trigger' } },
-  { id: '2', type: 'action', position: { x: 200, y: 0 }, data: { label: 'Action' } },
+const edges = [
+  { 
+    id: 'branch-yes', 
+    source: 'condition-node', 
+    target: 'yes-path',
+    label: 'Yes',
+    sourceHandle: 'yes',  // Multiple handles per node
+  },
+  { 
+    id: 'branch-no', 
+    source: 'condition-node', 
+    target: 'no-path',
+    label: 'No',
+    sourceHandle: 'no',
+  },
 ];
 
-const initialEdges: Edge[] = [
-  { id: 'e1-2', source: '1', target: '2', animated: true },
-];
-
-const WorkflowBuilder = () => {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
-
-  return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={onNodesChange}
-      onEdgesChange={onEdgesChange}
-      nodeTypes={customNodeTypes}
-    />
-  );
-};
+// In the custom node component:
+<Handle type="source" position={Position.Right} id="yes" style={{ top: '30%' }} />
+<Handle type="source" position={Position.Right} id="no" style={{ top: '70%' }} />
 ```
 
-## Performance Considerations
+## Performance Tips
 
-When dealing with many workflow nodes:
-
-1. **Virtualize the canvas** - Only render visible nodes for large workflows
-2. **Debounce state updates** - Batch rapid changes to avoid re-render storms
-3. **Use React.memo** - Prevent unnecessary re-renders of unchanged nodes
-4. **Optimize SVG icons** - Use a sprite or icon font for many icons
-
-## Accessibility
-
-Make your workflow accessible:
+1. **Memoize node types** - Define `nodeTypes` outside the component or use `useMemo`
+2. **Use `fitView` wisely** - Only on initial render, not on every state change
+3. **Batch state updates** - Update multiple nodes in a single `setNodes` call
+4. **Virtualization** - React Flow automatically virtualizes nodes off-screen
 
 ```tsx
-// Add ARIA attributes for screen readers
-<div 
-  role="list" 
-  aria-label="Workflow steps"
-  className="workflow-nodes"
->
-  {nodes.map((node, index) => (
-    <div 
-      key={node.id}
-      role="listitem"
-      aria-current={currentStep === index ? 'step' : undefined}
-      aria-label={`Step ${index + 1}: ${node.title}, status: ${node.status}`}
-    >
-      <WorkflowNodeCard node={node} isLast={index === nodes.length - 1} />
-    </div>
-  ))}
-</div>
+// Good: nodeTypes defined outside component
+const nodeTypes = { workflow: WorkflowNode };
+
+// Or with useMemo inside component
+const nodeTypes = useMemo(() => ({ workflow: WorkflowNode }), []);
 ```
+
+## Comparison: Custom Implementation vs React Flow
+
+| Feature | Custom Grid | React Flow |
+|---------|-------------|------------|
+| Drag & Drop | Manual implementation | Built-in |
+| Zoom & Pan | Manual implementation | Built-in |
+| Edge Routing | Complex SVG math | Automatic |
+| Selection | Manual state | Built-in |
+| Undo/Redo | Manual history | Available plugin |
+| Virtualization | Add separately | Built-in |
+| Touch Support | Manual events | Built-in |
 
 ## Conclusion
 
-We've built a visual workflow execution GUI with real-time progress tracking. The key patterns are: status-driven styling, sequential async execution with visual feedback, and clean separation between node rendering and execution logic. This foundation can be extended with drag-and-drop, branching logic, and integration with real workflow engines.
+React Flow provides a powerful foundation for building workflow visualizations. By creating custom node components and leveraging React Flow's state management hooks, you can build professional-grade workflow builders with minimal boilerplate. The library handles complex interactions like drag-and-drop, zoom, pan, and edge routing automatically.
 
 ---
 
 ## Related Tutorials
 
-- [Building Animated Counters](/blog/animated-counters)
-- [Creating Magnetic Button Effects](/blog/magnetic-button-effect)
-- [Dropdown Navigation with React](/blog/codrops-dropdown-navigation)
+- [Building a Data Grid with FluentUI](/blog/fluentui-dynamic-datagrid)
+- [Creating Animated Counters](/blog/animated-counters)
+- [Magnetic Button Effects](/blog/magnetic-button-effect)

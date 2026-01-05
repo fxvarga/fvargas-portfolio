@@ -3,13 +3,13 @@ namespace FV.Domain.Entities;
 public class EntityDefinition
 {
     public Guid Id { get; set; }
-    
+
     /// <summary>
     /// Foreign key to the Portfolio this entity definition belongs to.
     /// Required for multi-tenant isolation.
     /// </summary>
     public Guid PortfolioId { get; set; }
-    
+
     public string Name { get; set; } = default!;
     public string? DisplayName { get; set; }
     public string? Description { get; set; }
@@ -23,7 +23,7 @@ public class EntityDefinition
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     public string? CreatedBy { get; set; }
     public string? UpdatedBy { get; set; }
-    
+
     // Navigation property
     public Portfolio? Portfolio { get; set; }
 }
@@ -63,13 +63,13 @@ public class RelationshipDefinition
 public class EntityRecord
 {
     public Guid Id { get; set; }
-    
+
     /// <summary>
     /// Foreign key to the Portfolio this entity record belongs to.
     /// Required for multi-tenant isolation.
     /// </summary>
     public Guid PortfolioId { get; set; }
-    
+
     public string EntityType { get; set; } = default!;
     public string JsonData { get; set; } = default!;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -79,7 +79,7 @@ public class EntityRecord
     public DateTime? PublishedAt { get; set; }
     public string? CreatedBy { get; set; }
     public string? UpdatedBy { get; set; }
-    
+
     // Navigation property
     public Portfolio? Portfolio { get; set; }
 }
@@ -89,19 +89,19 @@ public class EntityRecordVersion
 {
     public Guid Id { get; set; }
     public Guid EntityRecordId { get; set; }
-    
+
     /// <summary>
     /// Foreign key to the Portfolio this version belongs to.
     /// Required for multi-tenant isolation.
     /// </summary>
     public Guid PortfolioId { get; set; }
-    
+
     public string EntityType { get; set; } = default!;
     public string JsonData { get; set; } = default!;
     public int Version { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public string? CreatedBy { get; set; }
-    
+
     // Navigation property
     public Portfolio? Portfolio { get; set; }
 }
@@ -125,13 +125,13 @@ public class LayoutDefinition
 public class MediaAsset
 {
     public Guid Id { get; set; }
-    
+
     /// <summary>
     /// Foreign key to the Portfolio this media asset belongs to.
     /// Required for multi-tenant isolation.
     /// </summary>
     public Guid PortfolioId { get; set; }
-    
+
     public string FileName { get; set; } = default!;
     public string FilePath { get; set; } = default!;
     public string MimeType { get; set; } = default!;
@@ -139,7 +139,7 @@ public class MediaAsset
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
     public string? UploadedBy { get; set; }
     public string? AltText { get; set; }
-    
+
     // Navigation property
     public Portfolio? Portfolio { get; set; }
 }

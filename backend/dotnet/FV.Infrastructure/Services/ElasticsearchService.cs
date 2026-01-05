@@ -31,7 +31,7 @@ public class ElasticsearchService : ISearchService
     public async Task InitializeIndexAsync(Guid portfolioId, string portfolioSlug, CancellationToken cancellationToken = default)
     {
         var indexName = GetIndexName(portfolioId);
-        
+
         var existsResponse = await _client.Indices.ExistsAsync(indexName, cancellationToken);
         if (existsResponse.Exists)
         {
@@ -131,7 +131,7 @@ public class ElasticsearchService : ISearchService
         {
             var indexName = GetIndexName(group.Key);
             var docs = group.ToList();
-            
+
             var response = await _client.BulkAsync(b => b
                 .Index(indexName)
                 .IndexMany(docs)
@@ -371,7 +371,7 @@ public class ElasticsearchService : ISearchService
     private static List<string> GetHighlights(Hit<SearchDocument> hit)
     {
         var highlights = new List<string>();
-        
+
         if (hit.Highlight == null) return highlights;
 
         foreach (var kvp in hit.Highlight)

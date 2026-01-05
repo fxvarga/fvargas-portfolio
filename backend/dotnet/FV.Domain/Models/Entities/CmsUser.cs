@@ -9,7 +9,7 @@ public class CmsUser
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? LastLoginAt { get; set; }
     public bool IsActive { get; set; } = true;
-    
+
     // Navigation property for portfolio access
     public ICollection<UserPortfolio> UserPortfolios { get; set; } = new List<UserPortfolio>();
 }

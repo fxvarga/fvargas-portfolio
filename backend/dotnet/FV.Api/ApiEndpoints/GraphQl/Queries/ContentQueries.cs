@@ -23,8 +23,8 @@ public class ContentQueries
         }
 
         var records = await dbContext.EntityRecords
-            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
-                     && r.EntityType == entityType 
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId
+                     && r.EntityType == entityType
                      && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync();
@@ -54,8 +54,8 @@ public class ContentQueries
         }
 
         var record = await dbContext.EntityRecords
-            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
-                     && r.EntityType == entityType 
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId
+                     && r.EntityType == entityType
                      && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .FirstOrDefaultAsync();
@@ -136,8 +136,8 @@ public class ContentQueries
         }
 
         var records = await dbContext.EntityRecords
-            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
-                     && entityTypes.Contains(r.EntityType) 
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId
+                     && entityTypes.Contains(r.EntityType)
                      && !r.IsDraft)
             .ToListAsync();
 
@@ -151,7 +151,7 @@ public class ContentQueries
         return entityTypes.Select(type => new ContentByTypeResult
         {
             EntityType = type,
-            Data = contentByType.TryGetValue(type, out var record) 
+            Data = contentByType.TryGetValue(type, out var record)
                 ? JsonSerializer.Deserialize<JsonElement>(record.JsonData)
                 : null,
             Id = contentByType.TryGetValue(type, out var r) ? r.Id : null,
@@ -177,7 +177,7 @@ public class ContentQueries
         var entityDefinitions = await dbContext.EntityDefinitions
             .Where(d => d.PortfolioId == tenantContext.PortfolioId)
             .ToListAsync();
-        
+
         var singletonTypes = entityDefinitions
             .Where(d => d.IsSingleton)
             .Select(d => d.Name)
@@ -191,7 +191,7 @@ public class ContentQueries
         // For singleton types, take only the most recent; for non-singletons, take all
         var result = new List<EntityRecord>();
         var singletonsSeen = new HashSet<string>();
-        
+
         foreach (var record in records)
         {
             if (singletonTypes.Contains(record.EntityType))
@@ -222,7 +222,7 @@ public class ContentQueries
     }
 
     private static JsonElement? GetContentData(
-        Dictionary<string, EntityRecord> contentByType, 
+        Dictionary<string, EntityRecord> contentByType,
         string entityType)
     {
         if (!contentByType.TryGetValue(entityType, out var record)) return null;
@@ -242,14 +242,14 @@ public class ContentQueries
         }
 
         var records = await dbContext.EntityRecords
-            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
-                     && r.EntityType == "blog-post" 
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId
+                     && r.EntityType == "blog-post"
                      && !r.IsDraft)
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync();
 
         // Filter to only published posts
-        var publishedRecords = records.Where(r => 
+        var publishedRecords = records.Where(r =>
         {
             var data = JsonSerializer.Deserialize<JsonElement>(r.JsonData);
             if (data.TryGetProperty("isPublished", out var isPublished))
@@ -284,8 +284,8 @@ public class ContentQueries
         }
 
         var records = await dbContext.EntityRecords
-            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
-                     && r.EntityType == "blog-post" 
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId
+                     && r.EntityType == "blog-post"
                      && !r.IsDraft)
             .ToListAsync();
 
@@ -293,7 +293,7 @@ public class ContentQueries
         foreach (var record in records)
         {
             var data = JsonSerializer.Deserialize<JsonElement>(record.JsonData);
-            if (data.TryGetProperty("slug", out var slugProp) && 
+            if (data.TryGetProperty("slug", out var slugProp) &&
                 slugProp.GetString() == slug)
             {
                 return new ContentRecord
@@ -317,10 +317,10 @@ public class ContentRecord
 {
     public Guid Id { get; set; }
     public string EntityType { get; set; } = default!;
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement Data { get; set; }
-    
+
     public int Version { get; set; }
     public DateTime? PublishedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -330,10 +330,10 @@ public class ContentByTypeResult
 {
     public string EntityType { get; set; } = default!;
     public Guid? Id { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Data { get; set; }
-    
+
     public int Version { get; set; }
     public DateTime? UpdatedAt { get; set; }
 }
@@ -342,22 +342,22 @@ public class PortfolioContent
 {
     [GraphQLType(typeof(AnyType))]
     public JsonElement? SiteConfig { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Hero { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? About { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Services { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Contact { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Navigation { get; set; }
-    
+
     [GraphQLType(typeof(AnyType))]
     public JsonElement? Footer { get; set; }
 

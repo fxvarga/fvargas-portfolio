@@ -14,7 +14,7 @@ namespace FV.Application
         public static IServiceCollection AddInfrastructureServices(this IServiceCollection services)
         {
             services.AddScoped<IUnitOfWork, FileBasedUnitOfWork>();
-            
+
             // Register tenant context as scoped (per-request)
             services.AddScoped<ITenantContext, TenantContext>();
 
@@ -34,13 +34,13 @@ namespace FV.Application
         {
             // Configure Elasticsearch client
             var esUrl = elasticsearchUrl ?? Environment.GetEnvironmentVariable("ELASTICSEARCH_URL") ?? "http://localhost:9200";
-            
+
             services.AddSingleton<ElasticsearchClient>(sp =>
             {
                 var settings = new ElasticsearchClientSettings(new Uri(esUrl))
                     .DisableDirectStreaming()
                     .EnableDebugMode();
-                
+
                 return new ElasticsearchClient(settings);
             });
 

@@ -66,15 +66,15 @@ namespace FV.Api.Configurations
             {
                 builder.AddOpenTelemetry(options =>
                 {
-                        options.IncludeFormattedMessage = true;
-                        options.IncludeScopes = true;
-                        options.ParseStateValues = true;
+                    options.IncludeFormattedMessage = true;
+                    options.IncludeScopes = true;
+                    options.ParseStateValues = true;
 
-                        if (!string.IsNullOrEmpty(appInsightsConnectionString))
-                        {
-                            options.AddAzureMonitorLogExporter(o => o.ConnectionString = appInsightsConnectionString);
-                        }
-                    });
+                    if (!string.IsNullOrEmpty(appInsightsConnectionString))
+                    {
+                        options.AddAzureMonitorLogExporter(o => o.ConnectionString = appInsightsConnectionString);
+                    }
+                });
             });
 
             return services;

@@ -33,7 +33,7 @@ public class DatabaseSeeder : IDatabaseSeeder
     {
         // Seed portfolios first (required for FK constraints)
         await SeedPortfoliosAsync();
-        
+
         // Seed admin user if not exists
         CmsUser? adminUser = null;
         if (!await _context.Users.AnyAsync())
@@ -136,12 +136,12 @@ public class DatabaseSeeder : IDatabaseSeeder
     private async Task AssignUserToAllPortfoliosAsync(Guid userId)
     {
         var portfolioIds = await _context.Portfolios.Select(p => p.Id).ToListAsync();
-        
+
         foreach (var portfolioId in portfolioIds)
         {
             var exists = await _context.UserPortfolios
                 .AnyAsync(up => up.UserId == userId && up.PortfolioId == portfolioId);
-            
+
             if (!exists)
             {
                 _context.UserPortfolios.Add(new UserPortfolio
@@ -153,7 +153,7 @@ public class DatabaseSeeder : IDatabaseSeeder
                 });
             }
         }
-        
+
         await _context.SaveChangesAsync();
     }
 

@@ -3,7 +3,7 @@ using Microsoft.FeatureManagement;
 using FV.Api.Configurations;
 using FV.Application;
 using FV.Infrastructure;
-using FV.Infrastructure.Extensions;
+using FV.Infrastructure.ContentMigrations;
 using FV.Infrastructure.Middleware;
 using FV.Infrastructure.Persistence;
 using FV.Infrastructure.Services;
@@ -20,7 +20,7 @@ var config = builder.Configuration;
 var isDevelopment = builder.Environment.IsDevelopment();
 
 // Add CMS Database (SQLite)
-var cmsDbPath = Environment.GetEnvironmentVariable("CMS_DB_PATH") 
+var cmsDbPath = Environment.GetEnvironmentVariable("CMS_DB_PATH")
     ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "cms.db");
 services.AddDbContext<CmsDbContext>(options =>
     options.UseSqlite($"Data Source={cmsDbPath}"));
@@ -50,9 +50,9 @@ services.AddAuthentication(options =>
 
 services.AddAuthorization();
 
-// Add Auth Service and Database Seeder
+// Add Auth Service and Content Migration Runner
 services.AddScoped<IAuthService, AuthService>();
-services.AddScoped<IDatabaseSeeder, DatabaseSeeder>();
+services.AddScoped<IContentMigrationRunner, ContentMigrationRunner>();
 
 // Add services to the container.
 services.AddPersistentChatStore();
@@ -94,15 +94,20 @@ services.AddMemoryCache();
 
 var app = builder.Build();
 
-// Ensure database is created and seed data
+// Ensure database is created and run content migrations
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<CmsDbContext>();
     dbContext.Database.EnsureCreated();
-    
-    // Seed database with initial data
-    var seeder = scope.ServiceProvider.GetRequiredService<IDatabaseSeeder>();
-    await seeder.SeedAsync();
+
+    // Run content migrations (replaces the old DatabaseSeeder)
+    var migrationRunner = scope.ServiceProvider.GetRequiredService<IContentMigrationRunner>();
+    var result = await migrationRunner.MigrateAsync();
+
+    if (!result.Success)
+    {
+        throw new InvalidOperationException($"Content migration failed: {result.ErrorMessage}");
+    }
 }
 
 // Configure the HTTP request pipeline.
@@ -118,7 +123,7 @@ else
     // In production, Caddy handles HTTPS - use forwarded headers instead
     app.UseForwardedHeaders(new ForwardedHeadersOptions
     {
-        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor 
+        ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor
             | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
     });
 }

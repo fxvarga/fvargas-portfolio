@@ -86,7 +86,7 @@ public class AzureOpenAIEmbeddingService : IEmbeddingService
             {
                 var batch = textList.Skip(i).Take(batchSize).ToList();
                 var response = await _client.GenerateEmbeddingsAsync(batch, cancellationToken: cancellationToken);
-                
+
                 foreach (var embedding in response.Value)
                 {
                     results.Add(embedding.ToFloats().ToArray());

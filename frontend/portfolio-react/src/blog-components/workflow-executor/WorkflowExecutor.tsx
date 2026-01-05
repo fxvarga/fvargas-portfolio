@@ -1,32 +1,45 @@
 /**
  * Workflow Executor Demo Component
- * 
- * A visual workflow execution GUI with real-time progress tracking,
- * inspired by modern workflow automation tools like Asana, Zapier, and n8n.
+ *
+ * A visual workflow execution GUI using React Flow (xyflow/react)
+ * with real-time progress tracking, custom nodes, and animated edges.
  */
 
-import React, { useState, useCallback, useMemo } from 'react';
-import './WorkflowExecutor.css';
+import React, { useState, useCallback, useMemo } from "react";
+import {
+  ReactFlow,
+  Node,
+  Edge,
+  Background,
+  Controls,
+  MiniMap,
+  useNodesState,
+  useEdgesState,
+  Handle,
+  Position,
+  NodeProps,
+  BackgroundVariant,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import "./WorkflowExecutor.css";
 
 // ============================================================================
 // Types
 // ============================================================================
 
-type NodeStatus = 'idle' | 'running' | 'completed' | 'error';
+type NodeStatus = "idle" | "running" | "completed" | "error";
 
-interface WorkflowNode {
-  id: string;
-  type: 'trigger' | 'action' | 'notification' | 'condition';
-  title: string;
+interface WorkflowNodeData extends Record<string, unknown> {
+  label: string;
   description: string;
-  icon: React.ReactNode;
+  type: "trigger" | "action" | "notification" | "condition";
   color: string;
   field?: {
     label: string;
     value: string;
   };
   status: NodeStatus;
-  duration?: number; // ms to complete
+  duration?: number;
 }
 
 // ============================================================================
@@ -34,13 +47,27 @@ interface WorkflowNode {
 // ============================================================================
 
 const TriggerIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
   </svg>
 );
 
 const ActionIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <rect x="3" y="3" width="7" height="7" />
     <rect x="14" y="3" width="7" height="7" />
     <rect x="14" y="14" width="7" height="7" />
@@ -49,14 +76,28 @@ const ActionIcon = () => (
 );
 
 const NotificationIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
     <path d="M13.73 21a2 2 0 0 1-3.46 0" />
   </svg>
 );
 
 const ConditionIcon = () => (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <line x1="12" y1="2" x2="12" y2="22" />
     <polyline points="17 7 12 2 7 7" />
     <polyline points="17 17 12 22 7 17" />
@@ -64,19 +105,41 @@ const ConditionIcon = () => (
 );
 
 const CheckIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="3"
+  >
     <polyline points="20 6 9 17 4 12" />
   </svg>
 );
 
 const SpinnerIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="spinner">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    className="spinner"
+  >
     <circle cx="12" cy="12" r="10" strokeDasharray="32" strokeDashoffset="12" />
   </svg>
 );
 
 const ErrorIcon = () => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+  <svg
+    width="14"
+    height="14"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+  >
     <circle cx="12" cy="12" r="10" />
     <line x1="15" y1="9" x2="9" y2="15" />
     <line x1="9" y1="9" x2="15" y2="15" />
@@ -84,80 +147,94 @@ const ErrorIcon = () => (
 );
 
 // ============================================================================
-// Workflow Node Component
+// Custom Workflow Node Component
 // ============================================================================
 
-interface WorkflowNodeCardProps {
-  node: WorkflowNode;
-  isLast: boolean;
-}
+const getNodeIcon = (type: string) => {
+  switch (type) {
+    case "trigger":
+      return <TriggerIcon />;
+    case "action":
+      return <ActionIcon />;
+    case "notification":
+      return <NotificationIcon />;
+    case "condition":
+      return <ConditionIcon />;
+    default:
+      return <ActionIcon />;
+  }
+};
 
-const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({ node, isLast }) => {
-  const getStatusIndicator = () => {
-    switch (node.status) {
-      case 'running':
-        return <SpinnerIcon />;
-      case 'completed':
-        return <CheckIcon />;
-      case 'error':
-        return <ErrorIcon />;
-      default:
-        return null;
-    }
-  };
+const getStatusIndicator = (status: NodeStatus) => {
+  switch (status) {
+    case "running":
+      return <SpinnerIcon />;
+    case "completed":
+      return <CheckIcon />;
+    case "error":
+      return <ErrorIcon />;
+    default:
+      return null;
+  }
+};
+
+const WorkflowNode: React.FC<NodeProps<Node<WorkflowNodeData>>> = ({
+  data,
+}) => {
+  const nodeData = data as WorkflowNodeData;
 
   return (
-    <div className={`workflow-node-wrapper ${isLast ? 'is-last' : ''}`}>
-      <div className={`workflow-node status-${node.status}`}>
-        {/* Status indicator */}
-        <div className={`node-status-indicator status-${node.status}`}>
-          {getStatusIndicator()}
-        </div>
+    <div className={`workflow-node status-${nodeData.status}`}>
+      {/* Input Handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="workflow-handle"
+      />
 
-        {/* Header */}
-        <div className="node-header">
-          <div className="node-icon" style={{ backgroundColor: `${node.color}15`, color: node.color }}>
-            {node.icon}
-          </div>
-          <div className="node-title-group">
-            <h4 className="node-title">{node.title}</h4>
-            <p className="node-description">{node.description}</p>
-          </div>
-          <button className="node-menu-btn">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-              <circle cx="12" cy="5" r="1.5" />
-              <circle cx="12" cy="12" r="1.5" />
-              <circle cx="12" cy="19" r="1.5" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Field */}
-        {node.field && (
-          <div className="node-field">
-            <label className="node-field-label">{node.field.label}</label>
-            <div className="node-field-value">{node.field.value}</div>
-          </div>
-        )}
-
-        {/* Add button */}
-        <button className="node-add-btn">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+      {/* Status Indicator */}
+      <div className={`node-status-indicator status-${nodeData.status}`}>
+        {getStatusIndicator(nodeData.status)}
       </div>
 
-      {/* Connector */}
-      {!isLast && (
-        <div className={`workflow-connector status-${node.status}`}>
-          <div className="connector-line" />
-          <div className="connector-progress" />
+      {/* Header */}
+      <div className="node-header">
+        <div
+          className="node-icon"
+          style={{
+            backgroundColor: `${nodeData.color}15`,
+            color: nodeData.color,
+          }}
+        >
+          {getNodeIcon(nodeData.type)}
+        </div>
+        <div className="node-title-group">
+          <h4 className="node-title">{nodeData.label}</h4>
+          <p className="node-description">{nodeData.description}</p>
+        </div>
+      </div>
+
+      {/* Field */}
+      {nodeData.field && (
+        <div className="node-field">
+          <label className="node-field-label">{nodeData.field.label}</label>
+          <div className="node-field-value">{nodeData.field.value}</div>
         </div>
       )}
+
+      {/* Output Handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="workflow-handle"
+      />
     </div>
   );
+};
+
+// Register custom node types
+const nodeTypes = {
+  workflow: WorkflowNode,
 };
 
 // ============================================================================
@@ -167,32 +244,175 @@ const WorkflowNodeCard: React.FC<WorkflowNodeCardProps> = ({ node, isLast }) => 
 interface ProgressBarProps {
   current: number;
   total: number;
-  status: 'idle' | 'running' | 'completed' | 'error';
+  status: "idle" | "running" | "completed" | "error";
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ current, total, status }) => {
+const ProgressBar: React.FC<ProgressBarProps> = ({
+  current,
+  total,
+  status,
+}) => {
   const percentage = total > 0 ? (current / total) * 100 : 0;
 
   return (
     <div className="workflow-progress">
       <div className="progress-header">
         <span className="progress-label">
-          {status === 'idle' && 'Ready to execute'}
-          {status === 'running' && `Executing step ${current + 1} of ${total}...`}
-          {status === 'completed' && 'Workflow completed successfully'}
-          {status === 'error' && 'Workflow failed'}
+          {status === "idle" && "Ready to execute"}
+          {status === "running" &&
+            `Executing step ${current + 1} of ${total}...`}
+          {status === "completed" && "Workflow completed successfully"}
+          {status === "error" && "Workflow failed"}
         </span>
         <span className="progress-percentage">{Math.round(percentage)}%</span>
       </div>
       <div className="progress-bar">
-        <div 
-          className={`progress-fill status-${status}`} 
+        <div
+          className={`progress-fill status-${status}`}
           style={{ width: `${percentage}%` }}
         />
       </div>
     </div>
   );
 };
+
+// ============================================================================
+// Initial Nodes and Edges
+// ============================================================================
+
+const createInitialNodes = (): Node<WorkflowNodeData>[] => [
+  {
+    id: "1",
+    type: "workflow",
+    position: { x: 0, y: 100 },
+    data: {
+      label: "When a task is assigned",
+      description: "This workflow starts when a user is assigned a new task",
+      type: "trigger",
+      color: "#8b5cf6",
+      field: { label: "Trigger Details", value: "Any task in any project" },
+      status: "idle",
+      duration: 800,
+    },
+  },
+  {
+    id: "2",
+    type: "workflow",
+    position: { x: 350, y: 100 },
+    data: {
+      label: "Add to 'My Tasks'",
+      description: "Automatically adds task to the assignee's personal list",
+      type: "action",
+      color: "#10b981",
+      field: { label: "View", value: "Assignee's 'My Tasks'" },
+      status: "idle",
+      duration: 1200,
+    },
+  },
+  {
+    id: "3",
+    type: "workflow",
+    position: { x: 700, y: 50 },
+    data: {
+      label: "Send in-app notification",
+      description: "Alerts the assignee within the application",
+      type: "notification",
+      color: "#06b6d4",
+      field: { label: "Message", value: "You have a new task: {{task_name}}" },
+      status: "idle",
+      duration: 600,
+    },
+  },
+  {
+    id: "4",
+    type: "workflow",
+    position: { x: 700, y: 200 },
+    data: {
+      label: "Check Priority",
+      description: "Evaluate task priority for additional actions",
+      type: "condition",
+      color: "#f43f5e",
+      field: { label: "Condition", value: 'priority === "high"' },
+      status: "idle",
+      duration: 500,
+    },
+  },
+  {
+    id: "5",
+    type: "workflow",
+    position: { x: 1050, y: 50 },
+    data: {
+      label: "Send Email Alert",
+      description: "Notify manager about high priority task",
+      type: "notification",
+      color: "#f59e0b",
+      field: { label: "Recipient", value: "manager@company.com" },
+      status: "idle",
+      duration: 700,
+    },
+  },
+  {
+    id: "6",
+    type: "workflow",
+    position: { x: 1050, y: 200 },
+    data: {
+      label: "Log to Analytics",
+      description: "Record task assignment in analytics system",
+      type: "action",
+      color: "#64748b",
+      field: { label: "Event", value: "task_assigned" },
+      status: "idle",
+      duration: 400,
+    },
+  },
+];
+
+const createInitialEdges = (): Edge[] => [
+  {
+    id: "e1-2",
+    source: "1",
+    target: "2",
+    animated: false,
+    style: { stroke: "#64748b", strokeWidth: 2 },
+  },
+  {
+    id: "e2-3",
+    source: "2",
+    target: "3",
+    animated: false,
+    style: { stroke: "#64748b", strokeWidth: 2 },
+  },
+  {
+    id: "e2-4",
+    source: "2",
+    target: "4",
+    animated: false,
+    style: { stroke: "#64748b", strokeWidth: 2 },
+  },
+  {
+    id: "e4-5",
+    source: "4",
+    target: "5",
+    label: "Yes",
+    animated: false,
+    style: { stroke: "#64748b", strokeWidth: 2 },
+    labelStyle: { fill: "#94a3b8", fontSize: 12 },
+    labelBgStyle: { fill: "#1a1a2e", fillOpacity: 0.8 },
+  },
+  {
+    id: "e4-6",
+    source: "4",
+    target: "6",
+    label: "No",
+    animated: false,
+    style: { stroke: "#64748b", strokeWidth: 2 },
+    labelStyle: { fill: "#94a3b8", fontSize: 12 },
+    labelBgStyle: { fill: "#1a1a2e", fillOpacity: 0.8 },
+  },
+];
+
+// Execution order for the workflow (BFS-like traversal)
+const executionOrder = ["1", "2", "3", "4", "5", "6"];
 
 // ============================================================================
 // Demo Component
@@ -203,164 +423,212 @@ interface DemoProps {
 }
 
 const WorkflowExecutorDemo: React.FC<DemoProps> = ({ className }) => {
+  const [nodes, setNodes, onNodesChange] =
+    useNodesState<Node<WorkflowNodeData>>(createInitialNodes());
+  const [edges, setEdges, onEdgesChange] = useEdgesState(createInitialEdges());
   const [executionSpeed, setExecutionSpeed] = useState(1000);
   const [isExecuting, setIsExecuting] = useState(false);
-  const [workflowStatus, setWorkflowStatus] = useState<'idle' | 'running' | 'completed' | 'error'>('idle');
+  const [workflowStatus, setWorkflowStatus] = useState<
+    "idle" | "running" | "completed" | "error"
+  >("idle");
+  const [, setCurrentStep] = useState(-1);
 
-  const initialNodes: WorkflowNode[] = useMemo(() => [
-    {
-      id: '1',
-      type: 'trigger',
-      title: "When a task is assigned",
-      description: "This workflow starts when a user is assigned a new task",
-      icon: <TriggerIcon />,
-      color: '#8b5cf6',
-      field: {
-        label: 'Trigger Details',
-        value: 'Any task in any project'
-      },
-      status: 'idle',
-      duration: 800
-    },
-    {
-      id: '2',
-      type: 'action',
-      title: "Add to 'My Tasks'",
-      description: "Automatically adds task to the assignee's personal list",
-      icon: <ActionIcon />,
-      color: '#10b981',
-      field: {
-        label: 'View',
-        value: "Assignee's 'My Tasks'"
-      },
-      status: 'idle',
-      duration: 1200
-    },
-    {
-      id: '3',
-      type: 'notification',
-      title: "Send in-app notification",
-      description: "Alerts the assignee within the application",
-      icon: <NotificationIcon />,
-      color: '#06b6d4',
-      field: {
-        label: 'Notification Message',
-        value: 'You have a new task: {{task_name}}'
-      },
-      status: 'idle',
-      duration: 600
-    },
-    {
-      id: '4',
-      type: 'condition',
-      title: "Task is High Priority",
-      description: "Run different actions based on task attributes",
-      icon: <ConditionIcon />,
-      color: '#f43f5e',
-      field: {
-        label: 'Branching condition',
-        value: 'Based on task priority'
-      },
-      status: 'idle',
-      duration: 500
-    }
-  ], []);
-
-  const [nodes, setNodes] = useState<WorkflowNode[]>(initialNodes);
-
+  // Reset workflow to initial state
   const resetWorkflow = useCallback(() => {
-    setNodes(initialNodes);
+    setNodes(createInitialNodes());
+    setEdges(createInitialEdges());
     setIsExecuting(false);
-    setWorkflowStatus('idle');
-  }, [initialNodes]);
+    setWorkflowStatus("idle");
+    setCurrentStep(-1);
+  }, [setNodes, setEdges]);
 
+  // Update node status
+  const updateNodeStatus = useCallback(
+    (nodeId: string, status: NodeStatus) => {
+      setNodes((nds) =>
+        nds.map((node) =>
+          node.id === nodeId
+            ? { ...node, data: { ...node.data, status } }
+            : node,
+        ),
+      );
+    },
+    [setNodes],
+  );
+
+  // Update edge animation based on source node status
+  const updateEdgeAnimation = useCallback(
+    (sourceId: string, animated: boolean, completed: boolean) => {
+      setEdges((eds) =>
+        eds.map((edge) =>
+          edge.source === sourceId
+            ? {
+                ...edge,
+                animated,
+                style: {
+                  ...edge.style,
+                  stroke: completed
+                    ? "#10b981"
+                    : animated
+                      ? "#c26a2d"
+                      : "#64748b",
+                  strokeWidth: 2,
+                },
+              }
+            : edge,
+        ),
+      );
+    },
+    [setEdges],
+  );
+
+  // Execute workflow
   const executeWorkflow = useCallback(async () => {
     if (isExecuting) return;
-    
+
     resetWorkflow();
+    // Small delay to let reset take effect
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
     setIsExecuting(true);
-    setWorkflowStatus('running');
+    setWorkflowStatus("running");
 
-    for (let i = 0; i < initialNodes.length; i++) {
+    for (let i = 0; i < executionOrder.length; i++) {
+      const nodeId = executionOrder[i];
+      setCurrentStep(i);
+
       // Set current node to running
-      setNodes(prev => prev.map((node, idx) => 
-        idx === i ? { ...node, status: 'running' as NodeStatus } : node
-      ));
+      updateNodeStatus(nodeId, "running");
+      updateEdgeAnimation(nodeId, true, false);
 
-      // Wait for execution (scaled by speed)
-      await new Promise(resolve => 
-        setTimeout(resolve, (initialNodes[i].duration || 1000) * (executionSpeed / 1000))
+      // Get node duration
+      const node = createInitialNodes().find((n) => n.id === nodeId);
+      const duration = node?.data.duration || 1000;
+
+      // Wait for execution
+      await new Promise((resolve) =>
+        setTimeout(resolve, duration * (executionSpeed / 1000)),
       );
 
       // Set current node to completed
-      setNodes(prev => prev.map((node, idx) => 
-        idx === i ? { ...node, status: 'completed' as NodeStatus } : node
-      ));
+      updateNodeStatus(nodeId, "completed");
+      updateEdgeAnimation(nodeId, false, true);
     }
 
-    setWorkflowStatus('completed');
+    setWorkflowStatus("completed");
     setIsExecuting(false);
-  }, [isExecuting, executionSpeed, resetWorkflow, initialNodes]);
+  }, [
+    isExecuting,
+    executionSpeed,
+    resetWorkflow,
+    updateNodeStatus,
+    updateEdgeAnimation,
+  ]);
 
+  // Simulate error
   const simulateError = useCallback(async () => {
     if (isExecuting) return;
-    
-    resetWorkflow();
-    setIsExecuting(true);
-    setWorkflowStatus('running');
 
-    // Execute first two nodes
+    resetWorkflow();
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    setIsExecuting(true);
+    setWorkflowStatus("running");
+
+    // Execute first two nodes successfully
     for (let i = 0; i < 2; i++) {
-      setNodes(prev => prev.map((node, idx) => 
-        idx === i ? { ...node, status: 'running' as NodeStatus } : node
-      ));
-      await new Promise(resolve => setTimeout(resolve, executionSpeed));
-      setNodes(prev => prev.map((node, idx) => 
-        idx === i ? { ...node, status: 'completed' as NodeStatus } : node
-      ));
+      const nodeId = executionOrder[i];
+      setCurrentStep(i);
+      updateNodeStatus(nodeId, "running");
+      updateEdgeAnimation(nodeId, true, false);
+      await new Promise((resolve) => setTimeout(resolve, executionSpeed));
+      updateNodeStatus(nodeId, "completed");
+      updateEdgeAnimation(nodeId, false, true);
     }
 
     // Fail on third node
-    setNodes(prev => prev.map((node, idx) => 
-      idx === 2 ? { ...node, status: 'running' as NodeStatus } : node
-    ));
-    await new Promise(resolve => setTimeout(resolve, executionSpeed));
-    setNodes(prev => prev.map((node, idx) => 
-      idx === 2 ? { ...node, status: 'error' as NodeStatus } : node
-    ));
+    const failNodeId = executionOrder[2];
+    setCurrentStep(2);
+    updateNodeStatus(failNodeId, "running");
+    updateEdgeAnimation(failNodeId, true, false);
+    await new Promise((resolve) => setTimeout(resolve, executionSpeed));
+    updateNodeStatus(failNodeId, "error");
 
-    setWorkflowStatus('error');
+    // Update edge to error state
+    setEdges((eds) =>
+      eds.map((edge) =>
+        edge.source === failNodeId
+          ? {
+              ...edge,
+              animated: false,
+              style: { ...edge.style, stroke: "#ef4444" },
+            }
+          : edge,
+      ),
+    );
+
+    setWorkflowStatus("error");
     setIsExecuting(false);
-  }, [isExecuting, executionSpeed, resetWorkflow]);
+  }, [
+    isExecuting,
+    executionSpeed,
+    resetWorkflow,
+    updateNodeStatus,
+    updateEdgeAnimation,
+    setEdges,
+  ]);
 
   // Calculate completed steps for progress
-  const completedSteps = nodes.filter(n => n.status === 'completed').length;
+  const completedSteps = useMemo(
+    () => nodes.filter((n) => n.data.status === "completed").length,
+    [nodes],
+  );
 
   return (
-    <div className={`workflow-executor-demo ${className || ''}`}>
+    <div className={`workflow-executor-demo ${className || ""}`}>
       <div className="demo-header">
-        <h4>Workflow Execution GUI</h4>
-        <p>Visual workflow builder with real-time execution progress</p>
+        <h4>Workflow Execution with React Flow</h4>
+        <p>Interactive workflow builder with real-time execution progress</p>
       </div>
 
       {/* Progress Bar */}
-      <ProgressBar 
-        current={completedSteps} 
-        total={nodes.length} 
+      <ProgressBar
+        current={completedSteps}
+        total={nodes.length}
         status={workflowStatus}
       />
 
-      {/* Workflow Canvas */}
+      {/* React Flow Canvas */}
       <div className="workflow-canvas">
-        <div className="workflow-nodes">
-          {nodes.map((node, index) => (
-            <WorkflowNodeCard 
-              key={node.id} 
-              node={node} 
-              isLast={index === nodes.length - 1}
-            />
-          ))}
-        </div>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          minZoom={0.5}
+          maxZoom={1.5}
+          attributionPosition="bottom-left"
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background
+            variant={BackgroundVariant.Dots}
+            gap={20}
+            size={1}
+            color="#334155"
+          />
+          <Controls className="workflow-controls" />
+          <MiniMap
+            className="workflow-minimap"
+            nodeColor={(node) => {
+              const data = node.data as WorkflowNodeData;
+              return data.color;
+            }}
+            maskColor="rgba(0, 0, 0, 0.8)"
+          />
+        </ReactFlow>
       </div>
 
       {/* Controls */}
@@ -379,9 +647,9 @@ const WorkflowExecutorDemo: React.FC<DemoProps> = ({ className }) => {
             />
           </div>
         </div>
-        
+
         <div className="control-buttons">
-          <button 
+          <button
             className="execute-btn"
             onClick={executeWorkflow}
             disabled={isExecuting}
@@ -392,28 +660,40 @@ const WorkflowExecutorDemo: React.FC<DemoProps> = ({ className }) => {
               </>
             ) : (
               <>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                >
                   <polygon points="5 3 19 12 5 21 5 3" />
                 </svg>
                 Execute Workflow
               </>
             )}
           </button>
-          
-          <button 
+
+          <button
             className="error-btn"
             onClick={simulateError}
             disabled={isExecuting}
           >
             <ErrorIcon /> Simulate Error
           </button>
-          
-          <button 
+
+          <button
             className="reset-btn"
             onClick={resetWorkflow}
             disabled={isExecuting}
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
             </svg>
@@ -424,13 +704,27 @@ const WorkflowExecutorDemo: React.FC<DemoProps> = ({ className }) => {
 
       {/* Info */}
       <div className="demo-info">
-        <h5>Features</h5>
+        <h5>React Flow Features Used</h5>
         <ul>
-          <li>Visual workflow nodes with status indicators</li>
-          <li>Real-time execution progress tracking</li>
-          <li>Animated connectors showing data flow</li>
-          <li>Support for triggers, actions, notifications, and conditions</li>
-          <li>Error state handling and recovery</li>
+          <li>
+            <strong>Custom Nodes</strong> - Workflow cards with status
+            indicators
+          </li>
+          <li>
+            <strong>Animated Edges</strong> - Show data flow during execution
+          </li>
+          <li>
+            <strong>Background</strong> - Dot pattern for professional look
+          </li>
+          <li>
+            <strong>Controls</strong> - Zoom and pan controls
+          </li>
+          <li>
+            <strong>MiniMap</strong> - Overview with status colors
+          </li>
+          <li>
+            <strong>Branching</strong> - Conditional paths (Yes/No labels)
+          </li>
         </ul>
       </div>
     </div>

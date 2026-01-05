@@ -14,6 +14,9 @@ const AnimatedCounter = lazy(() => import('./animated-counter/AnimatedCounter'))
 const MagneticButton = lazy(() => import('./magnetic-button/MagneticButton'));
 const TypingEffect = lazy(() => import('./typing-effect/TypingEffect'));
 const WorkflowExecutor = lazy(() => import('./workflow-executor/WorkflowExecutor'));
+const FluentUIDataGrid = lazy(() => import('./fluentui-datagrid/FluentUIDataGrid'));
+const FileUploadProgress = lazy(() => import('./file-upload-progress/FileUploadProgress'));
+const PhotoGallery = lazy(() => import('./photo-gallery/PhotoGallery'));
 
 // Demo component type
 interface DemoComponentProps {
@@ -27,6 +30,9 @@ const demoRegistry: Record<string, ComponentType<DemoComponentProps>> = {
   'magnetic-button': MagneticButton,
   'typing-effect': TypingEffect,
   'workflow-executor': WorkflowExecutor,
+  'fluentui-datagrid': FluentUIDataGrid,
+  'file-upload-progress': FileUploadProgress,
+  'photo-gallery': PhotoGallery,
 };
 
 // Loading fallback component

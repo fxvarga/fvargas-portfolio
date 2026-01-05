@@ -345,8 +345,8 @@ public class SearchIndexingService : BackgroundService
         }
 
         // Build the deep link URL
-        var blogUrl = !string.IsNullOrWhiteSpace(blogSlug) 
-            ? $"/blog/{blogSlug}" 
+        var blogUrl = !string.IsNullOrWhiteSpace(blogSlug)
+            ? $"/blog/{blogSlug}"
             : "/blog";
 
         // Extract main content
@@ -592,22 +592,22 @@ public class SearchIndexingService : BackgroundService
                     // For fvargas-portfolio specifically, services should link to /work/{slug}
                     // For other portfolios, we might need different logic, but using a direct link is generally safer than hash
                     // If this logic needs to be portfolio-specific, we can check portfolio.Slug
-                    
+
                     string serviceUrl;
                     if (portfolio.Slug == "fernando") // Fernando's portfolio uses /work/{slug} routes
                     {
-                         serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug) 
-                            ? $"/work/{serviceSlug}" 
-                            : url;
+                        serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug)
+                           ? $"/work/{serviceSlug}"
+                           : url;
                     }
                     else
                     {
                         // Default behavior for other portfolios (like busybee, jessica)
                         // Preserve existing hash-based navigation if that's what they use
-                        serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug) 
+                        serviceUrl = !string.IsNullOrWhiteSpace(serviceSlug)
                             ? url  // If they don't have dedicated pages, stick to the main page
                             : url;
-                        
+
                         // If you want them to also use /service/slug, change above. 
                         // But per your request "jessica and busybee... should not be affected",
                         // we stick to the generated 'url' passed into this method (which is usually /#services)

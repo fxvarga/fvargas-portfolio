@@ -88,51 +88,59 @@ const WorkDetailPage: React.FC = () => {
         <div className="container">
           <div className="work-detail-grid">
             <div className="work-detail-sidebar">
-              <div className="work-detail-info-card">
-                <h4>Technologies</h4>
-                <ul className="tech-list">
-                  {service.technologies.map((tech, index) => (
-                    <li key={index}>
-                      <span className="tech-badge">{tech}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              {service.technologies && service.technologies.length > 0 && (
+                <div className="work-detail-info-card">
+                  <h4>Technologies</h4>
+                  <ul className="tech-list">
+                    {service.technologies.map((tech, index) => (
+                      <li key={index}>
+                        <span className="tech-badge">{tech}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             
             <div className="work-detail-content">
               <h2>Project Overview</h2>
               <p className="overview-text">{service.description}</p>
               
-              <h3>My Approach</h3>
-              <div className="approach-list">
-                {service.approach.map((item, index) => (
-                  <div key={index} className="approach-item">
-                    <div className="approach-number">{String(index + 1).padStart(2, '0')}</div>
-                    <div className="approach-content">
-                      <h4>{item.title}</h4>
-                      <p>{item.content}</p>
-                    </div>
+              {service.approach && service.approach.length > 0 && (
+                <>
+                  <h3>My Approach</h3>
+                  <div className="approach-list">
+                    {service.approach.map((item, index) => (
+                      <div key={index} className="approach-item">
+                        <div className="approach-number">{String(index + 1).padStart(2, '0')}</div>
+                        <div className="approach-content">
+                          <h4>{item.title}</h4>
+                          <p>{item.content}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </>
+              )}
             </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="work-detail-cta">
-        <div className="container">
-          <div className="cta-content">
-            <h2>{service.cta.title}</h2>
-            <p>{service.cta.description}</p>
-            <RouterLink to="/#contact" className="theme-btn">
-              Get in Touch
-            </RouterLink>
+      {service.cta && (
+        <section className="work-detail-cta">
+          <div className="container">
+            <div className="cta-content">
+              <h2>{service.cta.title}</h2>
+              <p>{service.cta.description}</p>
+              <RouterLink to="/#contact" className="theme-btn">
+                Get in Touch
+              </RouterLink>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <Footer />
     </>

@@ -19,7 +19,7 @@ public class EntityRecordQueries
         }
 
         return await dbContext.EntityRecords
-            .Where(r => r.PortfolioId == tenantContext.PortfolioId 
+            .Where(r => r.PortfolioId == tenantContext.PortfolioId
                      && r.EntityType == entityType)
             .OrderByDescending(r => r.UpdatedAt)
             .ToListAsync();

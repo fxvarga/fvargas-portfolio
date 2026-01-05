@@ -1,8 +1,8 @@
 /**
  * Workflow Executor Demo Styles
  * 
- * Modern workflow visualization with glass morphism cards,
- * animated connectors, and status indicators.
+ * Styles for React Flow workflow visualization with
+ * custom nodes, animated edges, and status indicators.
  */
 
 .workflow-executor-demo {
@@ -93,31 +93,26 @@
   50% { opacity: 0.7; }
 }
 
-/* Workflow Canvas */
+/* React Flow Canvas */
 .workflow-canvas {
-  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.05) 100%);
-  border-radius: 16px;
-  padding: 2rem;
+  height: 400px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
   margin-bottom: 1.5rem;
-  overflow-x: auto;
+  overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.workflow-nodes {
-  display: flex;
-  align-items: flex-start;
-  gap: 0;
-  min-width: max-content;
-  padding: 1rem 0;
+/* React Flow Overrides */
+.workflow-executor-demo .react-flow {
+  background: transparent;
 }
 
-/* Node Wrapper */
-.workflow-node-wrapper {
-  display: flex;
-  align-items: center;
+.workflow-executor-demo .react-flow__background {
+  background: transparent;
 }
 
-/* Workflow Node Card */
+/* Custom Workflow Node */
 .workflow-node {
   position: relative;
   width: 260px;
@@ -173,6 +168,7 @@
   opacity: 0;
   transform: scale(0);
   transition: all 0.3s ease;
+  z-index: 10;
 }
 
 .node-status-indicator.status-running,
@@ -245,21 +241,6 @@
   line-height: 1.4;
 }
 
-.node-menu-btn {
-  background: transparent;
-  border: none;
-  padding: 4px;
-  cursor: pointer;
-  color: #94a3b8;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.node-menu-btn:hover {
-  background: rgba(0, 0, 0, 0.05);
-  color: #64748b;
-}
-
 /* Node Field */
 .node-field {
   background: #f8fafc;
@@ -283,80 +264,51 @@
   color: #475569;
 }
 
-/* Add Button */
-.node-add-btn {
-  position: absolute;
-  bottom: -12px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: white;
-  border: 2px solid #e2e8f0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: #94a3b8;
-  transition: all 0.2s;
-  opacity: 0;
+/* React Flow Handles */
+.workflow-handle {
+  width: 12px !important;
+  height: 12px !important;
+  background: #64748b !important;
+  border: 2px solid #fff !important;
+  border-radius: 50% !important;
 }
 
-.workflow-node:hover .node-add-btn {
-  opacity: 1;
+.workflow-handle:hover {
+  background: #c26a2d !important;
 }
 
-.node-add-btn:hover {
-  border-color: #c26a2d;
-  color: #c26a2d;
-  background: #fff7ed;
+/* React Flow Controls */
+.workflow-controls {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
+  overflow: hidden;
 }
 
-/* Connector */
-.workflow-connector {
-  width: 60px;
-  height: 3px;
-  position: relative;
-  margin: 0 -1px;
-  align-self: center;
-  margin-top: 20px;
+.workflow-controls button {
+  background: transparent !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: #94a3b8 !important;
 }
 
-.connector-line {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 100%;
-  background: #e2e8f0;
-  border-radius: 2px;
+.workflow-controls button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+  color: #fff !important;
 }
 
-.connector-progress {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 0;
-  background: linear-gradient(90deg, #10b981, #34d399);
-  border-radius: 2px;
-  transition: width 0.4s ease;
+.workflow-controls button:last-child {
+  border-bottom: none !important;
 }
 
-.workflow-connector.status-completed .connector-progress {
-  width: 100%;
+.workflow-controls button svg {
+  fill: currentColor !important;
 }
 
-.workflow-connector.status-running .connector-progress {
-  width: 50%;
-  background: linear-gradient(90deg, #c26a2d, #f59e0b);
-  animation: connectorPulse 1s ease-in-out infinite;
-}
-
-@keyframes connectorPulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+/* React Flow MiniMap */
+.workflow-minimap {
+  background: rgba(0, 0, 0, 0.5) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 8px !important;
 }
 
 /* Demo Controls */
@@ -493,18 +445,34 @@
 
 .workflow-executor-demo .demo-info ul {
   margin: 0;
-  padding: 0 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.5rem;
 }
 
 .workflow-executor-demo .demo-info li {
   font-size: 0.8rem;
   color: #94a3b8;
-  margin-bottom: 0.375rem;
   line-height: 1.5;
+  padding-left: 1rem;
+  position: relative;
 }
 
-.workflow-executor-demo .demo-info li:last-child {
-  margin-bottom: 0;
+.workflow-executor-demo .demo-info li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 4px;
+  height: 4px;
+  background: #c26a2d;
+  border-radius: 50%;
+}
+
+.workflow-executor-demo .demo-info li strong {
+  color: #fff;
 }
 
 /* Responsive */
@@ -514,16 +482,7 @@
   }
 
   .workflow-canvas {
-    padding: 1rem;
-  }
-
-  .workflow-node {
-    width: 220px;
-    padding: 0.875rem;
-  }
-
-  .workflow-connector {
-    width: 40px;
+    height: 350px;
   }
 
   .control-buttons {
@@ -533,5 +492,9 @@
   .control-buttons button {
     width: 100%;
     justify-content: center;
+  }
+
+  .workflow-executor-demo .demo-info ul {
+    grid-template-columns: 1fr;
   }
 }

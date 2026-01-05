@@ -39,7 +39,7 @@ public class ContentMutations
             // Validate against schema if entity definition exists (scoped to tenant)
             var definition = await dbContext.EntityDefinitions
                 .FirstOrDefaultAsync(d => d.Name == input.EntityType && d.PortfolioId == portfolioId);
-            
+
             if (definition != null)
             {
                 var validationResult = _validationService.Validate(definition, input.Data);
@@ -125,7 +125,7 @@ public class ContentMutations
             // Validate against schema if entity definition exists (scoped to tenant)
             var definition = await dbContext.EntityDefinitions
                 .FirstOrDefaultAsync(d => d.Name == record.EntityType && d.PortfolioId == portfolioId);
-            
+
             if (definition != null)
             {
                 var validationResult = _validationService.Validate(definition, input.Data);
