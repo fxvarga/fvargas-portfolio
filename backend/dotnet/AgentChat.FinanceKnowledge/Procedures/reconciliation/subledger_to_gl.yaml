@@ -1,0 +1,133 @@
+id: proc-subledger-reconciliation
+name: Subledger to GL Reconciliation
+version: "1.0"
+category: reconciliation
+subcategory: subledger
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 3
+  depends_on:
+    - subledger_closed
+
+description: |
+  Reconcile subledger control totals (AP, AR, FA, Inventory) to the 
+  general ledger balances. This ensures completeness and accuracy of 
+  transaction postings between systems.
+
+applies_to:
+  entities: all
+  account_types:
+    - accounts_payable
+    - accounts_receivable
+    - fixed_assets
+    - inventory
+
+related_standards:
+  - id: asc210
+    name: Balance Sheet
+    sections:
+      - "210-10"
+
+related_policies:
+  - id: pol-recon-001
+    name: Account Reconciliation Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Get GL balance for the control account"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        entity_code: "${entity_code}"
+        account: "${control_account}"
+        period: "${current_period}"
+    output: gl_balance
+
+  - sequence: 2
+    action: retrieve_data
+    description: "Get subledger control total"
+    tool_hint: datalake_query
+    parameters:
+      dataset: "${subledger_type}_subledger"
+      filters:
+        entity_code: "${entity_code}"
+        period: "${current_period}"
+      aggregation:
+        field: balance
+        function: sum
+    output: subledger_total
+
+  - sequence: 3
+    action: calculate
+    description: "Calculate variance between GL and subledger"
+    tool_hint: calc_variance
+    parameters:
+      gl_balance: "${gl_balance.balance}"
+      subledger_balance: "${subledger_total.balance}"
+    output: variance_result
+
+  - sequence: 4
+    action: branch
+    description: "If variance exists, investigate the difference"
+    condition: "${variance_result.variance} != 0"
+    tool_hint: investigate_variance
+    parameters:
+      gl_transactions: "${gl_balance.transactions}"
+      subledger_transactions: "${subledger_total.transactions}"
+    output: investigation_result
+
+  - sequence: 5
+    action: create_reconciliation
+    description: "Create the subledger reconciliation document"
+    tool_hint: sor_reconciliation_create
+    parameters:
+      account: "${control_account}"
+      entity_code: "${entity_code}"
+      period: "${current_period}"
+      gl_balance: "${gl_balance.balance}"
+      subledger_balance: "${subledger_total.balance}"
+      variance: "${variance_result.variance}"
+      reconciling_items: "${investigation_result.items}"
+      status: "${variance_result.variance == 0 ? 'reconciled' : 'variance'}"
+    output: reconciliation_id
+
+  - sequence: 6
+    action: conditional
+    description: "If material variance, create issue for investigation"
+    condition: "abs(${variance_result.variance}) > ${materiality_threshold}"
+    tool_hint: create_issue
+    parameters:
+      issue_type: reconciliation_variance
+      account: "${control_account}"
+      amount: "${variance_result.variance}"
+      assignee: "${account_owner}"
+
+  - sequence: 7
+    action: update_close_task
+    description: "Update reconciliation task status"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: "subledger_recon_${subledger_type}"
+      status: "${variance_result.variance == 0 ? 'completed' : 'pending_review'}"
+      notes: "GL: ${gl_balance.balance}, SL: ${subledger_total.balance}, Var: ${variance_result.variance}"
+
+validation_rules:
+  - name: zero_variance
+    description: "GL balance should equal subledger total"
+  - name: timing_differences_explained
+    description: "Any timing differences must be documented"
+  - name: cutoff_verified
+    description: "Transaction cutoff must be consistent"
+
+tags:
+  - reconciliation
+  - subledger
+  - control
+  - month_end
+  - ap
+  - ar
+  - fa
+  - inventory

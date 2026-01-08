@@ -1,0 +1,136 @@
+id: proc-reclassification
+name: Account Reclassification Entry
+version: "1.0"
+category: journal_entry
+subcategory: reclassification
+frequency: on_demand
+trigger:
+  type: manual
+
+description: |
+  Create a reclassification journal entry to move amounts between accounts 
+  without affecting the income statement. Used for correcting account 
+  classifications, aging adjustments, or financial statement presentation.
+
+applies_to:
+  entities: all
+
+related_policies:
+  - id: pol-je-001
+    name: Journal Entry Policy
+  - id: pol-reclass-001
+    name: Reclassification Policy
+
+steps:
+  - sequence: 1
+    action: validate_inputs
+    description: "Validate required inputs for the reclassification"
+    tool_hint: validate_data
+    parameters:
+      required:
+        - entity_code
+        - from_account
+        - to_account
+        - amount
+        - description
+        - period
+      validations:
+        - from_account != to_account
+        - amount > 0
+    output: validation_result
+
+  - sequence: 2
+    action: lookup_accounts
+    description: "Validate both accounts exist and get their details"
+    tool_hint: datalake_query
+    parameters:
+      dataset: chart_of_accounts
+      filters:
+        account:
+          in:
+            - "${from_account}"
+            - "${to_account}"
+        entity_code: "${entity_code}"
+    output: account_details
+
+  - sequence: 3
+    action: validate_reclass_type
+    description: "Determine if this is a balance sheet or income statement reclass"
+    tool_hint: classify_reclass
+    parameters:
+      from_account_type: "${account_details.from.type}"
+      to_account_type: "${account_details.to.type}"
+    output: reclass_type
+
+  - sequence: 4
+    action: check_period
+    description: "Verify the posting period is open"
+    tool_hint: sor_period_status
+    parameters:
+      entity_code: "${entity_code}"
+      period: "${period}"
+    output: period_status
+
+  - sequence: 5
+    action: verify_balance
+    description: "Ensure from_account has sufficient balance"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        entity_code: "${entity_code}"
+        account: "${from_account}"
+        period: "${period}"
+    output: from_balance
+
+  - sequence: 6
+    action: create_journal_entry
+    description: "Create the reclassification journal entry"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 25000
+    parameters:
+      entity_code: "${entity_code}"
+      period: "${period}"
+      description: "Reclass: ${description}"
+      source: AI-Generated
+      procedure_id: proc-reclassification
+      journal_type: reclassification
+      lines:
+        - account: "${from_account}"
+          debit: "${account_details.from.normal_balance == 'credit' ? amount : 0}"
+          credit: "${account_details.from.normal_balance == 'debit' ? amount : 0}"
+          description: "Reclass to ${to_account}"
+        - account: "${to_account}"
+          debit: "${account_details.to.normal_balance == 'debit' ? amount : 0}"
+          credit: "${account_details.to.normal_balance == 'credit' ? amount : 0}"
+          description: "Reclass from ${from_account}"
+    output: journal_entry
+
+  - sequence: 7
+    action: attach_documentation
+    description: "Attach reason documentation"
+    tool_hint: sor_journal_entry_attach
+    parameters:
+      journal_entry_id: "${journal_entry.id}"
+      documents:
+        - type: reclass_justification
+          content: "${reason}"
+
+validation_rules:
+  - name: balanced_entry
+    description: "Debit must equal credit"
+  - name: different_accounts
+    description: "From and to accounts must be different"
+  - name: sufficient_balance
+    description: "From account must have sufficient balance"
+  - name: period_open
+    description: "Posting period must be open"
+  - name: same_entity
+    description: "Both accounts must be in the same entity"
+
+tags:
+  - journal_entry
+  - reclassification
+  - correction
+  - manual

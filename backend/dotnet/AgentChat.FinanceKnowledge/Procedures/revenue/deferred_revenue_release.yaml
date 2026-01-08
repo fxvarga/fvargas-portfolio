@@ -1,0 +1,279 @@
+id: PROC-REV-002
+name: Deferred Revenue Release
+version: "1.0"
+category: revenue
+subcategory: deferred_revenue
+description: >
+  Systematic release of deferred revenue to recognized revenue based on 
+  performance obligation satisfaction. Applies to subscription services,
+  prepaid contracts, and milestone-based arrangements.
+
+triggers:
+  - type: scheduled
+    frequency: monthly
+    timing: close_day_2
+    description: "Monthly release during close process"
+  - type: event
+    event_name: milestone_completion
+    description: "Performance obligation satisfied"
+  - type: manual
+    description: "Ad-hoc release for contract modifications"
+
+scope:
+  entities:
+    - "*"
+  account_ranges:
+    - start: "230000"
+      end: "239999"
+      description: "Deferred Revenue accounts"
+  materiality_threshold: 1000
+
+inputs:
+  - name: fiscal_period
+    type: string
+    required: true
+    description: "Period for revenue release (YYYY-MM)"
+  - name: entity_code
+    type: string
+    required: true
+    description: "Legal entity code"
+  - name: contract_id
+    type: string
+    required: false
+    description: "Specific contract (optional, omit for all)"
+
+outputs:
+  - name: journal_entry_id
+    type: string
+    description: "Posted JE reference"
+  - name: revenue_recognized
+    type: decimal
+    description: "Total revenue recognized this period"
+  - name: deferred_balance
+    type: decimal
+    description: "Remaining deferred revenue balance"
+  - name: recognition_schedule
+    type: object
+    description: "Future period release schedule"
+
+steps:
+  - step_number: 1
+    action: query_deferred_contracts
+    description: "Retrieve active deferred revenue contracts"
+    tool: datalake_query
+    parameters:
+      dataset: deferred_revenue_schedule
+      filters:
+        entity_code: "{{entity_code}}"
+        status: "ACTIVE"
+        release_period: "{{fiscal_period}}"
+    output_variable: deferred_contracts
+    
+  - step_number: 2
+    action: calculate_period_release
+    description: "Calculate revenue to release based on recognition pattern"
+    tool: kb_calculation
+    parameters:
+      calculation_type: revenue_release
+      contracts: "{{deferred_contracts}}"
+      recognition_methods:
+        - straight_line
+        - output_method
+        - input_method
+        - milestone
+      period: "{{fiscal_period}}"
+    output_variable: release_calculations
+    
+  - step_number: 3
+    action: validate_recognition_criteria
+    description: "Verify ASC 606 recognition criteria are met"
+    tool: kb_standard_check
+    parameters:
+      standard_id: ASC-606
+      provision: revenue_recognition_criteria
+      transactions: "{{release_calculations}}"
+      criteria:
+        - contract_exists
+        - performance_obligations_identified
+        - transaction_price_determined
+        - allocation_complete
+        - obligation_satisfied
+    output_variable: validation_result
+    
+  - step_number: 4
+    action: check_constraint_release
+    description: "Evaluate variable consideration constraints"
+    tool: kb_policy_check
+    parameters:
+      policy_id: revenue_constraint
+      calculations: "{{release_calculations}}"
+      constraint_factors:
+        - refund_likelihood
+        - customer_credit_risk
+        - price_concession_history
+    output_variable: constraint_check
+    condition: "release_calculations.has_variable_consideration == true"
+    
+  - step_number: 5
+    action: prepare_journal_entry
+    description: "Build journal entry for revenue recognition"
+    tool: je_builder
+    parameters:
+      entry_type: DEFERRED_REVENUE_RELEASE
+      entity_code: "{{entity_code}}"
+      period: "{{fiscal_period}}"
+      line_items:
+        - account: "{{contract.deferred_account}}"
+          debit: "{{release_amount}}"
+          description: "Release deferred revenue - {{contract.contract_number}}"
+        - account: "{{contract.revenue_account}}"
+          credit: "{{release_amount}}"
+          description: "Recognize revenue - {{contract.contract_number}}"
+      source_data: "{{release_calculations}}"
+      reversing: false
+    output_variable: journal_entry
+    
+  - step_number: 6
+    action: validate_entry_balance
+    description: "Ensure journal entry balances"
+    tool: je_validator
+    parameters:
+      journal_entry: "{{journal_entry}}"
+      validations:
+        - balanced
+        - valid_accounts
+        - valid_period
+        - proper_signage
+    output_variable: validation_status
+    
+  - step_number: 7
+    action: check_approval_threshold
+    description: "Determine if approval required"
+    tool: kb_policy_check
+    parameters:
+      policy_id: revenue_approval_thresholds
+      amount: "{{journal_entry.total_amount}}"
+      entry_type: "REVENUE_RECOGNITION"
+    output_variable: approval_requirement
+    
+  - step_number: 8
+    action: route_for_approval
+    description: "Submit for approval if threshold exceeded"
+    tool: sor_approval_request
+    parameters:
+      entry_id: "{{journal_entry.id}}"
+      approvers: "{{approval_requirement.approvers}}"
+      due_date: "{{close_calendar.current_period.je_deadline}}"
+    output_variable: approval_status
+    condition: "approval_requirement.approval_needed == true"
+    
+  - step_number: 9
+    action: post_journal_entry
+    description: "Post approved entry to GL"
+    tool: sor_journal_entry_create
+    parameters:
+      journal_entry: "{{journal_entry}}"
+      auto_post: true
+      source_system: "REVENUE_RECOGNITION"
+    output_variable: posting_result
+    condition: "approval_status.approved == true OR approval_requirement.approval_needed == false"
+    
+  - step_number: 10
+    action: update_contract_schedule
+    description: "Update remaining release schedule"
+    tool: datalake_update
+    parameters:
+      dataset: deferred_revenue_schedule
+      contract_ids: "{{deferred_contracts.*.contract_id}}"
+      updates:
+        last_release_period: "{{fiscal_period}}"
+        cumulative_recognized: "{{cumulative_recognized + release_amount}}"
+        remaining_balance: "{{contract_value - cumulative_recognized}}"
+    output_variable: schedule_update
+    
+  - step_number: 11
+    action: generate_disclosure_data
+    description: "Prepare ASC 606 disclosure information"
+    tool: disclosure_builder
+    parameters:
+      standard: ASC-606
+      disclosure_type: contract_asset_liability
+      entity: "{{entity_code}}"
+      period: "{{fiscal_period}}"
+      data:
+        beginning_balance: "{{period_start_balance}}"
+        revenue_recognized: "{{total_released}}"
+        new_deferrals: "{{new_contracts_deferred}}"
+        ending_balance: "{{period_end_balance}}"
+    output_variable: disclosure_data
+    
+  - step_number: 12
+    action: create_audit_trail
+    description: "Document recognition for audit"
+    tool: sor_document_create
+    parameters:
+      document_type: REVENUE_RECOGNITION_WORKPAPER
+      period: "{{fiscal_period}}"
+      attachments:
+        - type: calculation_detail
+          data: "{{release_calculations}}"
+        - type: journal_entry
+          data: "{{posting_result}}"
+        - type: contract_support
+          data: "{{deferred_contracts}}"
+    output_variable: workpaper_id
+
+exceptions:
+  - condition: "deferred_contracts.count == 0"
+    action: skip_with_log
+    message: "No deferred revenue contracts due for release in {{fiscal_period}}"
+    
+  - condition: "validation_result.passed == false"
+    action: halt_and_notify
+    message: "ASC 606 criteria not met: {{validation_result.failed_criteria}}"
+    notification:
+      recipients:
+        - revenue_accounting_manager
+        - technical_accounting
+      priority: high
+      
+  - condition: "constraint_check.constrained_amount > 0"
+    action: partial_release
+    message: "Variable consideration constrained: {{constraint_check.reason}}"
+    adjusted_amount: "{{release_amount - constraint_check.constrained_amount}}"
+    
+  - condition: "approval_status.rejected == true"
+    action: halt_and_escalate
+    message: "Revenue recognition rejected: {{approval_status.rejection_reason}}"
+    escalation:
+      level: manager
+      sla_hours: 24
+
+related_standards:
+  - id: ASC-606
+    name: "Revenue from Contracts with Customers"
+    relevance: primary
+  - id: ASC-340-40
+    name: "Contracts with Customers - Other Assets and Deferred Costs"
+    relevance: related
+  - id: IFRS-15
+    name: "Revenue from Contracts with Customers"
+    relevance: ifrs_equivalent
+
+related_policies:
+  - id: POL-REV-001
+    name: "Revenue Recognition Policy"
+  - id: POL-REV-002
+    name: "Variable Consideration Constraint Policy"
+  - id: POL-APPROVE-002
+    name: "Revenue Entry Approval Matrix"
+
+audit_considerations:
+  - key_control: "Revenue recognized only when performance obligations satisfied"
+  - key_control: "Systematic release method consistently applied"
+  - key_control: "Variable consideration properly constrained"
+  - documentation_required:
+      - "Contract terms and performance obligations"
+      - "Transaction price allocation"
+      - "Release calculation support"
+      - "Management judgment for estimates"

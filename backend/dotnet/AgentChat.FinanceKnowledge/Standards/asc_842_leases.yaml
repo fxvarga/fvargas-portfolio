@@ -1,0 +1,203 @@
+id: ASC-842
+name: Leases
+codification: ASC 842
+effective_date: "2019-01-01"
+description: >
+  Accounting Standards Codification Topic 842 - Leases. Establishes principles 
+  for recognition, measurement, presentation, and disclosure of leases for 
+  both lessees and lessors.
+
+ifrs_equivalent: IFRS-16
+
+key_definitions:
+  lease:
+    definition: >
+      A contract, or part of a contract, that conveys the right to control 
+      the use of identified property, plant, or equipment (an identified asset) 
+      for a period of time in exchange for consideration.
+    criteria:
+      - identified_asset_exists
+      - right_to_obtain_economic_benefits
+      - right_to_direct_use
+      
+  right_of_use_asset:
+    definition: >
+      An asset that represents a lessee's right to use an underlying asset 
+      for the lease term.
+    initial_measurement:
+      - initial_lease_liability
+      - lease_payments_before_commencement
+      - initial_direct_costs
+      - less_lease_incentives_received
+      
+  lease_liability:
+    definition: >
+      A lessee's obligation to make lease payments arising from a lease, 
+      measured on a discounted basis.
+    measurement_basis: present_value
+    
+  lease_term:
+    definition: >
+      The noncancellable period for which a lessee has the right to use an 
+      underlying asset, together with periods covered by options reasonably 
+      certain to be exercised.
+
+classification:
+  lessee:
+    finance_lease:
+      criteria_any:
+        - ownership_transfer_at_end
+        - bargain_purchase_option
+        - lease_term_major_part_of_life
+        - present_value_substantially_all
+        - specialized_asset_no_alternative_use
+      accounting:
+        balance_sheet:
+          - right_of_use_asset
+          - lease_liability
+        income_statement:
+          - amortization_expense
+          - interest_expense
+          
+    operating_lease:
+      criteria: "Does not meet any finance lease criteria"
+      accounting:
+        balance_sheet:
+          - right_of_use_asset
+          - lease_liability
+        income_statement:
+          - single_lease_cost_straight_line
+          
+  lessor:
+    sales_type_lease:
+      criteria_any:
+        - ownership_transfer_at_end
+        - bargain_purchase_option
+        - lease_term_major_part_of_life
+        - present_value_substantially_all
+        - specialized_asset_no_alternative_use
+      additional_requirement: "Collectibility is probable"
+      
+    direct_financing_lease:
+      criteria:
+        - present_value_equals_fair_value
+        - collectibility_probable
+        - no_finance_lease_criteria_except_pv
+        
+    operating_lease:
+      criteria: "Does not meet sales-type or direct financing criteria"
+
+measurement:
+  discount_rate:
+    primary: implicit_rate_in_lease
+    fallback: incremental_borrowing_rate
+    practical_expedient: risk_free_rate_for_certain_entities
+    
+  lease_payments_included:
+    - fixed_payments_less_incentives
+    - variable_payments_based_on_index
+    - exercise_price_of_purchase_option_if_reasonably_certain
+    - payments_for_penalties_if_termination_reasonably_certain
+    - residual_value_guarantees_expected_to_be_owed
+    
+  lease_payments_excluded:
+    - variable_payments_not_based_on_index
+    - residual_value_guarantees_unlikely_to_be_owed
+
+practical_expedients:
+  short_term_lease:
+    criteria: "Lease term 12 months or less at commencement"
+    policy_election: entity_wide_by_asset_class
+    accounting: "Recognize lease payments as expense"
+    
+  low_value_asset:
+    note: "Not available under US GAAP (IFRS 16 only)"
+    
+  portfolio_approach:
+    description: "Apply to portfolio of leases with similar characteristics"
+    condition: "Reasonably expected similar results to individual application"
+    
+  embedded_leases:
+    description: "Do not separate non-lease components"
+    policy_election: entity_wide_by_asset_class
+
+subsequent_measurement:
+  lease_liability:
+    increase:
+      - interest_accretion
+      - variable_payment_reassessment
+    decrease:
+      - lease_payments_made
+    remeasurement_triggers:
+      - change_in_lease_term
+      - change_in_purchase_option_assessment
+      - change_in_residual_guarantee
+      - change_in_lease_payments_from_index
+      
+  right_of_use_asset:
+    finance_lease:
+      method: amortization
+      pattern: systematic_basis
+    operating_lease:
+      method: "Derived from lease liability and straight-line expense"
+    impairment: "Test under ASC 360"
+
+disclosures:
+  qualitative:
+    - nature_of_leases
+    - basis_determination_variable_payments
+    - options_and_residual_guarantees
+    - restrictions_and_covenants
+    
+  quantitative:
+    lessee:
+      - finance_lease_cost_components
+      - operating_lease_cost
+      - short_term_lease_cost
+      - variable_lease_cost
+      - sublease_income
+      - cash_paid_for_leases
+      - rou_assets_obtained
+      - weighted_average_remaining_term
+      - weighted_average_discount_rate
+      - maturity_analysis
+      
+    lessor:
+      - lease_income_by_type
+      - variable_lease_income
+      - maturity_analysis_receivables
+      - residual_asset_information
+
+transition:
+  methods:
+    modified_retrospective:
+      description: "Apply at adoption date or beginning of earliest period presented"
+      practical_expedients_package:
+        - not_reassess_if_contract_is_lease
+        - not_reassess_lease_classification
+        - not_reassess_initial_direct_costs
+        
+  comparative_periods:
+    option_1: "Restate all periods presented"
+    option_2: "Cumulative effect at adoption date"
+
+common_issues:
+  - issue: "Identifying embedded leases in service contracts"
+    guidance: "Evaluate if contract conveys right to control identified asset"
+    
+  - issue: "Determining incremental borrowing rate"
+    guidance: "Consider entity credit, lease term, collateral, economic environment"
+    
+  - issue: "Lease term assessment with renewal options"
+    guidance: "Consider all economic factors; reassess if significant event occurs"
+    
+  - issue: "Modification accounting"
+    guidance: "Determine if separate lease or remeasurement required"
+
+related_standards:
+  - id: ASC-840
+    relationship: superseded
+  - id: ASC-360
+    relationship: impairment_testing
+  - id: ASC-420
+    relationship: exit_activities

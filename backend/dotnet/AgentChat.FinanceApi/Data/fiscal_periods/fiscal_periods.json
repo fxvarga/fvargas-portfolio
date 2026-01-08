@@ -1,0 +1,91 @@
+[
+  {
+    "id": "fp-us01-2024-11",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 11,
+    "period_name": "November 2024",
+    "start_date": "2024-11-01T00:00:00Z",
+    "end_date": "2024-11-30T23:59:59Z",
+    "status": "LOCKED",
+    "is_adjustment_period": false,
+    "subledger_status": {
+      "AP": "CLOSED",
+      "AR": "CLOSED",
+      "FA": "CLOSED",
+      "INV": "CLOSED"
+    },
+    "soft_close_date": "2024-12-03T17:00:00Z",
+    "hard_close_date": "2024-12-05T17:00:00Z",
+    "locked_date": "2024-12-10T09:00:00Z",
+    "locked_by": "cfo@acme.com"
+  },
+  {
+    "id": "fp-us01-2024-12",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 12,
+    "period_name": "December 2024",
+    "start_date": "2024-12-01T00:00:00Z",
+    "end_date": "2024-12-31T23:59:59Z",
+    "status": "OPEN",
+    "is_adjustment_period": false,
+    "subledger_status": {
+      "AP": "CLOSED",
+      "AR": "CLOSED",
+      "FA": "OPEN",
+      "INV": "OPEN"
+    }
+  },
+  {
+    "id": "fp-us01-2024-13",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 13,
+    "period_name": "Year-End Adjustments 2024",
+    "start_date": "2024-12-31T00:00:00Z",
+    "end_date": "2024-12-31T23:59:59Z",
+    "status": "OPEN",
+    "is_adjustment_period": true,
+    "subledger_status": {
+      "AP": "OPEN",
+      "AR": "OPEN",
+      "FA": "OPEN",
+      "INV": "OPEN"
+    }
+  },
+  {
+    "id": "fp-us01-2025-01",
+    "entity_code": "US01",
+    "fiscal_year": 2025,
+    "fiscal_period": 1,
+    "period_name": "January 2025",
+    "start_date": "2025-01-01T00:00:00Z",
+    "end_date": "2025-01-31T23:59:59Z",
+    "status": "OPEN",
+    "is_adjustment_period": false,
+    "subledger_status": {
+      "AP": "OPEN",
+      "AR": "OPEN",
+      "FA": "OPEN",
+      "INV": "OPEN"
+    }
+  },
+  {
+    "id": "fp-uk01-2024-12",
+    "entity_code": "UK01",
+    "fiscal_year": 2024,
+    "fiscal_period": 12,
+    "period_name": "December 2024",
+    "start_date": "2024-12-01T00:00:00Z",
+    "end_date": "2024-12-31T23:59:59Z",
+    "status": "OPEN",
+    "is_adjustment_period": false,
+    "subledger_status": {
+      "AP": "OPEN",
+      "AR": "OPEN",
+      "FA": "OPEN",
+      "INV": "OPEN"
+    }
+  }
+]

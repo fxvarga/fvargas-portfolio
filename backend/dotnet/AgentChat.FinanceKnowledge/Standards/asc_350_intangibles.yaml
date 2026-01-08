@@ -1,0 +1,230 @@
+id: ASC-350
+name: Intangibles - Goodwill and Other
+codification: ASC 350
+effective_date: "2001-06-29"
+description: >
+  Accounting Standards Codification Topic 350 - Intangibles - Goodwill and Other.
+  Provides guidance on accounting for goodwill and other intangible assets 
+  after acquisition, including impairment testing requirements.
+
+subtopics:
+  asc_350_10:
+    name: Overall
+    scope: "General guidance applicable to all intangibles"
+    
+  asc_350_20:
+    name: Goodwill
+    scope: "Accounting for goodwill after acquisition"
+    
+  asc_350_30:
+    name: General Intangibles Other Than Goodwill
+    scope: "Accounting for intangible assets other than goodwill"
+    
+  asc_350_40:
+    name: Internal-Use Software
+    scope: "Costs to develop or obtain internal-use software"
+
+goodwill:
+  initial_recognition:
+    source: business_combination
+    measurement: "Excess of consideration over fair value of net identifiable assets"
+    
+  subsequent_accounting:
+    amortization: not_permitted
+    impairment_testing: required
+    
+  impairment_testing:
+    frequency: "At least annually, or more frequently if triggering events"
+    level: reporting_unit
+    
+    qualitative_assessment:
+      description: "Assess whether more likely than not that fair value less than carrying amount"
+      factors:
+        - macroeconomic_conditions
+        - industry_and_market_conditions
+        - cost_factors
+        - financial_performance
+        - entity_specific_events
+        - share_price_decline
+      outcome:
+        more_likely_than_not_impaired: "Proceed to quantitative test"
+        not_more_likely_than_not: "No further testing required"
+        
+    quantitative_test:
+      step_1:
+        description: "Compare fair value of reporting unit to carrying amount"
+        fair_value_less_than_carrying:
+          action: "Recognize impairment loss"
+          measurement: "Excess of carrying amount over fair value, limited to goodwill balance"
+        fair_value_greater_than_carrying:
+          action: "No impairment"
+          
+    triggering_events:
+      - significant_adverse_change_in_business_climate
+      - adverse_legal_or_regulatory_action
+      - unanticipated_competition
+      - loss_of_key_personnel
+      - more_likely_than_not_sale_or_disposal
+      - testing_of_asset_group_containing_goodwill
+      - significant_decline_in_share_price
+      
+  reporting_units:
+    definition: "Operating segment or one level below"
+    aggregation_criteria:
+      - similar_economic_characteristics
+      - similar_products_services
+      - similar_production_processes
+      - similar_customer_classes
+      - similar_distribution_methods
+    goodwill_allocation:
+      business_combination: "Relative fair value of reporting units"
+      reorganization: "Relative fair value approach"
+
+intangible_assets_other_than_goodwill:
+  recognition_criteria:
+    acquired_separately: "Fair value"
+    acquired_in_business_combination: "Fair value if identifiable"
+    internally_developed: "Generally expensed as incurred"
+    
+  identifiable_criteria:
+    contractual_legal: "Arises from contractual or legal rights"
+    separable: "Can be sold, transferred, licensed, rented, or exchanged"
+    
+  useful_life_determination:
+    finite_life:
+      factors:
+        - expected_use_period
+        - legal_regulatory_contractual_provisions
+        - effects_of_obsolescence
+        - competition_and_demand
+        - level_of_maintenance_expenditures
+      accounting:
+        amortization: systematic_basis
+        pattern: "Reflect economic benefit consumption"
+        impairment: "Test when events indicate (ASC 360)"
+        
+    indefinite_life:
+      criteria: "No foreseeable limit to cash generation period"
+      examples:
+        - certain_trademarks
+        - perpetual_licenses
+      accounting:
+        amortization: not_permitted
+        impairment: "Test at least annually"
+        
+  indefinite_life_impairment:
+    qualitative_assessment:
+      description: "Assess whether more likely than not impaired"
+      factors:
+        - cost_factors
+        - financial_performance
+        - legal_regulatory_changes
+        - competitive_factors
+        - entity_specific_events
+    quantitative_test:
+      comparison: "Fair value vs carrying amount"
+      impairment_loss: "Excess of carrying amount over fair value"
+      
+  reassessment:
+    useful_life: "Each reporting period"
+    indefinite_to_finite: "Test for impairment, then amortize prospectively"
+
+internal_use_software:
+  scope:
+    included:
+      - software_acquired_for_internal_use
+      - software_developed_for_internal_use
+      - website_development_costs
+    excluded:
+      - software_to_be_sold_or_leased
+      - software_for_external_use
+      
+  project_stages:
+    preliminary_project_stage:
+      activities:
+        - conceptual_formulation
+        - evaluation_of_alternatives
+        - determination_of_technology
+        - vendor_selection
+      accounting: expense_as_incurred
+      
+    application_development_stage:
+      activities:
+        - design_of_software
+        - coding
+        - installation_to_hardware
+        - testing
+        - parallel_processing
+      accounting: capitalize
+      costs_capitalized:
+        - external_direct_costs
+        - payroll_for_direct_employees
+        - interest_costs_meeting_asc_835_criteria
+      costs_expensed:
+        - general_and_administrative
+        - overhead
+        - training
+        
+    post_implementation_stage:
+      activities:
+        - maintenance
+        - support
+        - training
+      accounting: expense_as_incurred
+      
+  upgrades_and_enhancements:
+    capitalize_if: "Additional functionality"
+    expense_if: "Maintenance or minor enhancement"
+    
+  cloud_computing_arrangements:
+    service_contract:
+      criteria: "Customer does not take possession of software"
+      implementation_costs:
+        capitalize_if: "Application development activities"
+        present_as: "Prepaid or other asset"
+        amortize: "Over term of hosting arrangement"
+    software_license:
+      criteria: "Customer takes possession or can run on own hardware"
+      accounting: "Follow internal-use software guidance"
+
+disclosures:
+  goodwill:
+    - carrying_amount_by_segment
+    - changes_during_period
+    - accumulated_impairment_losses
+    - goodwill_included_in_disposal_group
+    
+  intangible_assets:
+    - gross_carrying_amount
+    - accumulated_amortization
+    - amortization_expense
+    - estimated_amortization_for_next_five_years
+    - weighted_average_useful_life
+    
+  impairment:
+    - description_of_impaired_asset
+    - facts_and_circumstances
+    - amount_of_impairment
+    - method_of_determining_fair_value
+    - segment_affected
+
+common_issues:
+  - issue: "Determining reporting units for goodwill testing"
+    guidance: "Start with operating segments; can aggregate if similar economic characteristics"
+    
+  - issue: "Assessing indefinite vs finite useful life"
+    guidance: "Consider all factors; default to finite if uncertain"
+    
+  - issue: "Capitalizing internal-use software costs"
+    guidance: "Only application development stage; management authorization required"
+    
+  - issue: "Cloud computing implementation costs"
+    guidance: "Capitalize if service contract; recognize over arrangement term"
+
+related_standards:
+  - id: ASC-360
+    relationship: long_lived_asset_impairment
+  - id: ASC-805
+    relationship: business_combinations
+  - id: ASC-820
+    relationship: fair_value_measurement

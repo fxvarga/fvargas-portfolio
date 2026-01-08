@@ -1,0 +1,123 @@
+[
+  {
+    "id": "apr-001",
+    "approval_number": "APR-202501-001",
+    "entity_code": "US01",
+    "approval_type": "JOURNAL_ENTRY",
+    "object_type": "JournalEntry",
+    "object_id": "je-003",
+    "object_description": "Prepaid insurance amortization - December 2024",
+    "amount": 8333.33,
+    "currency": "USD",
+    "requested_by": "accountant@acme.com",
+    "requested_at": "2024-12-31T16:30:00Z",
+    "assigned_to": "controller@acme.com",
+    "status": "PENDING",
+    "priority": "NORMAL",
+    "due_date": "2025-01-03T17:00:00Z",
+    "approval_level": 1,
+    "requires_additional_approval": false,
+    "history": [
+      {
+        "timestamp": "2024-12-31T16:30:00Z",
+        "action": "CREATED",
+        "performed_by": "accountant@acme.com",
+        "new_status": "PENDING"
+      }
+    ],
+    "notes": "Monthly prepaid amortization per schedule"
+  },
+  {
+    "id": "apr-002",
+    "approval_number": "APR-202501-002",
+    "entity_code": "US01",
+    "approval_type": "RECONCILIATION",
+    "object_type": "Reconciliation",
+    "object_id": "rec-003",
+    "object_description": "Intercompany Reconciliation - US01 to UK01 - December 2024",
+    "amount": 15000.00,
+    "currency": "USD",
+    "requested_by": "senior.accountant@acme.com",
+    "requested_at": "2025-01-02T16:30:00Z",
+    "assigned_to": "controller@acme.com",
+    "status": "PENDING",
+    "priority": "HIGH",
+    "due_date": "2025-01-03T17:00:00Z",
+    "approval_level": 1,
+    "requires_additional_approval": true,
+    "next_approver": "cfo@acme.com",
+    "history": [
+      {
+        "timestamp": "2025-01-02T16:30:00Z",
+        "action": "CREATED",
+        "performed_by": "senior.accountant@acme.com",
+        "new_status": "PENDING"
+      }
+    ],
+    "notes": "FX variance needs resolution before approval"
+  },
+  {
+    "id": "apr-003",
+    "approval_number": "APR-202501-003",
+    "entity_code": "US01",
+    "approval_type": "PERIOD_CLOSE",
+    "object_type": "FiscalPeriod",
+    "object_id": "fp-us01-2024-12",
+    "object_description": "Soft Close December 2024 - US01",
+    "requested_by": "controller@acme.com",
+    "requested_at": "2025-01-03T10:00:00Z",
+    "assigned_to": "cfo@acme.com",
+    "status": "PENDING",
+    "priority": "URGENT",
+    "due_date": "2025-01-04T17:00:00Z",
+    "approval_level": 2,
+    "requires_additional_approval": false,
+    "history": [
+      {
+        "timestamp": "2025-01-03T10:00:00Z",
+        "action": "CREATED",
+        "performed_by": "controller@acme.com",
+        "new_status": "PENDING"
+      }
+    ],
+    "notes": "All reconciliations complete except intercompany (blocked)"
+  },
+  {
+    "id": "apr-004",
+    "approval_number": "APR-202412-010",
+    "entity_code": "US01",
+    "approval_type": "JOURNAL_ENTRY",
+    "object_type": "JournalEntry",
+    "object_id": "je-001",
+    "object_description": "Monthly depreciation - December 2024",
+    "amount": 45000.00,
+    "currency": "USD",
+    "requested_by": "system@acme.com",
+    "requested_at": "2024-12-31T10:30:00Z",
+    "assigned_to": "controller@acme.com",
+    "status": "APPROVED",
+    "priority": "NORMAL",
+    "due_date": "2024-12-31T17:00:00Z",
+    "decided_at": "2024-12-31T11:00:00Z",
+    "decided_by": "controller@acme.com",
+    "decision_comments": "Verified against fixed asset register",
+    "approval_level": 1,
+    "requires_additional_approval": false,
+    "history": [
+      {
+        "timestamp": "2024-12-31T10:30:00Z",
+        "action": "CREATED",
+        "performed_by": "system@acme.com",
+        "new_status": "PENDING"
+      },
+      {
+        "timestamp": "2024-12-31T11:00:00Z",
+        "action": "APPROVED",
+        "performed_by": "controller@acme.com",
+        "comments": "Verified against fixed asset register",
+        "previous_status": "PENDING",
+        "new_status": "APPROVED"
+      }
+    ]
+  }
+]

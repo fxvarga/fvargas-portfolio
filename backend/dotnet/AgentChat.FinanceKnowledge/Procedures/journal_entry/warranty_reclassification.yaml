@@ -1,0 +1,244 @@
+id: proc-warranty-reclassification
+name: Warranty Expense Reclassification
+version: "1.0"
+category: journal_entry
+subcategory: warranty
+frequency: monthly
+trigger:
+  type: scheduled
+  timing: month_end
+
+description: |
+  Reclassify warranty-related expenses and reserves between accounts to ensure 
+  proper financial statement presentation. This procedure handles:
+  - Moving actual warranty claims from reserve to expense
+  - Adjusting warranty accrual estimates
+  - Reclassifying warranty costs between product lines
+  - Correcting warranty reserve allocations by entity or segment
+
+applies_to:
+  entities: all
+  business_units:
+    - manufacturing
+    - service
+    - distribution
+
+related_policies:
+  - id: pol-warranty-001
+    name: Warranty Accounting Policy
+  - id: pol-je-001
+    name: Journal Entry Policy
+  - id: pol-reclass-001
+    name: Reclassification Policy
+
+steps:
+  - sequence: 1
+    action: validate_inputs
+    description: "Validate required inputs for warranty reclassification"
+    tool_hint: validate_data
+    parameters:
+      required:
+        - entity_code
+        - period
+        - reclassification_type
+        - amount
+        - product_line
+      validations:
+        - reclassification_type in ['reserve_to_expense', 'expense_adjustment', 'product_line_transfer', 'segment_reallocation']
+        - amount > 0
+    output: validation_result
+
+  - sequence: 2
+    action: get_warranty_accounts
+    description: "Retrieve warranty-related accounts for the entity"
+    tool_hint: datalake_query
+    parameters:
+      dataset: chart_of_accounts
+      filters:
+        entity_code: "${entity_code}"
+        account_category: warranty
+      fields:
+        - account_number
+        - account_name
+        - account_type
+        - product_line
+        - normal_balance
+    output: warranty_accounts
+
+  - sequence: 3
+    action: determine_accounts
+    description: "Determine source and target accounts based on reclassification type"
+    tool_hint: kb_procedure_search
+    parameters:
+      reclassification_type: "${reclassification_type}"
+      account_mapping:
+        reserve_to_expense:
+          from: warranty_reserve
+          to: warranty_expense
+        expense_adjustment:
+          from: warranty_expense_estimate
+          to: warranty_expense_actual
+        product_line_transfer:
+          from: "${source_product_line}_warranty"
+          to: "${target_product_line}_warranty"
+        segment_reallocation:
+          from: "${source_segment}_warranty_reserve"
+          to: "${target_segment}_warranty_reserve"
+    output: account_mapping
+
+  - sequence: 4
+    action: validate_reserve_balance
+    description: "Check warranty reserve has sufficient balance for reclassification"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        entity_code: "${entity_code}"
+        account: "${account_mapping.from_account}"
+        period: "${period}"
+    output: reserve_balance
+    condition: "${reclassification_type == 'reserve_to_expense'}"
+
+  - sequence: 5
+    action: check_period
+    description: "Verify the posting period is open"
+    tool_hint: sor_period_status
+    parameters:
+      entity_code: "${entity_code}"
+      period: "${period}"
+    output: period_status
+
+  - sequence: 6
+    action: get_warranty_claims
+    description: "Retrieve warranty claims data to support reclassification"
+    tool_hint: datalake_query
+    parameters:
+      dataset: warranty_claims
+      filters:
+        entity_code: "${entity_code}"
+        period: "${period}"
+        product_line: "${product_line}"
+        status: approved
+      aggregations:
+        - field: claim_amount
+          function: sum
+    output: claims_summary
+    condition: "${reclassification_type == 'reserve_to_expense'}"
+
+  - sequence: 7
+    action: validate_amount_against_claims
+    description: "Ensure reclassification amount aligns with actual claims"
+    tool_hint: validate_data
+    parameters:
+      comparison:
+        reclassification_amount: "${amount}"
+        total_claims: "${claims_summary.total_claim_amount}"
+        variance_threshold: 0.05
+    output: claims_validation
+    condition: "${reclassification_type == 'reserve_to_expense'}"
+
+  - sequence: 8
+    action: create_warranty_reclass_entry
+    description: "Create the warranty reclassification journal entry"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 10000
+    parameters:
+      entity_code: "${entity_code}"
+      period: "${period}"
+      description: "Warranty Reclass: ${reclassification_type} - ${product_line}"
+      source: AI-Generated
+      procedure_id: proc-warranty-reclassification
+      journal_type: reclassification
+      lines:
+        - account: "${account_mapping.from_account}"
+          debit: "${account_mapping.from_normal_balance == 'credit' ? amount : 0}"
+          credit: "${account_mapping.from_normal_balance == 'debit' ? amount : 0}"
+          description: "Warranty reclass out - ${reclassification_type}"
+          product_line: "${product_line}"
+        - account: "${account_mapping.to_account}"
+          debit: "${account_mapping.to_normal_balance == 'debit' ? amount : 0}"
+          credit: "${account_mapping.to_normal_balance == 'credit' ? amount : 0}"
+          description: "Warranty reclass in - ${reclassification_type}"
+          product_line: "${product_line}"
+    output: journal_entry
+
+  - sequence: 9
+    action: attach_supporting_docs
+    description: "Attach warranty claims and supporting documentation"
+    tool_hint: sor_journal_entry_attach
+    parameters:
+      journal_entry_id: "${journal_entry.id}"
+      documents:
+        - type: warranty_claims_report
+          content: "${claims_summary}"
+        - type: reclassification_justification
+          content: "${reason}"
+        - type: approval_documentation
+          content: "${approval_notes}"
+
+  - sequence: 10
+    action: update_warranty_subledger
+    description: "Update warranty subledger to reflect reclassification"
+    tool_hint: sor_subledger_update
+    parameters:
+      subledger: warranty
+      entity_code: "${entity_code}"
+      period: "${period}"
+      journal_entry_id: "${journal_entry.id}"
+      updates:
+        - product_line: "${product_line}"
+          reserve_adjustment: "${reclassification_type == 'reserve_to_expense' ? -amount : 0}"
+          expense_adjustment: "${reclassification_type == 'reserve_to_expense' ? amount : 0}"
+    output: subledger_update
+
+  - sequence: 11
+    action: notify_stakeholders
+    description: "Send notification to warranty and finance teams"
+    tool_hint: send_notification
+    parameters:
+      recipients:
+        - warranty_manager
+        - product_controller
+        - finance_team
+      subject: "Warranty Reclassification Completed - ${entity_code} ${period}"
+      body: |
+        Warranty reclassification entry created:
+        - Type: ${reclassification_type}
+        - Amount: ${amount}
+        - Product Line: ${product_line}
+        - Journal Entry: ${journal_entry.id}
+
+validation_rules:
+  - name: balanced_entry
+    description: "Debit must equal credit"
+  - name: sufficient_reserve
+    description: "Warranty reserve must have sufficient balance for reserve_to_expense type"
+  - name: claims_reconciliation
+    description: "Reclassification amount should reconcile to approved claims"
+  - name: period_open
+    description: "Posting period must be open"
+  - name: product_line_valid
+    description: "Product line must exist and be active"
+  - name: same_entity
+    description: "Both accounts must be in the same entity"
+
+exception_handling:
+  - condition: insufficient_reserve
+    action: escalate_to_controller
+    description: "Escalate if warranty reserve balance is insufficient"
+  - condition: variance_exceeded
+    action: require_manual_review
+    description: "Require manual review if claims variance exceeds threshold"
+  - condition: period_closed
+    action: suggest_next_period
+    description: "Suggest posting to next open period if current is closed"
+
+tags:
+  - journal_entry
+  - reclassification
+  - warranty
+  - reserve
+  - expense
+  - month_end
+  - manufacturing

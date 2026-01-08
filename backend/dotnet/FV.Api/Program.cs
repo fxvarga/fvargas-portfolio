@@ -55,7 +55,6 @@ services.AddScoped<IAuthService, AuthService>();
 services.AddScoped<IContentMigrationRunner, ContentMigrationRunner>();
 
 // Add services to the container.
-services.AddPersistentChatStore();
 services.AddHttpContextAccessor();
 services.AddAzureAppConfiguration();
 services.AddFeatureManagement();

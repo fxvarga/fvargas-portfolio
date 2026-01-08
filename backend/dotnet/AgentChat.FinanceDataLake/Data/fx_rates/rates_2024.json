@@ -1,0 +1,66 @@
+[
+  {
+    "rate_date": "2024-12-31",
+    "from_currency": "GBP",
+    "to_currency": "USD",
+    "rate_type": "spot",
+    "rate": 1.2860,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-12-31",
+    "from_currency": "EUR",
+    "to_currency": "USD",
+    "rate_type": "spot",
+    "rate": 1.0810,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-12-31",
+    "from_currency": "JPY",
+    "to_currency": "USD",
+    "rate_type": "spot",
+    "rate": 0.00709,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-12-31",
+    "from_currency": "CAD",
+    "to_currency": "USD",
+    "rate_type": "spot",
+    "rate": 0.7015,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-12-01",
+    "from_currency": "GBP",
+    "to_currency": "USD",
+    "rate_type": "average",
+    "rate": 1.2750,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-12-01",
+    "from_currency": "EUR",
+    "to_currency": "USD",
+    "rate_type": "average",
+    "rate": 1.0725,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-01-01",
+    "from_currency": "GBP",
+    "to_currency": "USD",
+    "rate_type": "historical",
+    "rate": 1.2690,
+    "source": "treasury"
+  },
+  {
+    "rate_date": "2024-01-01",
+    "from_currency": "EUR",
+    "to_currency": "USD",
+    "rate_type": "historical",
+    "rate": 1.1050,
+    "source": "treasury"
+  }
+]

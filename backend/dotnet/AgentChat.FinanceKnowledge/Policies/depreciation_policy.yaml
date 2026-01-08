@@ -1,0 +1,242 @@
+id: POL-DEP-001
+name: Depreciation and Amortization Policy
+version: "1.5"
+effective_date: "2024-01-01"
+owner: corporate_controller
+approvers:
+  - cfo
+  - chief_accounting_officer
+last_review_date: "2023-11-15"
+next_review_date: "2024-11-15"
+
+description: >
+  Establishes the depreciation and amortization methods, useful lives, 
+  and residual values for property, plant, equipment, and intangible assets.
+  Ensures consistent application across all entities.
+
+scope:
+  entities:
+    - "*"
+  asset_categories:
+    tangible:
+      - buildings
+      - building_improvements
+      - machinery_and_equipment
+      - furniture_and_fixtures
+      - vehicles
+      - computer_hardware
+      - leasehold_improvements
+    intangible:
+      - patents
+      - trademarks
+      - customer_relationships
+      - software
+      - licenses
+      - non_compete_agreements
+
+depreciation_methods:
+  primary_method: straight_line
+  alternative_methods:
+    units_of_production:
+      applicable_to:
+        - manufacturing_equipment
+        - mining_assets
+      approval_required: regional_controller
+    declining_balance:
+      applicable_to:
+        - certain_tax_jurisdictions
+      use: tax_only
+      
+tangible_asset_lives:
+  buildings:
+    default_years: 40
+    range:
+      min: 25
+      max: 50
+    residual_value_percent: 10
+    review_frequency: "Every 3 years or upon significant change"
+    
+  building_improvements:
+    default_years: 15
+    range:
+      min: 5
+      max: 20
+    residual_value_percent: 0
+    note: "May not exceed remaining building life"
+    
+  machinery_and_equipment:
+    categories:
+      heavy_manufacturing:
+        years: 15
+        residual_value_percent: 5
+      standard_manufacturing:
+        years: 10
+        residual_value_percent: 5
+      light_equipment:
+        years: 7
+        residual_value_percent: 0
+      precision_instruments:
+        years: 5
+        residual_value_percent: 0
+        
+  furniture_and_fixtures:
+    default_years: 7
+    range:
+      min: 5
+      max: 10
+    residual_value_percent: 0
+    
+  vehicles:
+    categories:
+      passenger_vehicles:
+        years: 5
+        residual_value_percent: 15
+      light_trucks:
+        years: 6
+        residual_value_percent: 10
+      heavy_trucks:
+        years: 8
+        residual_value_percent: 5
+      forklifts:
+        years: 7
+        residual_value_percent: 5
+        
+  computer_hardware:
+    categories:
+      servers:
+        years: 5
+        residual_value_percent: 0
+      desktops_laptops:
+        years: 3
+        residual_value_percent: 0
+      network_equipment:
+        years: 5
+        residual_value_percent: 0
+      mobile_devices:
+        years: 2
+        residual_value_percent: 0
+        
+  leasehold_improvements:
+    life: "Lesser of useful life or remaining lease term"
+    include_renewal_periods: false
+    residual_value_percent: 0
+
+intangible_asset_lives:
+  patents:
+    default_years: "Remaining legal life"
+    max_years: 20
+    method: straight_line
+    
+  trademarks:
+    indefinite_life:
+      criteria: "No foreseeable limit on cash generation"
+      impairment_testing: annual
+    definite_life:
+      default_years: 15
+      
+  customer_relationships:
+    default_years: 10
+    range:
+      min: 5
+      max: 20
+    estimation_basis: "Expected customer attrition rates"
+    
+  software:
+    categories:
+      internal_use:
+        years: 3
+      erp_systems:
+        years: 7
+      custom_development:
+        years: 5
+    cloud_implementation:
+      amortization_period: "Term of hosting arrangement"
+      
+  licenses:
+    life: "Term of license"
+    renewal_considerations: "Include if renewal reasonably certain"
+    
+  non_compete_agreements:
+    life: "Term of agreement"
+    typical_range:
+      min: 2
+      max: 5
+
+depreciation_timing:
+  commencement:
+    rule: "Month asset placed in service"
+    convention: half_month
+    details:
+      placed_before_15th: "Full month depreciation"
+      placed_on_or_after_15th: "No depreciation in first month"
+      
+  cessation:
+    rule: "Month asset disposed or fully depreciated"
+    details:
+      disposed_before_15th: "No depreciation in disposal month"
+      disposed_on_or_after_15th: "Full month depreciation"
+      
+  impaired_assets:
+    rule: "Depreciate adjusted carrying value over remaining life"
+    
+  idle_assets:
+    continued_depreciation: true
+    exception: "Retired from service with intent to dispose"
+
+component_depreciation:
+  required_when:
+    - component_value_exceeds: 100000
+    - component_life_differs_significantly: true
+  significant_difference: "20% or more difference in useful life"
+  minimum_components: 1
+  examples:
+    building:
+      - structure
+      - roof
+      - hvac
+      - elevators
+    manufacturing_equipment:
+      - base_unit
+      - tooling
+      - control_systems
+
+useful_life_review:
+  frequency: annual
+  triggers_for_reassessment:
+    - technological_changes
+    - changes_in_market_conditions
+    - physical_condition_change
+    - changes_in_usage_patterns
+    - impairment_indicators
+  approval_for_changes:
+    immaterial: plant_controller
+    material: corporate_controller
+
+residual_value:
+  estimation_basis: "Expected value at end of useful life"
+  currency: "Functional currency of entity"
+  review_frequency: annual
+  prohibition: "May not exceed historical cost"
+
+book_vs_tax:
+  maintain_separate_records: true
+  deferred_tax_recognition: required
+  common_differences:
+    - accelerated_tax_depreciation
+    - bonus_depreciation
+    - different_useful_lives
+    - different_methods
+
+related_standards:
+  - id: ASC-360
+    description: "Property, Plant, and Equipment"
+  - id: ASC-350
+    description: "Intangibles - Goodwill and Other"
+  - id: IAS-16
+    description: "Property, Plant and Equipment (IFRS)"
+  - id: IAS-38
+    description: "Intangible Assets (IFRS)"
+
+related_policies:
+  - id: POL-CAP-001
+    name: "Fixed Asset Capitalization Policy"

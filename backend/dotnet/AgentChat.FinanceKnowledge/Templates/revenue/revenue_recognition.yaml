@@ -1,0 +1,586 @@
+id: tmpl-revenue-recognition
+name: Revenue Recognition Workpaper (ASC 606)
+version: "1.0"
+category: revenue
+subcategory: recognition
+description: |
+  ASC 606 compliant revenue recognition workpaper for tracking contracts,
+  performance obligations, and revenue recognition over time. Supports
+  percentage of completion, output methods, and point-in-time recognition.
+purpose: |
+  Provides standardized documentation for ASC 606 revenue recognition 
+  analysis. Tracks the five-step model: contract identification, performance
+  obligations, transaction price, allocation, and recognition timing.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-asc606-recognition
+  - proc-deferred-revenue-release
+
+related_policies:
+  - pol-rev-001
+
+sheets:
+  - name: Summary
+    description: Revenue recognition summary and key metrics
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "As of Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+    formulas:
+      - name: total_contract_value
+        cell: B5
+        formula: "=SUM('Contract Register'!G:G)"
+        description: "Total Contract Value"
+        format: "#,##0.00"
+      - name: total_recognized
+        cell: B6
+        formula: "=SUM('Contract Register'!J:J)"
+        description: "Total Cumulative Revenue Recognized"
+        format: "#,##0.00"
+      - name: total_deferred
+        cell: B7
+        formula: "=SUM('Contract Register'!K:K)"
+        description: "Total Deferred Revenue"
+        format: "#,##0.00"
+      - name: total_unbilled
+        cell: B8
+        formula: "=SUM('Contract Register'!L:L)"
+        description: "Total Unbilled Receivables"
+        format: "#,##0.00"
+      - name: current_month_revenue
+        cell: B10
+        formula: "=SUMPRODUCT(('Recognition Schedule'!A:A=E1)*('Recognition Schedule'!B:B=E2)*('Recognition Schedule'!G:G))"
+        description: "Current Month Revenue"
+        format: "#,##0.00"
+      - name: ytd_revenue
+        cell: B11
+        formula: "=SUMIF('Recognition Schedule'!A:A,E1,'Recognition Schedule'!G:G)"
+        description: "YTD Revenue"
+        format: "#,##0.00"
+
+  - name: Contract Register
+    description: Master list of customer contracts
+    type: data
+    columns:
+      - name: contract_id
+        header: "Contract ID"
+        type: text
+        width: 12
+        required: true
+        description: "Unique contract identifier"
+      - name: customer_name
+        header: "Customer"
+        type: text
+        width: 30
+        required: true
+      - name: contract_name
+        header: "Contract Name"
+        type: text
+        width: 35
+        required: true
+      - name: contract_date
+        header: "Contract Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: start_date
+        header: "Start Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: end_date
+        header: "End Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: total_contract_value
+        header: "Total Value"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: recognition_method
+        header: "Recognition Method"
+        type: dropdown
+        width: 18
+        required: true
+        allowed_values:
+          - Point in Time
+          - Over Time - Input
+          - Over Time - Output
+          - Over Time - Straight-Line
+      - name: payment_terms
+        header: "Payment Terms"
+        type: text
+        width: 15
+      - name: cumulative_recognized
+        header: "Cumulative Recognized"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: deferred_revenue
+        header: "Deferred Revenue"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: unbilled_receivable
+        header: "Unbilled AR"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: percent_complete
+        header: "% Complete"
+        type: percentage
+        format: "0%"
+        width: 10
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        required: true
+        allowed_values:
+          - Active
+          - Completed
+          - Cancelled
+          - On Hold
+    conditional_formatting:
+      - range: "M:M"
+        condition: "value>=1"
+        style:
+          background_color: "#51CF66"
+      - range: "F:F"
+        condition: "value<TODAY()"
+        style:
+          background_color: "#FFE066"
+
+  - name: Performance Obligations
+    description: Performance obligations by contract
+    type: data
+    columns:
+      - name: contract_id
+        header: "Contract ID"
+        type: lookup
+        lookup_sheet: "Contract Register"
+        lookup_column: "contract_id"
+        width: 12
+        required: true
+      - name: po_number
+        header: "PO #"
+        type: text
+        width: 8
+        required: true
+        description: "Performance obligation number"
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+        required: true
+      - name: po_type
+        header: "Type"
+        type: dropdown
+        width: 18
+        required: true
+        allowed_values:
+          - Good
+          - Service
+          - License
+          - Warranty - Assurance
+          - Warranty - Service
+          - Combined
+      - name: standalone_selling_price
+        header: "SSP"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+        description: "Standalone Selling Price"
+      - name: allocated_price
+        header: "Allocated Price"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: recognition_timing
+        header: "Recognition Timing"
+        type: dropdown
+        width: 18
+        required: true
+        allowed_values:
+          - Point in Time
+          - Over Time
+      - name: recognition_trigger
+        header: "Recognition Trigger"
+        type: dropdown
+        width: 20
+        allowed_values:
+          - Delivery
+          - Acceptance
+          - Transfer of Control
+          - Service Completed
+          - Time Elapsed
+          - Milestone
+      - name: satisfaction_date
+        header: "Satisfaction Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: revenue_recognized
+        header: "Revenue Recognized"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: revenue_remaining
+        header: "Revenue Remaining"
+        type: formula
+        formula: "=F{row}-J{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Not Started
+          - In Progress
+          - Satisfied
+          - Cancelled
+
+  - name: Recognition Schedule
+    description: Monthly revenue recognition by contract
+    type: calculation
+    columns:
+      - name: fiscal_year
+        header: "Fiscal Year"
+        type: number
+        width: 10
+        required: true
+      - name: fiscal_period
+        header: "Period"
+        type: number
+        width: 8
+        required: true
+      - name: contract_id
+        header: "Contract ID"
+        type: lookup
+        lookup_sheet: "Contract Register"
+        lookup_column: "contract_id"
+        width: 12
+        required: true
+      - name: po_number
+        header: "PO #"
+        type: text
+        width: 8
+      - name: customer
+        header: "Customer"
+        type: formula
+        formula: "=VLOOKUP(C{row},'Contract Register'!A:B,2,FALSE)"
+        width: 25
+      - name: beginning_deferred
+        header: "Beginning Deferred"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: revenue_recognized
+        header: "Revenue Recognized"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: billings
+        header: "Billings"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_deferred
+        header: "Ending Deferred"
+        type: formula
+        formula: "=F{row}-G{row}+H{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: unbilled_ar
+        header: "Unbilled AR"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: percent_complete
+        header: "% Complete"
+        type: percentage
+        format: "0%"
+        width: 10
+      - name: recognition_basis
+        header: "Recognition Basis"
+        type: text
+        width: 25
+        description: "Basis for % complete calculation"
+
+  - name: Variable Consideration
+    description: Variable consideration estimates
+    type: data
+    columns:
+      - name: contract_id
+        header: "Contract ID"
+        type: lookup
+        lookup_sheet: "Contract Register"
+        lookup_column: "contract_id"
+        width: 12
+        required: true
+      - name: variable_type
+        header: "Variable Type"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Volume Discount
+          - Rebate
+          - Performance Bonus
+          - Penalty
+          - Price Concession
+          - Right of Return
+          - Warranty Claim
+          - Other
+      - name: estimation_method
+        header: "Estimation Method"
+        type: dropdown
+        width: 18
+        required: true
+        allowed_values:
+          - Expected Value
+          - Most Likely Amount
+      - name: estimated_amount
+        header: "Estimated Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: constraint_applied
+        header: "Constraint Applied?"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "Yes"
+          - "No"
+      - name: constrained_amount
+        header: "Constrained Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: included_in_price
+        header: "Included in Transaction Price"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: last_updated
+        header: "Last Updated"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 35
+
+  - name: Contract Costs
+    description: Capitalizable contract costs
+    type: data
+    columns:
+      - name: contract_id
+        header: "Contract ID"
+        type: lookup
+        lookup_sheet: "Contract Register"
+        lookup_column: "contract_id"
+        width: 12
+        required: true
+      - name: cost_type
+        header: "Cost Type"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Incremental Cost of Obtaining
+          - Fulfillment Cost
+          - Setup Cost
+          - Commission
+      - name: cost_description
+        header: "Description"
+        type: text
+        width: 35
+      - name: incurred_date
+        header: "Incurred Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: cost_amount
+        header: "Cost Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: amortization_period
+        header: "Amort Period (Mo)"
+        type: number
+        width: 12
+      - name: beginning_balance
+        header: "Beginning Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: current_amortization
+        header: "Current Amortization"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_balance
+        header: "Ending Balance"
+        type: formula
+        formula: "=G{row}-H{row}"
+        format: "#,##0.00"
+        width: 15
+
+  - name: SSP Analysis
+    description: Standalone selling price determination
+    type: data
+    columns:
+      - name: product_service
+        header: "Product/Service"
+        type: text
+        width: 35
+        required: true
+      - name: category
+        header: "Category"
+        type: text
+        width: 20
+      - name: ssp_method
+        header: "SSP Method"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Observable Price
+          - Adjusted Market Assessment
+          - Expected Cost Plus Margin
+          - Residual
+      - name: ssp_amount
+        header: "SSP Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: ssp_range_low
+        header: "SSP Range (Low)"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ssp_range_high
+        header: "SSP Range (High)"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: supporting_evidence
+        header: "Supporting Evidence"
+        type: text
+        width: 35
+      - name: effective_date
+        header: "Effective Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: review_date
+        header: "Next Review Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+
+  - name: Deferred Revenue Rollforward
+    description: Deferred revenue balance rollforward
+    type: data
+    columns:
+      - name: contract_id
+        header: "Contract ID"
+        type: lookup
+        lookup_sheet: "Contract Register"
+        lookup_column: "contract_id"
+        width: 12
+        required: true
+      - name: customer
+        header: "Customer"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Contract Register'!A:B,2,FALSE)"
+        width: 25
+      - name: beginning_balance
+        header: "Beginning Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: billings
+        header: "Billings"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: revenue_recognized
+        header: "Revenue Recognized"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: adjustments
+        header: "Adjustments"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_balance
+        header: "Ending Balance"
+        type: formula
+        formula: "=C{row}+D{row}-E{row}+F{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: current_portion
+        header: "Current Portion"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: noncurrent_portion
+        header: "Non-current"
+        type: formula
+        formula: "=G{row}-H{row}"
+        format: "#,##0.00"
+        width: 15
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - revenue
+  - asc_606
+  - contracts
+  - deferred_revenue
+  - performance_obligations
+  - month_end
+  - audit

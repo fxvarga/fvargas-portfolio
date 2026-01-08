@@ -269,31 +269,70 @@ const prefersReducedMotion = window.matchMedia(
 - `WARNING: text` - Orange warning box with triangle icon
 - `DANGER: text` - Red danger box with X icon
 
-### Step 5: Add Blog Post Metadata to Database Seeder
+### Step 5: Create a Database Migration
 
-Edit `backend/dotnet/FV.Infrastructure/Services/DatabaseSeeder.cs`
+Create a new migration file at: `backend/dotnet/FV.Infrastructure/ContentMigrations/Migrations/_YYYYMMDDHHMMSS_Add{Title}BlogPost.cs`
 
-Add before `await _context.SaveChangesAsync();` in `SeedPortfolioContentAsync`:
+#### Migration Structure:
 
 ```csharp
-await CreateContentAsync(portfolioId, "blog-post", new
+namespace FV.Infrastructure.ContentMigrations.Migrations;
+
+/// <summary>
+/// Adds the {Title} blog post.
+/// </summary>
+public class _YYYYMMDDHHMMSS_Add{Title}BlogPost : ContentMigration
 {
-    slug = "{slug}",
-    title = "{Full Title}",
-    excerpt = "{Compelling 1-2 sentence description for cards and SEO}",
-    category = "Frontend",
-    tags = new[] { "React", "TypeScript", "Animation", /* relevant tags */ },
-    featuredImage = new
+    public override string Description => "Add {title} blog post";
+
+    public override async Task UpAsync(ContentMigrationContext ctx)
     {
-        url = "https://images.unsplash.com/{photo-id}?w=800&h=450&fit=crop",
-        alt = "{Descriptive alt text}"
-    },
-    demoComponent = "{demo-name}",  // matches registry key
-    mdxFile = "/content/blog/{slug}.md",
-    readTime = "{X} min read",
-    publishedDate = "{YYYY-MM-DD}",
-    isPublished = true
-});
+        await ctx.UpsertContentAsync(
+            ContentMigrationContext.FernandoPortfolioId,
+            "blog-post",
+            "{slug}",
+            new
+            {
+                slug = "{slug}",
+                title = "{Full Title}",
+                excerpt = "{Compelling 1-2 sentence description for cards and SEO}",
+                category = "Frontend",
+                tags = new[] { "React", "TypeScript", /* relevant tags */ },
+                featuredImage = new
+                {
+                    url = "https://images.unsplash.com/{photo-id}?w=800&h=450&fit=crop",
+                    alt = "{Descriptive alt text}"
+                },
+                demoComponent = "{demo-name}",
+                mdxFile = "/content/blog/{slug}.md",
+                readTime = "{X} min read",
+                publishedDate = "{YYYY-MM-DD}",
+                isPublished = true
+            });
+
+        await ctx.SaveChangesAsync();
+    }
+
+    public override async Task DownAsync(ContentMigrationContext ctx)
+    {
+        await ctx.DeleteContentAsync(
+            ContentMigrationContext.FernandoPortfolioId,
+            "blog-post",
+            "{slug}");
+
+        await ctx.SaveChangesAsync();
+    }
+}
+```
+
+#### Migration Naming Convention:
+- Use current timestamp: `YYYYMMDDHHMMSS` (e.g., `20260105123000`)
+- Class name: `_YYYYMMDDHHMMSS_Add{Title}BlogPost`
+- Replace spaces in title with nothing or use camelCase (e.g., `AddScrollAnimationsBlogPost`)
+
+#### Running Migrations:
+```bash
+cd backend/dotnet && dotnet run --project FV.Api -- --migrate
 ```
 
 ## Existing Blog Posts Reference
@@ -312,7 +351,7 @@ await CreateContentAsync(portfolioId, "blog-post", new
 | Demo Components | `frontend/portfolio-react/src/blog-components/{name}/` |
 | Demo Registry | `frontend/portfolio-react/src/blog-components/registry.tsx` |
 | Markdown Content | `frontend/portfolio-react/public/content/blog/{slug}.md` |
-| Database Seeder | `backend/dotnet/FV.Infrastructure/Services/DatabaseSeeder.cs` |
+| Database Migrations | `backend/dotnet/FV.Infrastructure/ContentMigrations/Migrations/` |
 | BlogPost Renderer | `frontend/portfolio-react/src/features/public/blog/BlogPost.tsx` |
 | Markdown Renderer | `frontend/portfolio-react/src/shared/components/MarkdownRenderer.tsx` |
 
@@ -340,9 +379,9 @@ After creating all files, remind user to:
    cd frontend/portfolio-react && pnpm build
    ```
 
-2. **Reseed the database (if needed):**
+2. **Run the migration:**
    ```bash
-   cd backend/dotnet && dotnet run --project FV.Api -- --seed
+   cd backend/dotnet && dotnet run --project FV.Api -- --migrate
    ```
 
 3. **Deploy to production:**

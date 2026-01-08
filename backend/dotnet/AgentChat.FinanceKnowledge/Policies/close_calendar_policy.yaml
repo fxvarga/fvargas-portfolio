@@ -1,0 +1,347 @@
+id: POL-CLOSE-001
+name: Financial Close Calendar and Deadlines Policy
+version: "2.0"
+effective_date: "2024-01-01"
+owner: corporate_controller
+approvers:
+  - cfo
+  - chief_accounting_officer
+last_review_date: "2023-12-01"
+next_review_date: "2024-12-01"
+
+description: >
+  Establishes the financial close calendar, key milestones, deadlines, 
+  and responsibilities for monthly, quarterly, and annual close processes.
+  Ensures timely and accurate financial reporting across all entities.
+
+scope:
+  entities:
+    - "*"
+  close_types:
+    - monthly_soft_close
+    - quarterly_hard_close
+    - annual_close
+
+close_calendar:
+  monthly_soft_close:
+    description: "Management reporting close with key estimates"
+    duration_business_days: 5
+    
+    milestones:
+      day_1:
+        name: "Sub-ledger Close"
+        activities:
+          - close_accounts_payable
+          - close_accounts_receivable
+          - close_payroll
+          - close_fixed_assets
+          - close_inventory
+        owners:
+          - entity_accountants
+        deadline: "5:00 PM local time"
+        
+      day_2:
+        name: "Journal Entries and Accruals"
+        activities:
+          - post_standard_recurring_entries
+          - post_accruals
+          - post_prepaids_amortization
+          - post_depreciation
+          - post_fx_revaluation
+        owners:
+          - entity_accountants
+          - regional_accountants
+        deadline: "3:00 PM local time"
+        
+      day_3:
+        name: "Intercompany Settlement"
+        activities:
+          - intercompany_reconciliation
+          - resolve_intercompany_differences
+          - post_intercompany_adjustments
+          - confirm_intercompany_balances
+        owners:
+          - entity_accountants
+          - consolidation_team
+        deadline: "12:00 PM local time"
+        
+      day_4:
+        name: "Account Reconciliation"
+        activities:
+          - complete_balance_sheet_reconciliations
+          - review_reconciling_items
+          - clear_aged_reconciling_items
+          - management_review_of_reconciliations
+        owners:
+          - entity_accountants
+          - entity_controller
+        deadline: "5:00 PM local time"
+        
+      day_5:
+        name: "Consolidation and Reporting"
+        activities:
+          - submit_entity_trial_balance
+          - consolidation_eliminations
+          - management_report_generation
+          - variance_analysis
+        owners:
+          - consolidation_team
+          - fp_and_a
+        deadline: "5:00 PM local time"
+        
+  quarterly_hard_close:
+    description: "External reporting close with full documentation"
+    duration_business_days: 10
+    
+    milestones:
+      days_1_5:
+        name: "Entity Close"
+        activities:
+          - all_monthly_close_activities
+          - enhanced_accrual_review
+          - cutoff_testing
+          - quarterly_specific_entries
+        owners:
+          - entity_accountants
+          - entity_controller
+          
+      day_6:
+        name: "Regional Review"
+        activities:
+          - regional_controller_review
+          - cross_entity_analytics
+          - regional_adjustments
+        owners:
+          - regional_controller
+          
+      day_7:
+        name: "Corporate Consolidation"
+        activities:
+          - final_intercompany_eliminations
+          - corporate_adjustments
+          - tax_provision_entries
+          - goodwill_and_intangibles_review
+        owners:
+          - consolidation_team
+          - tax_department
+          - technical_accounting
+          
+      day_8:
+        name: "Quality Review"
+        activities:
+          - fluctuation_analysis
+          - disclosure_checklist
+          - management_review
+          - external_auditor_review_q1_q3
+        owners:
+          - corporate_controller
+          - external_auditors
+          
+      days_9_10:
+        name: "Reporting and Certification"
+        activities:
+          - financial_statement_preparation
+          - disclosure_preparation
+          - management_certifications
+          - board_package_preparation
+        owners:
+          - corporate_controller
+          - financial_reporting
+          
+  annual_close:
+    description: "Year-end close with audit and statutory requirements"
+    duration_business_days: 20
+    
+    additional_activities:
+      - full_external_audit
+      - statutory_financial_statements
+      - tax_return_preparation
+      - annual_report_preparation
+      - goodwill_impairment_testing
+      - stock_compensation_true_up
+      - pension_and_benefit_valuations
+
+entity_deadlines:
+  tier_1_entities:
+    entities:
+      - US01
+      - UK01
+      - DE01
+    deadline_offset_days: 0
+    description: "Primary reporting entities - standard deadlines"
+    
+  tier_2_entities:
+    entities:
+      - CA01
+      - FR01
+      - JP01
+    deadline_offset_days: -1
+    description: "One day earlier to allow consolidation time"
+    
+  tier_3_entities:
+    entities:
+      - AU01
+      - SG01
+      - BR01
+    deadline_offset_days: -2
+    description: "Two days earlier for time zone and complexity"
+
+journal_entry_controls:
+  standard_entries:
+    approval_required: false
+    auto_post: true
+    documentation: template_based
+    
+  non_standard_entries:
+    approval_thresholds:
+      tier_1:
+        amount: 50000
+        approvers:
+          - senior_accountant
+      tier_2:
+        amount: 250000
+        approvers:
+          - entity_controller
+      tier_3:
+        amount: 1000000
+        approvers:
+          - regional_controller
+      tier_4:
+        amount: null
+        approvers:
+          - corporate_controller
+          
+  top_side_adjustments:
+    definition: "Entries posted at consolidation level"
+    approval_required: true
+    approvers:
+      - corporate_controller
+      - chief_accounting_officer
+    documentation: "Full support and business rationale required"
+    
+  late_entries:
+    definition: "Entries after entity close deadline"
+    approval_required: true
+    approvers:
+      - regional_controller
+    threshold_for_cfo_approval: 500000
+    documentation: "Explanation of delay required"
+
+period_lock:
+  soft_lock:
+    timing: "Entity close deadline"
+    effect: "Approval required for all entries"
+    unlock_authority: entity_controller
+    
+  hard_lock:
+    timing: "Consolidation complete"
+    effect: "No entries without controller approval"
+    unlock_authority: corporate_controller
+    
+  final_lock:
+    timing: "Reporting deadline"
+    effect: "No entries - period closed"
+    unlock_authority: cfo
+    unlock_requires: "Material error documentation"
+
+reconciliation_requirements:
+  frequency:
+    high_risk_accounts: monthly
+    medium_risk_accounts: quarterly
+    low_risk_accounts: annually
+    
+  high_risk_accounts:
+    - cash_and_bank
+    - accounts_receivable_control
+    - accounts_payable_control
+    - inventory_control
+    - intercompany_accounts
+    - debt_and_borrowings
+    - deferred_revenue
+    
+  completion_deadline: "Close day 4"
+  
+  aging_of_reconciling_items:
+    current: "Originated this period"
+    aged_30: "31-60 days old"
+    aged_60: "61-90 days old"
+    aged_90_plus: "Over 90 days - escalation required"
+    
+  management_review:
+    required: true
+    reviewer: entity_controller
+    evidence: "Sign-off on reconciliation"
+
+reporting_deliverables:
+  monthly:
+    - entity_trial_balance
+    - management_income_statement
+    - flash_report
+    - variance_analysis
+    - key_metrics_dashboard
+    
+  quarterly:
+    - consolidated_financial_statements
+    - sec_form_10q (if applicable)
+    - earnings_release_support
+    - board_of_directors_package
+    - covenant_compliance_certificates
+    
+  annually:
+    - audited_financial_statements
+    - sec_form_10k (if applicable)
+    - annual_report
+    - statutory_accounts_by_jurisdiction
+    - tax_returns_and_provisions
+
+escalation_procedures:
+  missed_deadline:
+    notification:
+      - regional_controller
+      - corporate_controller
+    documentation: "Root cause and remediation plan"
+    
+  material_error:
+    threshold: 500000
+    notification:
+      - corporate_controller
+      - cfo
+      - audit_committee (if material)
+    assessment: "Impact on previously issued financials"
+    
+  system_issues:
+    primary_contact: it_support
+    escalation: corporate_controller
+    contingency: "Manual close procedures"
+
+continuous_improvement:
+  close_metrics:
+    - days_to_close
+    - number_of_late_entries
+    - reconciliation_completion_rate
+    - variance_explanation_quality
+    - audit_adjustments
+    
+  review_frequency: quarterly
+  benchmarking: "Industry best practices"
+  target: "Continuous reduction in close cycle"
+
+related_policies:
+  - id: POL-IC-001
+    name: "Intercompany Policy"
+  - id: POL-JE-001
+    name: "Journal Entry Policy"
+  - id: POL-RECON-001
+    name: "Account Reconciliation Policy"
+
+related_procedures:
+  - id: PROC-CLOSE-001
+    name: "Monthly Depreciation"
+  - id: PROC-CLOSE-002
+    name: "Rent Accrual"
+  - id: PROC-CLOSE-003
+    name: "Prepaid Amortization"
+  - id: PROC-CLOSE-004
+    name: "FX Revaluation"
+  - id: PROC-CLOSE-005
+    name: "Intercompany Elimination"

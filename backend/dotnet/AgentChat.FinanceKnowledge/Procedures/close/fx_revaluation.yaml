@@ -1,0 +1,150 @@
+id: proc-fx-revaluation
+name: Foreign Currency Revaluation
+version: "1.0"
+category: close
+subcategory: fx
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 4
+  depends_on:
+    - all_transactions_posted
+
+description: |
+  Revalue foreign currency denominated monetary assets and liabilities 
+  to the functional currency using month-end exchange rates. This procedure 
+  recognizes unrealized FX gains and losses in the income statement per ASC 830.
+
+applies_to:
+  entities:
+    - US01
+  account_types:
+    - monetary_assets
+    - monetary_liabilities
+
+related_standards:
+  - id: asc830
+    name: Foreign Currency Matters
+    sections:
+      - "830-20"
+      - "830-30"
+
+related_policies:
+  - id: pol-fx-001
+    name: Foreign Currency Policy
+  - id: pol-fx-002
+    name: Functional Currency Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Query GL balances for accounts denominated in foreign currencies"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        entity_code: "${entity_code}"
+        period: "${current_period}"
+        is_foreign_currency: true
+        account_type:
+          in:
+            - asset
+            - liability
+    output: fc_balances
+
+  - sequence: 2
+    action: retrieve_data
+    description: "Get month-end exchange rates from data lake"
+    tool_hint: datalake_query
+    parameters:
+      dataset: fx_rates
+      filters:
+        rate_date: "${period_end_date}"
+        rate_type: closing
+    output: fx_rates
+
+  - sequence: 3
+    action: calculate
+    description: "Calculate FX revaluation gain/loss for each balance"
+    tool_hint: calc_fx_revaluation
+    parameters:
+      balances: "${fc_balances}"
+      rates: "${fx_rates}"
+      functional_currency: "${entity_functional_currency}"
+    output: revaluation_results
+
+  - sequence: 4
+    action: filter
+    description: "Filter to material revaluation amounts"
+    tool_hint: datalake_query
+    parameters:
+      data: "${revaluation_results}"
+      filters:
+        abs_revaluation_amount:
+          gte: 100
+    output: material_revaluations
+
+  - sequence: 5
+    action: aggregate
+    description: "Summarize gains and losses by currency and account type"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${material_revaluations}"
+      group_by:
+        - currency
+        - account_type
+      aggregations:
+        revaluation_amount: sum
+    output: grouped_revaluations
+
+  - sequence: 6
+    action: create_journal_entry
+    description: "Create FX revaluation journal entry"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 10000
+    parameters:
+      entries_template: |
+        For gains (revaluation_amount > 0):
+          Debit: Balance Sheet Account
+          Credit: 7100 - FX Gain
+        For losses (revaluation_amount < 0):
+          Debit: 7200 - FX Loss
+          Credit: Balance Sheet Account
+      description: "FX revaluation - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-fx-revaluation
+    output: journal_entry_ids
+
+  - sequence: 7
+    action: update_close_task
+    description: "Mark FX revaluation task as complete"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: fx_revaluation
+      status: completed
+      notes: "Net FX impact: ${sum(grouped_revaluations.revaluation_amount)}"
+
+accounts_mapping:
+  fx_gain:
+    default: "7100"
+  fx_loss:
+    default: "7200"
+
+validation_rules:
+  - name: balanced_entry
+    description: "Journal entry must be balanced"
+  - name: valid_rates
+    description: "Exchange rates must exist for all foreign currencies"
+  - name: period_open
+    description: "Posting period must be open"
+  - name: monetary_accounts_only
+    description: "Only monetary accounts should be revalued"
+
+tags:
+  - fx
+  - revaluation
+  - foreign_currency
+  - month_end
+  - close
+  - gain_loss

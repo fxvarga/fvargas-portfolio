@@ -1,0 +1,165 @@
+id: proc-intercompany-elimination
+name: Intercompany Elimination Entries
+version: "1.0"
+category: close
+subcategory: consolidation
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 5
+  depends_on:
+    - all_entities_closed
+    - intercompany_reconciled
+
+description: |
+  Create elimination entries to remove intercompany balances and transactions 
+  for consolidated financial statement preparation. This includes eliminating 
+  IC receivables/payables and IC revenue/expense.
+
+applies_to:
+  entities: all
+  account_types:
+    - intercompany_receivable
+    - intercompany_payable
+    - intercompany_revenue
+    - intercompany_expense
+
+related_standards:
+  - id: asc810
+    name: Consolidation
+    sections:
+      - "810-10-45"
+
+related_policies:
+  - id: pol-ic-001
+    name: Intercompany Policy
+  - id: pol-consol-001
+    name: Consolidation Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Query intercompany transactions for the current period"
+    tool_hint: datalake_query
+    parameters:
+      dataset: intercompany_transactions
+      filters:
+        period: "${current_period}"
+        status: posted
+    output: ic_transactions
+
+  - sequence: 2
+    action: validate
+    description: "Verify intercompany transactions are matched (balanced between entities)"
+    tool_hint: validate_ic_matching
+    parameters:
+      transactions: "${ic_transactions}"
+    output: matching_result
+    condition: "${matching_result.unmatched_count} == 0"
+
+  - sequence: 3
+    action: retrieve_data
+    description: "Get intercompany account balances"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        period: "${current_period}"
+        account_type:
+          in:
+            - intercompany_receivable
+            - intercompany_payable
+    output: ic_balances
+
+  - sequence: 4
+    action: aggregate
+    description: "Summarize IC balances by entity pair"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${ic_balances}"
+      group_by:
+        - from_entity
+        - to_entity
+        - account_type
+      aggregations:
+        balance: sum
+    output: grouped_ic_balances
+
+  - sequence: 5
+    action: create_journal_entry
+    description: "Create elimination entry for IC balance sheet accounts"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 0
+    parameters:
+      entries_template: |
+        For each IC pair:
+          Debit: IC Payable (at selling entity)
+          Credit: IC Receivable (at buying entity)
+      description: "IC elimination - Balance Sheet - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-intercompany-elimination
+      entity_code: CONSOL
+    output: bs_elimination_ids
+
+  - sequence: 6
+    action: aggregate
+    description: "Summarize IC revenue and expense"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${ic_transactions}"
+      group_by:
+        - transaction_type
+      aggregations:
+        amount: sum
+    output: ic_income_statement
+
+  - sequence: 7
+    action: create_journal_entry
+    description: "Create elimination entry for IC income statement accounts"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 0
+    parameters:
+      entries_template: |
+        Debit: IC Revenue
+        Credit: IC Expense (COGS or Operating)
+      description: "IC elimination - Income Statement - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-intercompany-elimination
+      entity_code: CONSOL
+    output: is_elimination_ids
+
+  - sequence: 8
+    action: update_close_task
+    description: "Mark IC elimination task as complete"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: intercompany_elimination
+      status: completed
+      notes: "Eliminated ${count(grouped_ic_balances)} IC relationships"
+
+accounts_mapping:
+  intercompany_receivable:
+    default: "1400"
+  intercompany_payable:
+    default: "2400"
+  intercompany_revenue:
+    default: "4900"
+  intercompany_expense:
+    default: "5900"
+
+validation_rules:
+  - name: ic_balanced
+    description: "IC receivables must equal IC payables"
+  - name: all_matched
+    description: "All IC transactions must be matched"
+  - name: elimination_balanced
+    description: "Elimination entries must be balanced"
+
+tags:
+  - intercompany
+  - elimination
+  - consolidation
+  - month_end
+  - close

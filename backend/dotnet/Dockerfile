@@ -8,7 +8,6 @@ COPY FV.Api/FV.Api.csproj FV.Api/
 COPY FV.Application/FV.Application.csproj FV.Application/
 COPY FV.Domain/FV.Domain.csproj FV.Domain/
 COPY FV.Infrastructure/FV.Infrastructure.csproj FV.Infrastructure/
-COPY FV.Patterns/FV.Patterns.csproj FV.Patterns/
 
 # Restore dependencies
 RUN dotnet restore Portfolio.sln

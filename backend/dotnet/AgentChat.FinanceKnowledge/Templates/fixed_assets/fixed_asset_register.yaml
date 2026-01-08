@@ -1,0 +1,542 @@
+id: tmpl-fixed-asset-register
+name: Fixed Asset Register
+version: "1.0"
+category: fixed_assets
+subcategory: register
+description: |
+  Comprehensive fixed asset register template for tracking all capitalized 
+  assets, their depreciation schedules, and net book values. Supports 
+  multiple depreciation methods and automatic monthly depreciation calculations.
+purpose: |
+  Maintains a complete record of fixed assets for financial reporting, 
+  tax compliance, and asset management. Supports audit requirements and 
+  monthly depreciation expense calculations.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-monthly-depreciation
+
+related_policies:
+  - pol-cap-001
+  - pol-depreciation-001
+
+sheets:
+  - name: Summary
+    description: Asset register summary and totals by category
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "As of Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Prepared By:"
+          cell: A3
+          value_cell: B3
+          type: text
+        - label: "Prepared Date:"
+          cell: D3
+          value_cell: E3
+          type: date
+    formulas:
+      - name: total_cost
+        cell: B6
+        formula: "=SUM('Asset Register'!F:F)"
+        description: "Total Original Cost"
+        format: "#,##0.00"
+      - name: total_accum_depr
+        cell: B7
+        formula: "=SUM('Asset Register'!K:K)"
+        description: "Total Accumulated Depreciation"
+        format: "#,##0.00"
+      - name: total_nbv
+        cell: B8
+        formula: "=SUM('Asset Register'!L:L)"
+        description: "Total Net Book Value"
+        format: "#,##0.00"
+      - name: current_month_depr
+        cell: B9
+        formula: "=SUM('Depreciation Schedule'!G:G)"
+        description: "Current Month Depreciation"
+        format: "#,##0.00"
+      - name: ytd_depr
+        cell: B10
+        formula: "=SUMIF('Depreciation Schedule'!A:A,E1,'Depreciation Schedule'!H:H)"
+        description: "YTD Depreciation"
+        format: "#,##0.00"
+
+  - name: Asset Register
+    description: Master list of all fixed assets
+    type: data
+    columns:
+      - name: asset_id
+        header: "Asset ID"
+        type: text
+        width: 12
+        required: true
+        description: "Unique asset identifier"
+      - name: asset_tag
+        header: "Asset Tag"
+        type: text
+        width: 12
+        required: false
+        description: "Physical asset tag number"
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+        required: true
+      - name: asset_class
+        header: "Asset Class"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Land
+          - Buildings
+          - Building Improvements
+          - Leasehold Improvements
+          - Machinery & Equipment
+          - Computer Equipment
+          - Furniture & Fixtures
+          - Vehicles
+          - Software
+          - Construction in Progress
+      - name: location
+        header: "Location"
+        type: text
+        width: 20
+        required: false
+      - name: original_cost
+        header: "Original Cost"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: acquisition_date
+        header: "Acquisition Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+        required: true
+      - name: in_service_date
+        header: "In Service Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+        required: true
+      - name: useful_life_months
+        header: "Useful Life (Mo)"
+        type: number
+        width: 12
+        required: true
+        description: "Useful life in months"
+      - name: depr_method
+        header: "Depr Method"
+        type: dropdown
+        width: 15
+        required: true
+        allowed_values:
+          - Straight-Line
+          - Double-Declining
+          - Sum-of-Years
+          - Units of Production
+          - None
+      - name: accum_depreciation
+        header: "Accum Depr"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: net_book_value
+        header: "Net Book Value"
+        type: formula
+        formula: "=F{row}-K{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: salvage_value
+        header: "Salvage Value"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+        default_value: "0"
+      - name: monthly_depr
+        header: "Monthly Depr"
+        type: formula
+        formula: "=IF(J{row}=\"Straight-Line\",(F{row}-M{row})/I{row},0)"
+        format: "#,##0.00"
+        width: 12
+      - name: remaining_life
+        header: "Remaining Life"
+        type: formula
+        formula: "=MAX(0,I{row}-DATEDIF(H{row},TODAY(),\"M\"))"
+        width: 12
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        required: true
+        allowed_values:
+          - Active
+          - Fully Depreciated
+          - Disposed
+          - Impaired
+          - Held for Sale
+      - name: cost_center
+        header: "Cost Center"
+        type: text
+        width: 12
+      - name: gl_account
+        header: "GL Account"
+        type: text
+        width: 12
+        description: "Asset GL account"
+      - name: depr_expense_account
+        header: "Depr Expense Acct"
+        type: text
+        width: 15
+        description: "Depreciation expense account"
+      - name: accum_depr_account
+        header: "Accum Depr Acct"
+        type: text
+        width: 15
+        description: "Accumulated depreciation account"
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+    conditional_formatting:
+      - range: "L:L"
+        condition: "value<=0"
+        style:
+          background_color: "#FFE066"
+      - range: "P:P"
+        condition: "value=\"Disposed\""
+        style:
+          background_color: "#CED4DA"
+          italic: true
+
+  - name: Depreciation Schedule
+    description: Monthly depreciation detail by asset
+    type: calculation
+    columns:
+      - name: fiscal_year
+        header: "Fiscal Year"
+        type: number
+        width: 10
+        required: true
+      - name: fiscal_period
+        header: "Period"
+        type: number
+        width: 8
+        required: true
+      - name: asset_id
+        header: "Asset ID"
+        type: lookup
+        lookup_sheet: "Asset Register"
+        lookup_column: "asset_id"
+        width: 12
+        required: true
+      - name: description
+        header: "Description"
+        type: formula
+        formula: "=VLOOKUP(C{row},'Asset Register'!A:C,3,FALSE)"
+        width: 35
+      - name: beginning_nbv
+        header: "Beginning NBV"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: additions
+        header: "Additions"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: current_depr
+        header: "Current Depr"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: ytd_depr
+        header: "YTD Depr"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: disposals
+        header: "Disposals"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: impairments
+        header: "Impairments"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: ending_nbv
+        header: "Ending NBV"
+        type: formula
+        formula: "=E{row}+F{row}-G{row}-I{row}-J{row}"
+        format: "#,##0.00"
+        width: 15
+
+  - name: Additions
+    description: Assets added during the period
+    type: data
+    columns:
+      - name: asset_id
+        header: "Asset ID"
+        type: text
+        width: 12
+        required: true
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+        required: true
+      - name: acquisition_date
+        header: "Acquisition Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+        required: true
+      - name: vendor
+        header: "Vendor"
+        type: text
+        width: 25
+      - name: po_number
+        header: "PO Number"
+        type: text
+        width: 15
+      - name: invoice_number
+        header: "Invoice #"
+        type: text
+        width: 15
+      - name: original_cost
+        header: "Original Cost"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: asset_class
+        header: "Asset Class"
+        type: dropdown
+        width: 20
+        allowed_values:
+          - Land
+          - Buildings
+          - Building Improvements
+          - Leasehold Improvements
+          - Machinery & Equipment
+          - Computer Equipment
+          - Furniture & Fixtures
+          - Vehicles
+          - Software
+          - Construction in Progress
+      - name: useful_life
+        header: "Useful Life"
+        type: number
+        width: 12
+      - name: je_number
+        header: "JE Number"
+        type: text
+        width: 15
+        description: "Capitalization journal entry"
+
+  - name: Disposals
+    description: Assets disposed during the period
+    type: data
+    columns:
+      - name: asset_id
+        header: "Asset ID"
+        type: lookup
+        lookup_sheet: "Asset Register"
+        lookup_column: "asset_id"
+        width: 12
+        required: true
+      - name: description
+        header: "Description"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Asset Register'!A:C,3,FALSE)"
+        width: 35
+      - name: disposal_date
+        header: "Disposal Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+        required: true
+      - name: disposal_type
+        header: "Disposal Type"
+        type: dropdown
+        width: 15
+        required: true
+        allowed_values:
+          - Sale
+          - Retirement
+          - Trade-in
+          - Donation
+          - Loss/Theft
+          - Write-off
+      - name: original_cost
+        header: "Original Cost"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: accum_depr
+        header: "Accum Depr"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: net_book_value
+        header: "NBV at Disposal"
+        type: formula
+        formula: "=E{row}-F{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: sale_proceeds
+        header: "Sale Proceeds"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: gain_loss
+        header: "Gain/(Loss)"
+        type: formula
+        formula: "=H{row}-G{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: je_number
+        header: "JE Number"
+        type: text
+        width: 15
+        description: "Disposal journal entry"
+    conditional_formatting:
+      - range: "I:I"
+        condition: "value<0"
+        style:
+          font_color: "#FF6B6B"
+      - range: "I:I"
+        condition: "value>0"
+        style:
+          font_color: "#51CF66"
+
+  - name: CIP Rollforward
+    description: Construction in Progress tracking
+    type: data
+    columns:
+      - name: project_id
+        header: "Project ID"
+        type: text
+        width: 12
+        required: true
+      - name: project_name
+        header: "Project Name"
+        type: text
+        width: 35
+        required: true
+      - name: beginning_balance
+        header: "Beginning Bal"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: current_additions
+        header: "Current Additions"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: transfers_out
+        header: "Transfers Out"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        description: "Capitalized to asset class"
+      - name: ending_balance
+        header: "Ending Balance"
+        type: formula
+        formula: "=C{row}+D{row}-E{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: expected_completion
+        header: "Expected Completion"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: project_manager
+        header: "Project Manager"
+        type: text
+        width: 20
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - In Progress
+          - On Hold
+          - Completed
+          - Cancelled
+
+  - name: Category Summary
+    description: Summary by asset category
+    type: summary
+    columns:
+      - name: asset_class
+        header: "Asset Class"
+        type: text
+        width: 25
+      - name: asset_count
+        header: "# Assets"
+        type: number
+        width: 10
+      - name: total_cost
+        header: "Total Cost"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: total_accum_depr
+        header: "Accum Depr"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: total_nbv
+        header: "Net Book Value"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: current_month_depr
+        header: "Current Mo Depr"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - fixed_assets
+  - depreciation
+  - capital
+  - register
+  - month_end
+  - audit

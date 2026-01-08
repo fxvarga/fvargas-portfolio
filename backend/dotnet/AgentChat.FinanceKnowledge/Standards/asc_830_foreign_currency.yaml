@@ -1,0 +1,219 @@
+id: ASC-830
+name: Foreign Currency Matters
+codification: ASC 830
+effective_date: "1981-12-15"
+description: >
+  Accounting Standards Codification Topic 830 - Foreign Currency Matters.
+  Provides guidance on accounting for foreign currency transactions, 
+  translation of foreign entity financial statements, and foreign currency 
+  hedging activities.
+
+ifrs_equivalent: IAS-21
+
+subtopics:
+  asc_830_10:
+    name: Overall
+    scope: "General principles for foreign currency"
+    
+  asc_830_20:
+    name: Foreign Currency Transactions
+    scope: "Transactions denominated in foreign currency"
+    
+  asc_830_30:
+    name: Translation of Financial Statements
+    scope: "Translating foreign subsidiary financials"
+
+key_concepts:
+  functional_currency:
+    definition: >
+      The currency of the primary economic environment in which the entity 
+      operates; normally the currency in which the entity primarily generates 
+      and expends cash.
+    determination_factors:
+      primary_indicators:
+        - currency_influencing_sales_prices
+        - currency_of_competitive_forces
+        - currency_influencing_costs
+      secondary_indicators:
+        - currency_of_financing
+        - currency_of_operating_cash_retention
+      parent_relationship:
+        autonomous_subsidiary: "Local currency typically functional"
+        extension_of_parent: "Parent currency typically functional"
+        
+  reporting_currency:
+    definition: "Currency in which the entity prepares its financial statements"
+    
+  spot_rate:
+    definition: "Exchange rate for immediate delivery"
+    
+  historical_rate:
+    definition: "Exchange rate at the date of a transaction"
+    
+  average_rate:
+    definition: "Simple or weighted average of exchange rates during a period"
+
+foreign_currency_transactions:
+  initial_recognition:
+    measurement: "Functional currency amount using spot rate at transaction date"
+    applies_to:
+      - foreign_currency_denominated_purchases
+      - foreign_currency_denominated_sales
+      - foreign_currency_borrowings
+      - foreign_currency_investments
+      
+  subsequent_measurement:
+    monetary_items:
+      definition: "Cash, receivables, payables denominated in foreign currency"
+      remeasurement: "Each balance sheet date at spot rate"
+      gain_loss: "Recognize in income currently"
+      
+    nonmonetary_items:
+      definition: "Inventory, fixed assets, prepaid expenses"
+      measurement: "Historical rate (no remeasurement)"
+      exception: "Fair value items use rate at fair value date"
+      
+  transaction_gains_losses:
+    definition: "Change in functional currency equivalent from rate changes"
+    recognition: "Income in period rate changes"
+    presentation:
+      options:
+        - separate_component_of_income
+        - included_in_other_line_item
+      common_classification: "Other income/expense"
+    exceptions:
+      intercompany_long_term_investment:
+        criteria: "Settlement not planned or anticipated"
+        treatment: "Recognize in OCI (CTA)"
+      hedged_transactions:
+        criteria: "Qualifies for hedge accounting"
+        treatment: "Per ASC 815"
+
+translation_of_financial_statements:
+  current_rate_method:
+    when_used: "Functional currency different from reporting currency"
+    assets_and_liabilities: current_rate
+    equity:
+      historical_items: historical_rate
+      retained_earnings: rolled_forward
+    income_statement: "Average rate (or transaction date rates)"
+    translation_adjustment:
+      recognition: OCI
+      component: cumulative_translation_adjustment
+      recycling: "To income upon sale or liquidation"
+      
+  remeasurement_method:
+    when_used: "Functional currency same as reporting currency (or highly inflationary)"
+    monetary_items: current_rate
+    nonmonetary_items:
+      carried_at_cost: historical_rate
+      carried_at_fair_value: "Rate when fair value determined"
+    income_statement:
+      historical_rate_items:
+        - cost_of_sales
+        - depreciation
+        - amortization
+      average_rate_items: "Remaining items"
+    remeasurement_gain_loss:
+      recognition: income_currently
+      presentation: "Other income/expense"
+      
+  translation_process:
+    step_1: "Determine functional currency"
+    step_2: "Remeasure to functional currency if books not in functional"
+    step_3: "Translate to reporting currency"
+    
+highly_inflationary_economies:
+  definition: "Cumulative inflation approximately 100% or more over three years"
+  indicators:
+    - general_population_wealth_in_nonmonetary_assets
+    - prices_linked_to_foreign_currency
+    - interest_rates_compensate_for_inflation
+    - government_actions_to_control_inflation
+  accounting_treatment:
+    functional_currency: "Use reporting currency of parent"
+    translation_method: remeasurement
+    gains_losses: income_currently
+    
+intercompany_transactions:
+  elimination_on_consolidation:
+    general_rule: "Eliminate intercompany transactions and balances"
+    foreign_currency_effect:
+      parent_functional_currency: "Gain/loss may arise on elimination"
+      subsidiary_functional_currency: "Differences go to CTA"
+      
+  long_term_intercompany_balances:
+    criteria:
+      - part_of_net_investment
+      - settlement_not_planned_or_anticipated
+    treatment:
+      subsidiary_books: "Foreign currency gain/loss recorded"
+      consolidated_statements: "Reclassify to CTA in OCI"
+      
+hedging_foreign_currency_exposure:
+  types_of_hedges:
+    fair_value_hedge:
+      exposure: "Fair value of recognized asset/liability"
+      instruments: derivatives
+      accounting: "Gain/loss in income with hedged item changes"
+      
+    cash_flow_hedge:
+      exposure: "Variability in cash flows"
+      instruments: derivatives
+      accounting: "Effective portion in OCI; ineffective in income"
+      
+    net_investment_hedge:
+      exposure: "Foreign currency exposure of net investment"
+      instruments:
+        - derivatives
+        - foreign_currency_denominated_debt
+      accounting: "Effective portion in CTA"
+      reclassification: "To income upon sale of investment"
+      
+  documentation_requirements:
+    - hedging_relationship
+    - risk_management_objective
+    - hedged_item_identification
+    - hedging_instrument_identification
+    - effectiveness_assessment_method
+
+disclosures:
+  general:
+    - aggregate_transaction_gain_or_loss
+    - analysis_of_CTA_changes
+    - exchange_rates_used
+    
+  highly_inflationary:
+    - identification_of_highly_inflationary_subsidiaries
+    - effect_on_financial_statements
+    
+  hedging:
+    - per_ASC_815_requirements
+    
+  net_investment:
+    - amount_recognized_in_CTA
+    - amounts_reclassified_to_income
+
+common_issues:
+  - issue: "Determining functional currency for complex operations"
+    guidance: "Analyze cash flow indicators; consider economic substance over legal form"
+    
+  - issue: "Intercompany loans - permanent investment vs settlement expected"
+    guidance: "Document intent; legal form alone not determinative"
+    
+  - issue: "Highly inflationary economy assessment"
+    guidance: "Calculate three-year cumulative inflation; consider qualitative factors"
+    
+  - issue: "Translation vs remeasurement confusion"
+    guidance: "Translation = functional to reporting; Remeasurement = local to functional"
+    
+  - issue: "CTA on deconsolidation"
+    guidance: "Release proportionate share to income; full release on complete liquidation"
+
+related_standards:
+  - id: ASC-815
+    relationship: hedge_accounting
+  - id: ASC-820
+    relationship: fair_value_measurement
+  - id: ASC-810
+    relationship: consolidation

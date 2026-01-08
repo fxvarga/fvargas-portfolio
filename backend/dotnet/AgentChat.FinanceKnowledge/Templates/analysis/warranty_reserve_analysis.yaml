@@ -1,0 +1,429 @@
+id: tmpl-warranty-reserve-analysis
+name: Warranty Reserve Analysis
+version: "1.0"
+category: analysis
+subcategory: warranty
+description: |
+  Comprehensive warranty reserve analysis workbook for calculating 
+  and supporting warranty accrual estimates. Includes historical 
+  claim analysis, reserve calculation, and rollforward schedule.
+purpose: |
+  Provides documentation for warranty reserve estimates per ASC 450 
+  contingencies guidance, supporting the adequacy of warranty accruals.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - manufacturing
+    - service
+    - distribution
+
+related_procedures:
+  - proc-warranty-reclassification
+
+related_policies:
+  - pol-warranty-001
+
+sheets:
+  - name: Summary
+    description: Executive summary of warranty reserve analysis
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Analysis Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Prepared By:"
+          cell: A3
+          value_cell: B3
+          type: text
+        - label: "Reviewed By:"
+          cell: D3
+          value_cell: E3
+          type: text
+    formulas:
+      - name: beginning_reserve
+        cell: B6
+        formula: "='Reserve Rollforward'!C2"
+        description: "Beginning Reserve Balance"
+        format: "#,##0.00"
+      - name: current_period_expense
+        cell: B7
+        formula: "='Reserve Rollforward'!D2"
+        description: "Current Period Warranty Expense"
+        format: "#,##0.00"
+      - name: claims_paid
+        cell: B8
+        formula: "='Reserve Rollforward'!E2"
+        description: "Claims Paid This Period"
+        format: "#,##0.00"
+      - name: adjustments
+        cell: B9
+        formula: "='Reserve Rollforward'!F2"
+        description: "Reserve Adjustments"
+        format: "#,##0.00"
+      - name: ending_reserve
+        cell: B10
+        formula: "='Reserve Rollforward'!G2"
+        description: "Ending Reserve Balance"
+        format: "#,##0.00"
+      - name: calculated_reserve
+        cell: E6
+        formula: "='Reserve Calculation'!F50"
+        description: "Calculated Required Reserve"
+        format: "#,##0.00"
+      - name: reserve_variance
+        cell: E7
+        formula: "=B10-E6"
+        description: "Variance (Actual vs Required)"
+        format: "#,##0.00"
+      - name: variance_percent
+        cell: E8
+        formula: "=IF(E6<>0,E7/E6,0)"
+        description: "Variance %"
+        format: "0.00%"
+    conditional_formatting:
+      - range: "E7"
+        condition: "ABS(value)>10000"
+        style:
+          background_color: "#FFE066"
+          bold: true
+      - range: "E8"
+        condition: "ABS(value)>0.05"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+
+  - name: Reserve Rollforward
+    description: Monthly reserve rollforward schedule
+    type: data
+    columns:
+      - name: period
+        header: "Period"
+        type: text
+        width: 12
+        required: true
+      - name: period_end_date
+        header: "Period End"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: beginning_balance
+        header: "Beginning Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: warranty_expense
+        header: "Warranty Expense"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: claims_paid
+        header: "Claims Paid"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: adjustments
+        header: "Adjustments"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_balance
+        header: "Ending Balance"
+        type: formula
+        formula: "=C{row}+D{row}-E{row}+F{row}"
+        format: "#,##0.00"
+        width: 18
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+
+  - name: Historical Claims
+    description: Historical warranty claims data
+    type: data
+    columns:
+      - name: claim_id
+        header: "Claim ID"
+        type: text
+        width: 12
+        required: true
+      - name: claim_date
+        header: "Claim Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: product_line
+        header: "Product Line"
+        type: text
+        width: 20
+        required: true
+      - name: product_sku
+        header: "Product SKU"
+        type: text
+        width: 15
+      - name: sale_date
+        header: "Sale Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: sale_amount
+        header: "Sale Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: claim_amount
+        header: "Claim Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: claim_type
+        header: "Claim Type"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Parts
+          - Labor
+          - Replacement
+          - Refund
+          - Other
+      - name: warranty_period
+        header: "Warranty Period"
+        type: text
+        width: 15
+        description: "e.g., 1 Year, 2 Year, Limited Lifetime"
+      - name: days_from_sale
+        header: "Days from Sale"
+        type: formula
+        formula: "=B{row}-E{row}"
+        width: 12
+      - name: claim_rate
+        header: "Claim Rate"
+        type: formula
+        formula: "=IF(F{row}<>0,G{row}/F{row},0)"
+        format: "0.00%"
+        width: 12
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Open
+          - Approved
+          - Paid
+          - Denied
+          - Cancelled
+
+  - name: Reserve Calculation
+    description: Warranty reserve calculation by product line
+    type: calculation
+    columns:
+      - name: product_line
+        header: "Product Line"
+        type: text
+        width: 25
+        required: true
+      - name: sales_under_warranty
+        header: "Sales Under Warranty"
+        type: currency
+        format: "#,##0.00"
+        width: 20
+        description: "Revenue from products still under warranty"
+      - name: historical_claim_rate
+        header: "Historical Claim Rate"
+        type: percentage
+        format: "0.00%"
+        width: 18
+        description: "Average claim rate from historical data"
+      - name: trend_adjustment
+        header: "Trend Adjustment"
+        type: percentage
+        format: "0.00%"
+        width: 15
+        description: "Adjustment for current trends"
+      - name: adjusted_rate
+        header: "Adjusted Rate"
+        type: formula
+        formula: "=C{row}*(1+D{row})"
+        format: "0.00%"
+        width: 15
+      - name: required_reserve
+        header: "Required Reserve"
+        type: formula
+        formula: "=B{row}*E{row}"
+        format: "#,##0.00"
+        width: 18
+      - name: current_reserve
+        header: "Current Reserve"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: variance
+        header: "Variance"
+        type: formula
+        formula: "=G{row}-F{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: action_required
+        header: "Action"
+        type: text
+        width: 20
+    formulas:
+      - name: total_required
+        cell: F50
+        formula: "=SUM(F2:F49)"
+        description: "Total Required Reserve"
+        format: "#,##0.00"
+    conditional_formatting:
+      - range: "H:H"
+        condition: "value<-5000"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "H:H"
+        condition: "value>5000"
+        style:
+          background_color: "#51CF66"
+          font_color: "#FFFFFF"
+
+  - name: Sales by Product
+    description: Sales data for products under warranty
+    type: data
+    columns:
+      - name: product_line
+        header: "Product Line"
+        type: text
+        width: 25
+      - name: product_sku
+        header: "Product SKU"
+        type: text
+        width: 15
+      - name: sale_month
+        header: "Sale Month"
+        type: date
+        format: "YYYY-MM"
+        width: 12
+      - name: units_sold
+        header: "Units Sold"
+        type: number
+        width: 12
+      - name: revenue
+        header: "Revenue"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: warranty_period_months
+        header: "Warranty (Months)"
+        type: number
+        width: 15
+      - name: warranty_expiry
+        header: "Warranty Expiry"
+        type: formula
+        formula: "=EDATE(C{row},F{row})"
+        format: "YYYY-MM"
+        width: 15
+      - name: still_under_warranty
+        header: "Under Warranty?"
+        type: formula
+        formula: "=IF(G{row}>TODAY(),\"Yes\",\"No\")"
+        width: 15
+
+  - name: Assumptions
+    description: Key assumptions and methodology
+    type: data
+    columns:
+      - name: assumption_category
+        header: "Category"
+        type: text
+        width: 20
+      - name: assumption_description
+        header: "Description"
+        type: text
+        width: 50
+      - name: value
+        header: "Value"
+        type: text
+        width: 20
+      - name: basis
+        header: "Basis/Source"
+        type: text
+        width: 40
+      - name: last_updated
+        header: "Last Updated"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+
+  - name: Conclusion
+    description: Analysis conclusion and recommendations
+    type: data
+    header:
+      fields:
+        - label: "Conclusion:"
+          cell: A1
+          value_cell: A2
+          type: text
+        - label: "Reserve Adequate?"
+          cell: A5
+          value_cell: B5
+          type: dropdown
+          allowed_values:
+            - "Yes"
+            - "No - Increase Needed"
+            - "No - Decrease Recommended"
+        - label: "Recommended Adjustment:"
+          cell: A6
+          value_cell: B6
+          type: currency
+          format: "#,##0.00"
+        - label: "Analyst Signature:"
+          cell: A8
+          value_cell: B8
+          type: text
+        - label: "Date:"
+          cell: A9
+          value_cell: B9
+          type: date
+        - label: "Reviewer Signature:"
+          cell: D8
+          value_cell: E8
+          type: text
+        - label: "Date:"
+          cell: D9
+          value_cell: E9
+          type: date
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - analysis
+  - warranty
+  - reserve
+  - accrual
+  - month_end
+  - asc_450

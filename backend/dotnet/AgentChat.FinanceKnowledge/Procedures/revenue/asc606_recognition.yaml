@@ -1,0 +1,170 @@
+id: proc-revenue-recognition-asc606
+name: ASC 606 Revenue Recognition
+version: "1.0"
+category: revenue
+subcategory: recognition
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 2
+  depends_on:
+    - contracts_updated
+    - deliverables_confirmed
+
+description: |
+  Recognize revenue per ASC 606 five-step model for contracts with customers.
+  This procedure handles performance obligation identification, transaction 
+  price allocation, and revenue recognition timing.
+
+applies_to:
+  entities: all
+  account_types:
+    - revenue
+    - deferred_revenue
+    - contract_asset
+    - contract_liability
+
+related_standards:
+  - id: asc606
+    name: Revenue from Contracts with Customers
+    sections:
+      - "606-10-25"
+      - "606-10-32"
+
+related_policies:
+  - id: pol-rev-001
+    name: Revenue Recognition Policy
+  - id: pol-rev-002
+    name: Contract Modification Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Get all active contracts with performance obligations"
+    tool_hint: datalake_query
+    parameters:
+      dataset: contracts
+      filters:
+        status: active
+        start_date:
+          lte: "${period_end_date}"
+    output: active_contracts
+
+  - sequence: 2
+    action: retrieve_data
+    description: "Get performance obligation completion status"
+    tool_hint: datalake_query
+    parameters:
+      dataset: performance_obligations
+      filters:
+        contract_id:
+          in: "${active_contracts.ids}"
+        period: "${current_period}"
+    output: performance_obligations
+
+  - sequence: 3
+    action: calculate
+    description: "Apply ASC 606 five-step model for each contract"
+    tool_hint: calc_revenue_recognition
+    parameters:
+      contracts: "${active_contracts}"
+      obligations: "${performance_obligations}"
+      steps:
+        - identify_contract
+        - identify_performance_obligations
+        - determine_transaction_price
+        - allocate_transaction_price
+        - recognize_revenue
+      recognition_method: "${contract.recognition_method}"
+    output: revenue_calculations
+
+  - sequence: 4
+    action: aggregate
+    description: "Summarize revenue by entity and revenue type"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${revenue_calculations}"
+      group_by:
+        - entity_code
+        - revenue_type
+        - recognition_type
+      aggregations:
+        revenue_amount: sum
+        deferred_change: sum
+    output: grouped_revenue
+
+  - sequence: 5
+    action: create_journal_entry
+    description: "Create revenue recognition journal entries"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 100000
+    parameters:
+      entries_template: |
+        For point-in-time recognition:
+          Debit: Contract Asset / Accounts Receivable
+          Credit: Revenue
+        For over-time recognition:
+          Debit: Deferred Revenue
+          Credit: Revenue
+        For new deferrals:
+          Debit: Accounts Receivable
+          Credit: Deferred Revenue
+      description: "Revenue recognition - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-revenue-recognition-asc606
+    output: journal_entry_ids
+
+  - sequence: 6
+    action: reconcile
+    description: "Reconcile deferred revenue balance"
+    tool_hint: sor_reconciliation_create
+    parameters:
+      account_type: deferred_revenue
+      period: "${current_period}"
+      components:
+        opening_balance: true
+        additions: true
+        releases: true
+        closing_balance: true
+    output: reconciliation_result
+
+  - sequence: 7
+    action: update_close_task
+    description: "Mark revenue recognition task as complete"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: revenue_recognition
+      status: completed
+      notes: "Revenue recognized: ${sum(grouped_revenue.revenue_amount)}"
+
+accounts_mapping:
+  revenue:
+    product: "4100"
+    service: "4200"
+    subscription: "4300"
+    license: "4400"
+  deferred_revenue:
+    current: "2500"
+    noncurrent: "2700"
+  contract_asset:
+    default: "1250"
+  contract_liability:
+    default: "2550"
+
+validation_rules:
+  - name: five_step_compliance
+    description: "All five steps of ASC 606 must be applied"
+  - name: balanced_entry
+    description: "Journal entries must be balanced"
+  - name: deferred_rollforward
+    description: "Deferred revenue must roll forward correctly"
+  - name: no_premature_recognition
+    description: "Revenue cannot be recognized before performance obligation satisfied"
+
+tags:
+  - revenue
+  - asc606
+  - recognition
+  - month_end
+  - close

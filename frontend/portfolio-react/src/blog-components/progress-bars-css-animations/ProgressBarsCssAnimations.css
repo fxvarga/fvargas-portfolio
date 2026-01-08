@@ -1,0 +1,384 @@
+.progress-bars-css-animations-demo {
+  padding: 2rem;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.progress-bars-css-animations-demo .demo-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.progress-bars-css-animations-demo .demo-header h4 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.progress-bars-css-animations-demo .demo-header p {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.demo-controls {
+  margin-bottom: 2rem;
+}
+
+.control-row {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 120px;
+}
+
+.control-group label {
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.control-group select,
+.control-group input[type="range"] {
+  padding: 0.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.control-group select:focus,
+.control-group input[type="range"]:focus {
+  outline: none;
+  border-color: #c26a2d;
+  box-shadow: 0 0 0 2px rgba(194, 106, 45, 0.2);
+}
+
+.control-group input[type="checkbox"] {
+  margin-right: 0.5rem;
+}
+
+/* Progress Bar Containers */
+.progress-bar-container {
+  margin-bottom: 1.5rem;
+}
+
+.progress-label {
+  color: #fff;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+/* Linear Progress Bar */
+.linear-progress {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.linear-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.linear-fill.animated::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: linearShimmer 2s ease-in-out infinite;
+}
+
+@keyframes linearShimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.linear-percentage {
+  color: #fff;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+/* Circular Progress Bar */
+.circular-progress {
+  position: relative;
+  display: inline-block;
+}
+
+.circular-progress svg circle {
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.circular-progress svg circle.animated {
+  animation: circularGlow 2s ease-in-out infinite alternate;
+}
+
+@keyframes circularGlow {
+  0% { filter: drop-shadow(0 0 2px currentColor); }
+  100% { filter: drop-shadow(0 0 8px currentColor); }
+}
+
+.circular-percentage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+/* Wave Progress Bar */
+.wave-progress {
+  width: 100%;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.wave-fill {
+  height: 100%;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.wave-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 70%
+  );
+  animation: waveFlow 1.5s ease-in-out infinite;
+}
+
+@keyframes waveFlow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.wave-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  animation: waveShimmer 3s ease-in-out infinite;
+}
+
+@keyframes waveShimmer {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.wave-percentage {
+  color: #fff;
+  font-size: 0.8rem;
+  margin-top: 0.25rem;
+  text-align: right;
+}
+
+/* Dots Progress Bar */
+.dots-progress {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  height: 20px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+  opacity: 0.3;
+}
+
+.dot.active {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.dot.active.animated {
+  animation: dotPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes dotPulse {
+  0%, 100% { transform: scale(1.2); }
+  50% { transform: scale(1.4); }
+}
+
+.dots-percentage {
+  color: #fff;
+  font-size: 0.8rem;
+  margin-left: 1rem;
+}
+
+/* Size Variants */
+.progress-bar-container.small .linear-progress {
+  height: 6px;
+}
+
+.progress-bar-container.small .wave-progress {
+  height: 10px;
+}
+
+.progress-bar-container.small .dots-progress {
+  height: 16px;
+}
+
+.progress-bar-container.small .dot {
+  width: 6px;
+  height: 6px;
+}
+
+.progress-bar-container.large .linear-progress {
+  height: 12px;
+}
+
+.progress-bar-container.large .wave-progress {
+  height: 16px;
+}
+
+.progress-bar-container.large .dots-progress {
+  height: 24px;
+}
+
+.progress-bar-container.large .dot {
+  width: 10px;
+  height: 10px;
+}
+
+/* Showcase Layout */
+.progress-showcase {
+  margin-bottom: 2rem;
+}
+
+.main-progress {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.progress-examples h5 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.progress-examples .progress-bar-container {
+  margin-bottom: 1rem;
+}
+
+.demo-info {
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.demo-info h5 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.demo-info ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.demo-info li {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.demo-info li::marker {
+  color: #c26a2d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .control-row {
+    gap: 1rem;
+  }
+
+  .control-group {
+    min-width: 100px;
+  }
+
+  .main-progress {
+    padding: 1rem;
+  }
+
+  .dots-progress {
+    gap: 2px;
+  }
+
+  .dots-percentage {
+    margin-left: 0.5rem;
+    font-size: 0.7rem;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .linear-fill,
+  .circular-progress svg circle,
+  .wave-fill,
+  .wave-overlay,
+  .dot {
+    animation: none !important;
+  }
+
+  .linear-fill::after,
+  .wave-fill::after {
+    animation: none !important;
+  }
+}

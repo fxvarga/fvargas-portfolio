@@ -1,0 +1,168 @@
+id: proc-depreciation-monthly
+name: Monthly Depreciation Calculation
+version: "1.0"
+category: close
+subcategory: fixed_assets
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 3
+  depends_on:
+    - fixed_asset_subledger_closed
+
+description: |
+  Calculate and book monthly depreciation expense for all active 
+  fixed assets based on their depreciation method and remaining life.
+  This procedure ensures accurate expense recognition and proper 
+  asset valuation on the balance sheet.
+
+applies_to:
+  entities: all
+  asset_classes:
+    - buildings
+    - equipment
+    - vehicles
+    - furniture
+    - software
+    - leasehold_improvements
+
+related_standards:
+  - id: asc360
+    name: Property, Plant, and Equipment
+    sections:
+      - "360-10-35"
+  - id: asc350
+    name: Intangibles - Goodwill and Other
+    sections:
+      - "350-40"
+
+related_policies:
+  - id: pol-fa-001
+    name: Fixed Asset Capitalization Policy
+  - id: pol-fa-002
+    name: Depreciation Methods Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Query the fixed asset register from the data lake for all active assets that are in service"
+    tool_hint: datalake_query
+    parameters:
+      dataset: fixed_assets
+      filters:
+        status: active
+        in_service_date:
+          lte: "${period_end_date}"
+    output: active_assets
+
+  - sequence: 2
+    action: validate
+    description: "Verify all assets have required depreciation parameters"
+    tool_hint: validate_data
+    parameters:
+      data: "${active_assets}"
+      required_fields:
+        - cost
+        - salvage_value
+        - useful_life_months
+        - depreciation_method
+        - in_service_date
+    output: validation_result
+
+  - sequence: 3
+    action: calculate
+    description: "For each asset, calculate monthly depreciation based on the assigned method"
+    tool_hint: calc_depreciation
+    parameters:
+      assets: "${active_assets}"
+      period: "${current_period}"
+      methods:
+        buildings: straight_line
+        equipment: straight_line
+        vehicles: declining_balance
+        furniture: straight_line
+        software: straight_line
+        leasehold_improvements: straight_line
+    output: depreciation_amounts
+
+  - sequence: 4
+    action: aggregate
+    description: "Group depreciation amounts by legal entity and asset class for journal entry creation"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${depreciation_amounts}"
+      group_by:
+        - entity_code
+        - asset_class
+      aggregations:
+        depreciation_amount: sum
+    output: grouped_depreciation
+
+  - sequence: 5
+    action: create_journal_entry
+    description: "Create depreciation journal entry for each legal entity"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 50000
+    parameters:
+      entries_template: |
+        For each entity in grouped_depreciation:
+          Debit: Depreciation Expense (by asset class)
+          Credit: Accumulated Depreciation (by asset class)
+      description: "Monthly depreciation - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-depreciation-monthly
+    output: journal_entry_ids
+
+  - sequence: 6
+    action: reconcile
+    description: "Reconcile total depreciation expense to fixed asset subledger control total"
+    tool_hint: sor_reconciliation_create
+    parameters:
+      account_type: accumulated_depreciation
+      period: "${current_period}"
+      source_system: fixed_asset_subledger
+      gl_balance: "${sum(grouped_depreciation.depreciation_amount)}"
+    output: reconciliation_result
+
+  - sequence: 7
+    action: update_close_task
+    description: "Mark the depreciation close task as complete in the close checklist"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: depreciation_calculation
+      status: completed
+      notes: "Depreciation posted. JE IDs: ${journal_entry_ids}"
+
+accounts_mapping:
+  depreciation_expense:
+    buildings: "6100"
+    equipment: "6110"
+    vehicles: "6120"
+    furniture: "6130"
+    software: "6140"
+    leasehold_improvements: "6150"
+  accumulated_depreciation:
+    buildings: "1510"
+    equipment: "1520"
+    vehicles: "1530"
+    furniture: "1540"
+    software: "1550"
+    leasehold_improvements: "1560"
+
+validation_rules:
+  - name: balanced_entry
+    description: "Journal entry must be balanced (total debits = total credits)"
+  - name: period_open
+    description: "The posting period must be open for journal entry creation"
+  - name: no_negative_nbv
+    description: "Accumulated depreciation cannot exceed asset cost (no negative NBV)"
+  - name: method_consistency
+    description: "Depreciation method must be consistent with prior periods"
+
+tags:
+  - depreciation
+  - fixed_assets
+  - month_end
+  - close
+  - expense

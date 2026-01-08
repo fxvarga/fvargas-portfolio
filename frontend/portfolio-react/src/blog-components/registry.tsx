@@ -17,6 +17,11 @@ const WorkflowExecutor = lazy(() => import('./workflow-executor/WorkflowExecutor
 const FluentUIDataGrid = lazy(() => import('./fluentui-datagrid/FluentUIDataGrid'));
 const FileUploadProgress = lazy(() => import('./file-upload-progress/FileUploadProgress'));
 const PhotoGallery = lazy(() => import('./photo-gallery/PhotoGallery'));
+const ParallaxScrollingCards = lazy(() => import('./parallax-scrolling-cards/ParallaxScrollingCards'));
+const AnimatedModalDialogs = lazy(() => import('./animated-modal-dialogs/AnimatedModalDialogs'));
+const ProgressBarsCssAnimations = lazy(() => import('./progress-bars-css-animations/ProgressBarsCssAnimations'));
+const AnimatedTabNavigation = lazy(() => import('./animated-tab-navigation/AnimatedTabNavigation'));
+const ToastNotificationSystem = lazy(() => import('./toast-notification-system/ToastNotificationSystem'));
 
 // Demo component type
 interface DemoComponentProps {
@@ -33,6 +38,11 @@ const demoRegistry: Record<string, ComponentType<DemoComponentProps>> = {
   'fluentui-datagrid': FluentUIDataGrid,
   'file-upload-progress': FileUploadProgress,
   'photo-gallery': PhotoGallery,
+  'parallax-scrolling-cards': ParallaxScrollingCards,
+  'animated-modal-dialogs': AnimatedModalDialogs,
+  'progress-bars-css-animations': ProgressBarsCssAnimations,
+  'animated-tab-navigation': AnimatedTabNavigation,
+  'toast-notification-system': ToastNotificationSystem,
 };
 
 // Loading fallback component

@@ -1,0 +1,6 @@
+@AgentChat.FinanceApi_HostAddress = http://localhost:5198
+
+GET {{AgentChat.FinanceApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

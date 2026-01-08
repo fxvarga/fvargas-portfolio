@@ -1,0 +1,442 @@
+id: tmpl-bank-reconciliation
+name: Bank Reconciliation Workpaper
+version: "1.0"
+category: reconciliation
+subcategory: bank
+description: |
+  Bank reconciliation template for reconciling GL cash balances to 
+  bank statements. Supports multiple accounts and automatic 
+  variance calculation.
+purpose: |
+  Standardized workpaper for monthly bank reconciliations to ensure 
+  completeness and accuracy of cash balances.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-bank-reconciliation
+
+related_policies:
+  - pol-recon-001
+
+sheets:
+  - name: Summary
+    description: Reconciliation summary and sign-off
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Bank Name:"
+          cell: A2
+          value_cell: B2
+          type: text
+        - label: "Account Number:"
+          cell: A3
+          value_cell: B3
+          type: text
+        - label: "Account Name:"
+          cell: A4
+          value_cell: B4
+          type: text
+        - label: "Reconciliation Date:"
+          cell: D1
+          value_cell: E1
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Fiscal Period:"
+          cell: D3
+          value_cell: E3
+          type: number
+        - label: "Currency:"
+          cell: D4
+          value_cell: E4
+          type: text
+          default_value: "USD"
+    formulas:
+      - name: bank_balance
+        cell: B7
+        formula: "='Bank Statement'!B2"
+        description: "Bank Statement Ending Balance"
+        format: "#,##0.00"
+      - name: deposits_in_transit
+        cell: B8
+        formula: "=SUM('Deposits in Transit'!D:D)"
+        description: "Total Deposits in Transit"
+        format: "#,##0.00"
+      - name: outstanding_checks
+        cell: B9
+        formula: "=SUM('Outstanding Checks'!D:D)"
+        description: "Total Outstanding Checks"
+        format: "#,##0.00"
+      - name: other_adjustments
+        cell: B10
+        formula: "=SUM('Other Adjustments'!E:E)"
+        description: "Other Reconciling Items"
+        format: "#,##0.00"
+      - name: adjusted_bank_balance
+        cell: B12
+        formula: "=B7+B8-B9+B10"
+        description: "Adjusted Bank Balance"
+        format: "#,##0.00"
+      - name: gl_balance
+        cell: E7
+        formula: "='GL Balance'!B2"
+        description: "GL Ending Balance"
+        format: "#,##0.00"
+      - name: book_adjustments
+        cell: E8
+        formula: "=SUM('Book Adjustments'!E:E)"
+        description: "Book Adjustments"
+        format: "#,##0.00"
+      - name: adjusted_book_balance
+        cell: E12
+        formula: "=E7+E8"
+        description: "Adjusted Book Balance"
+        format: "#,##0.00"
+      - name: variance
+        cell: B14
+        formula: "=B12-E12"
+        description: "Reconciliation Variance"
+        format: "#,##0.00"
+    conditional_formatting:
+      - range: "B14"
+        condition: "value<>0"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+      - range: "B14"
+        condition: "value=0"
+        style:
+          background_color: "#51CF66"
+          font_color: "#FFFFFF"
+          bold: true
+
+  - name: Bank Statement
+    description: Bank statement details
+    type: data
+    header:
+      fields:
+        - label: "Statement Date:"
+          cell: A1
+          value_cell: B1
+          type: date
+        - label: "Ending Balance:"
+          cell: A2
+          value_cell: B2
+          type: currency
+          format: "#,##0.00"
+    columns:
+      - name: transaction_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: reference
+        header: "Reference"
+        type: text
+        width: 20
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+      - name: debit
+        header: "Debit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: credit
+        header: "Credit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: balance
+        header: "Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+
+  - name: GL Balance
+    description: General Ledger balance details
+    type: data
+    header:
+      fields:
+        - label: "As of Date:"
+          cell: A1
+          value_cell: B1
+          type: date
+        - label: "GL Balance:"
+          cell: A2
+          value_cell: B2
+          type: currency
+          format: "#,##0.00"
+    columns:
+      - name: posting_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: journal_entry
+        header: "JE Number"
+        type: text
+        width: 15
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+      - name: debit
+        header: "Debit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: credit
+        header: "Credit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: source
+        header: "Source"
+        type: text
+        width: 15
+
+  - name: Outstanding Checks
+    description: Checks issued but not yet cleared
+    type: data
+    columns:
+      - name: check_number
+        header: "Check #"
+        type: text
+        width: 12
+        required: true
+      - name: check_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: payee
+        header: "Payee"
+        type: text
+        width: 35
+        required: true
+      - name: amount
+        header: "Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: days_outstanding
+        header: "Days Out"
+        type: formula
+        formula: "=TODAY()-B{row}"
+        width: 10
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Outstanding
+          - Stale Dated
+          - Stop Payment
+          - Void Pending
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+    conditional_formatting:
+      - range: "E:E"
+        condition: "value>90"
+        style:
+          background_color: "#FFE066"
+          bold: true
+      - range: "E:E"
+        condition: "value>180"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+
+  - name: Deposits in Transit
+    description: Deposits recorded but not yet in bank
+    type: data
+    columns:
+      - name: deposit_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: reference
+        header: "Reference"
+        type: text
+        width: 20
+        required: true
+      - name: description
+        header: "Description"
+        type: text
+        width: 35
+      - name: amount
+        header: "Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: days_outstanding
+        header: "Days Out"
+        type: formula
+        formula: "=TODAY()-A{row}"
+        width: 10
+      - name: expected_clear_date
+        header: "Expected Clear"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+
+  - name: Book Adjustments
+    description: Adjustments to book balance
+    type: data
+    columns:
+      - name: adjustment_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: adjustment_type
+        header: "Type"
+        type: dropdown
+        width: 20
+        allowed_values:
+          - Bank Fee
+          - Interest Income
+          - NSF Check
+          - Wire Transfer
+          - Bank Error
+          - Recording Error
+          - Other
+      - name: reference
+        header: "Reference"
+        type: text
+        width: 20
+      - name: description
+        header: "Description"
+        type: text
+        width: 35
+      - name: amount
+        header: "Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        description: "Positive = increase book, Negative = decrease"
+      - name: je_required
+        header: "JE Required?"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "Yes"
+          - "No"
+      - name: je_number
+        header: "JE Number"
+        type: text
+        width: 15
+
+  - name: Other Adjustments
+    description: Other reconciling items
+    type: data
+    columns:
+      - name: item_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: item_type
+        header: "Type"
+        type: text
+        width: 20
+      - name: reference
+        header: "Reference"
+        type: text
+        width: 20
+      - name: description
+        header: "Description"
+        type: text
+        width: 35
+      - name: amount
+        header: "Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: resolution_date
+        header: "Resolution Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+
+  - name: Sign-Off
+    description: Preparer and reviewer sign-off
+    type: data
+    columns:
+      - name: role
+        header: "Role"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Preparer
+          - Reviewer
+          - Approver
+      - name: name
+        header: "Name"
+        type: text
+        width: 25
+      - name: date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Pending
+          - Completed
+          - Approved
+          - Rejected
+      - name: comments
+        header: "Comments"
+        type: text
+        width: 40
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A5"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - reconciliation
+  - bank
+  - cash
+  - month_end
+  - audit

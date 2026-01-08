@@ -1,0 +1,146 @@
+id: proc-rent-accrual
+name: Monthly Rent Accrual
+version: "1.0"
+category: close
+subcategory: accruals
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 1
+  depends_on: []
+
+description: |
+  Accrue rent expense for operating leases where rent is paid in arrears.
+  This ensures proper expense recognition in the period the space is used,
+  regardless of when payment is made.
+
+applies_to:
+  entities: all
+  account_types:
+    - operating_lease
+    - rent
+
+related_standards:
+  - id: asc842
+    name: Leases
+    sections:
+      - "842-20-25"
+      - "842-20-35"
+
+related_policies:
+  - id: pol-lease-001
+    name: Lease Accounting Policy
+  - id: pol-accrual-001
+    name: Accrual Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Query the lease schedule from data lake for all active operating leases"
+    tool_hint: datalake_query
+    parameters:
+      dataset: lease_schedule
+      filters:
+        status: active
+        lease_type: operating
+        payment_timing: arrears
+        start_date:
+          lte: "${period_end_date}"
+    output: active_leases
+
+  - sequence: 2
+    action: filter
+    description: "Filter to leases that have not yet ended"
+    tool_hint: datalake_query
+    parameters:
+      data: "${active_leases}"
+      filters:
+        end_date:
+          gte: "${period_start_date}"
+    output: current_leases
+
+  - sequence: 3
+    action: calculate
+    description: "Calculate the prorated rent amount for each lease for the current period"
+    tool_hint: calc_proration
+    parameters:
+      items: "${current_leases}"
+      amount_field: monthly_amount
+      period_start: "${period_start_date}"
+      period_end: "${period_end_date}"
+      prorate_partial_months: true
+    output: prorated_amounts
+
+  - sequence: 4
+    action: aggregate
+    description: "Group accrual amounts by legal entity and cost center"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${prorated_amounts}"
+      group_by:
+        - entity_code
+        - cost_center
+      aggregations:
+        accrual_amount: sum
+    output: grouped_accruals
+
+  - sequence: 5
+    action: create_journal_entry
+    description: "Create rent accrual journal entry for each entity"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 25000
+    parameters:
+      entries_template: |
+        For each entity in grouped_accruals:
+          Debit: 6200 - Rent Expense (by cost center)
+          Credit: 2100 - Accrued Liabilities
+      description: "Monthly rent accrual - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-rent-accrual
+      reversing: true
+      reversal_date: "${next_period_start_date}"
+    output: journal_entry_ids
+
+  - sequence: 6
+    action: attach_documentation
+    description: "Attach lease schedule as supporting documentation"
+    tool_hint: sor_journal_entry_attach
+    parameters:
+      journal_entry_ids: "${journal_entry_ids}"
+      documents:
+        - type: lease_schedule
+          data: "${current_leases}"
+
+  - sequence: 7
+    action: update_close_task
+    description: "Mark the rent accrual close task as complete"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: rent_accrual
+      status: completed
+      notes: "Rent accrued for ${count(current_leases)} leases. Total: ${sum(grouped_accruals.accrual_amount)}"
+
+accounts_mapping:
+  rent_expense:
+    default: "6200"
+  accrued_liabilities:
+    default: "2100"
+
+validation_rules:
+  - name: balanced_entry
+    description: "Journal entry must be balanced"
+  - name: period_open
+    description: "Posting period must be open"
+  - name: positive_amounts
+    description: "All accrual amounts must be positive"
+  - name: lease_active
+    description: "Only active leases should be included"
+
+tags:
+  - accrual
+  - rent
+  - lease
+  - month_end
+  - close
+  - reversing

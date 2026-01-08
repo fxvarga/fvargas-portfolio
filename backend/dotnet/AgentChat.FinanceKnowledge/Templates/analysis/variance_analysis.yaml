@@ -1,0 +1,625 @@
+id: tmpl-variance-analysis
+name: Budget vs Actual Variance Analysis
+version: "1.0"
+category: analysis
+subcategory: variance
+description: |
+  Comprehensive variance analysis workpaper for comparing actual results 
+  to budget and prior periods. Includes variance calculations, trend 
+  analysis, and management commentary for financial reporting.
+purpose: |
+  Provides standardized variance analysis for management reporting and 
+  financial review. Supports monthly close package preparation and 
+  executive-level financial analysis.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-variance-analysis
+  - proc-monthly-close
+
+related_policies:
+  - pol-reporting-001
+
+sheets:
+  - name: Executive Summary
+    description: High-level variance summary for management
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Period End Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Prepared By:"
+          cell: A3
+          value_cell: B3
+          type: text
+        - label: "Reviewed By:"
+          cell: D3
+          value_cell: E3
+          type: text
+    formulas:
+      - name: actual_revenue
+        cell: B6
+        formula: "=SUMIF('P&L Variance'!B:B,\"Revenue\",'P&L Variance'!D:D)"
+        description: "Actual Revenue"
+        format: "#,##0"
+      - name: budget_revenue
+        cell: C6
+        formula: "=SUMIF('P&L Variance'!B:B,\"Revenue\",'P&L Variance'!E:E)"
+        description: "Budget Revenue"
+        format: "#,##0"
+      - name: revenue_variance
+        cell: D6
+        formula: "=B6-C6"
+        description: "Revenue Variance"
+        format: "#,##0"
+      - name: actual_gross_profit
+        cell: B8
+        formula: "='P&L Variance'!D100"
+        description: "Actual Gross Profit"
+        format: "#,##0"
+      - name: actual_operating_income
+        cell: B10
+        formula: "='P&L Variance'!D150"
+        description: "Actual Operating Income"
+        format: "#,##0"
+      - name: actual_net_income
+        cell: B12
+        formula: "='P&L Variance'!D200"
+        description: "Actual Net Income"
+        format: "#,##0"
+
+  - name: P&L Variance
+    description: Detailed P&L variance by account
+    type: data
+    columns:
+      - name: account_number
+        header: "Account"
+        type: text
+        width: 12
+        required: true
+      - name: category
+        header: "Category"
+        type: dropdown
+        width: 15
+        required: true
+        allowed_values:
+          - Revenue
+          - Cost of Goods Sold
+          - Gross Profit
+          - Operating Expenses
+          - Operating Income
+          - Other Income/Expense
+          - Net Income
+      - name: account_description
+        header: "Description"
+        type: text
+        width: 35
+        required: true
+      - name: actual_mtd
+        header: "Actual MTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+        required: true
+      - name: budget_mtd
+        header: "Budget MTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+        required: true
+      - name: variance_mtd
+        header: "Variance MTD"
+        type: formula
+        formula: "=D{row}-E{row}"
+        format: "#,##0"
+        width: 15
+      - name: variance_pct_mtd
+        header: "Var % MTD"
+        type: formula
+        formula: "=IF(E{row}=0,0,(D{row}-E{row})/ABS(E{row}))"
+        format: "0.0%"
+        width: 10
+      - name: prior_year_mtd
+        header: "PY MTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: py_variance
+        header: "PY Variance"
+        type: formula
+        formula: "=D{row}-H{row}"
+        format: "#,##0"
+        width: 15
+      - name: actual_ytd
+        header: "Actual YTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: budget_ytd
+        header: "Budget YTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: variance_ytd
+        header: "Variance YTD"
+        type: formula
+        formula: "=J{row}-K{row}"
+        format: "#,##0"
+        width: 15
+      - name: variance_pct_ytd
+        header: "Var % YTD"
+        type: formula
+        formula: "=IF(K{row}=0,0,(J{row}-K{row})/ABS(K{row}))"
+        format: "0.0%"
+        width: 10
+      - name: full_year_budget
+        header: "FY Budget"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: forecast
+        header: "Forecast"
+        type: currency
+        format: "#,##0"
+        width: 15
+    conditional_formatting:
+      - range: "F:F"
+        condition: "value<0"
+        style:
+          font_color: "#FF6B6B"
+      - range: "F:F"
+        condition: "value>0"
+        style:
+          font_color: "#51CF66"
+      - range: "G:G"
+        condition: "value<-0.1"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "G:G"
+        condition: "value>0.1"
+        style:
+          background_color: "#51CF66"
+
+  - name: Revenue Analysis
+    description: Revenue variance by product/segment
+    type: data
+    columns:
+      - name: segment
+        header: "Segment/Product"
+        type: text
+        width: 30
+        required: true
+      - name: actual_units
+        header: "Actual Units"
+        type: number
+        width: 12
+      - name: budget_units
+        header: "Budget Units"
+        type: number
+        width: 12
+      - name: unit_variance
+        header: "Unit Variance"
+        type: formula
+        formula: "=B{row}-C{row}"
+        width: 12
+      - name: actual_revenue
+        header: "Actual Revenue"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: budget_revenue
+        header: "Budget Revenue"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: revenue_variance
+        header: "Revenue Variance"
+        type: formula
+        formula: "=E{row}-F{row}"
+        format: "#,##0"
+        width: 15
+      - name: price_variance
+        header: "Price Variance"
+        type: currency
+        format: "#,##0"
+        width: 15
+        description: "Variance due to price changes"
+      - name: volume_variance
+        header: "Volume Variance"
+        type: currency
+        format: "#,##0"
+        width: 15
+        description: "Variance due to volume changes"
+      - name: mix_variance
+        header: "Mix Variance"
+        type: currency
+        format: "#,##0"
+        width: 15
+        description: "Variance due to product mix"
+      - name: commentary
+        header: "Commentary"
+        type: text
+        width: 50
+
+  - name: Expense Analysis
+    description: Operating expense variance by department
+    type: data
+    columns:
+      - name: department
+        header: "Department"
+        type: text
+        width: 25
+        required: true
+      - name: expense_category
+        header: "Expense Category"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Personnel
+          - Facilities
+          - Travel & Entertainment
+          - Professional Services
+          - Technology
+          - Marketing
+          - General & Administrative
+          - Depreciation & Amortization
+          - Other
+      - name: actual_mtd
+        header: "Actual MTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: budget_mtd
+        header: "Budget MTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: variance_mtd
+        header: "Variance MTD"
+        type: formula
+        formula: "=D{row}-C{row}"
+        format: "#,##0"
+        width: 15
+      - name: variance_pct
+        header: "Variance %"
+        type: formula
+        formula: "=IF(D{row}=0,0,(D{row}-C{row})/ABS(D{row}))"
+        format: "0.0%"
+        width: 10
+      - name: actual_ytd
+        header: "Actual YTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: budget_ytd
+        header: "Budget YTD"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: variance_ytd
+        header: "Variance YTD"
+        type: formula
+        formula: "=H{row}-G{row}"
+        format: "#,##0"
+        width: 15
+      - name: is_controllable
+        header: "Controllable?"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "Yes"
+          - "No"
+          - "Partially"
+      - name: action_required
+        header: "Action Required"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - None
+          - Monitor
+          - Investigate
+          - Corrective Action
+      - name: commentary
+        header: "Commentary"
+        type: text
+        width: 50
+    conditional_formatting:
+      - range: "E:E"
+        condition: "value>0"
+        style:
+          font_color: "#FF6B6B"
+      - range: "E:E"
+        condition: "value<0"
+        style:
+          font_color: "#51CF66"
+
+  - name: Trend Analysis
+    description: 12-month trend by key metrics
+    type: data
+    columns:
+      - name: metric
+        header: "Metric"
+        type: text
+        width: 25
+        required: true
+      - name: month_1
+        header: "Jan"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_2
+        header: "Feb"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_3
+        header: "Mar"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_4
+        header: "Apr"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_5
+        header: "May"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_6
+        header: "Jun"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_7
+        header: "Jul"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_8
+        header: "Aug"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_9
+        header: "Sep"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_10
+        header: "Oct"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_11
+        header: "Nov"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: month_12
+        header: "Dec"
+        type: currency
+        format: "#,##0"
+        width: 12
+      - name: ytd_total
+        header: "YTD Total"
+        type: formula
+        formula: "=SUM(B{row}:M{row})"
+        format: "#,##0"
+        width: 15
+
+  - name: KPI Dashboard
+    description: Key performance indicators
+    type: summary
+    columns:
+      - name: kpi_name
+        header: "KPI"
+        type: text
+        width: 35
+      - name: actual
+        header: "Actual"
+        type: text
+        width: 15
+        description: "Actual value (various formats)"
+      - name: target
+        header: "Target"
+        type: text
+        width: 15
+      - name: variance
+        header: "Variance"
+        type: text
+        width: 15
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "On Track"
+          - "At Risk"
+          - "Off Track"
+          - "Exceeded"
+      - name: trend
+        header: "Trend"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "Improving"
+          - "Stable"
+          - "Declining"
+      - name: prior_month
+        header: "Prior Month"
+        type: text
+        width: 15
+      - name: prior_year
+        header: "Prior Year"
+        type: text
+        width: 15
+    conditional_formatting:
+      - range: "E:E"
+        condition: "value=\"Off Track\""
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "E:E"
+        condition: "value=\"At Risk\""
+        style:
+          background_color: "#FFE066"
+      - range: "E:E"
+        condition: "value=\"On Track\""
+        style:
+          background_color: "#51CF66"
+      - range: "E:E"
+        condition: "value=\"Exceeded\""
+        style:
+          background_color: "#339AF0"
+          font_color: "#FFFFFF"
+
+  - name: Variance Commentary
+    description: Management commentary on significant variances
+    type: data
+    columns:
+      - name: variance_item
+        header: "Variance Item"
+        type: text
+        width: 30
+        required: true
+      - name: variance_type
+        header: "Type"
+        type: dropdown
+        width: 15
+        required: true
+        allowed_values:
+          - Favorable
+          - Unfavorable
+      - name: variance_amount
+        header: "Amount"
+        type: currency
+        format: "#,##0"
+        width: 15
+        required: true
+      - name: variance_pct
+        header: "Percentage"
+        type: percentage
+        format: "0.0%"
+        width: 12
+      - name: root_cause
+        header: "Root Cause"
+        type: text
+        width: 50
+        required: true
+      - name: is_recurring
+        header: "Recurring?"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "Yes"
+          - "No"
+          - "Unknown"
+      - name: impact_on_forecast
+        header: "Forecast Impact"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - None
+          - Positive
+          - Negative
+          - Needs Analysis
+      - name: action_plan
+        header: "Action Plan"
+        type: text
+        width: 50
+      - name: owner
+        header: "Owner"
+        type: text
+        width: 20
+      - name: due_date
+        header: "Due Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+
+  - name: Forecast Update
+    description: Updated forecast based on variance analysis
+    type: data
+    columns:
+      - name: line_item
+        header: "Line Item"
+        type: text
+        width: 30
+      - name: original_forecast
+        header: "Original Forecast"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: adjustment
+        header: "Adjustment"
+        type: currency
+        format: "#,##0"
+        width: 15
+      - name: revised_forecast
+        header: "Revised Forecast"
+        type: formula
+        formula: "=B{row}+C{row}"
+        format: "#,##0"
+        width: 15
+      - name: adjustment_reason
+        header: "Adjustment Reason"
+        type: text
+        width: 50
+      - name: confidence_level
+        header: "Confidence"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - High
+          - Medium
+          - Low
+      - name: risk_factor
+        header: "Risk/Opportunity"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Upside Potential
+          - Downside Risk
+          - Neutral
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "C2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - variance
+  - budget
+  - analysis
+  - reporting
+  - month_end
+  - management
+  - kpi

@@ -1,0 +1,103 @@
+id: proc-reversing-entry
+name: Reversing Journal Entry
+version: "1.0"
+category: journal_entry
+subcategory: reversal
+frequency: on_demand
+trigger:
+  type: manual
+
+description: |
+  Create a reversing entry for an existing journal entry. Commonly used 
+  to reverse accruals at the beginning of a new period or to correct 
+  posting errors.
+
+applies_to:
+  entities: all
+
+related_policies:
+  - id: pol-je-001
+    name: Journal Entry Policy
+  - id: pol-error-001
+    name: Error Correction Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Get the original journal entry to be reversed"
+    tool_hint: sor_journal_entry_get
+    parameters:
+      journal_entry_id: "${original_entry_id}"
+    output: original_entry
+
+  - sequence: 2
+    action: validate
+    description: "Verify the entry can be reversed"
+    tool_hint: validate_data
+    parameters:
+      checks:
+        - entry_not_already_reversed: "${original_entry.reversed_by_id == null}"
+        - entry_is_posted: "${original_entry.status == 'Posted'}"
+        - reversal_period_open: true
+    output: validation_result
+
+  - sequence: 3
+    action: determine_period
+    description: "Determine the reversal posting period"
+    tool_hint: calc_period
+    parameters:
+      base_date: "${reversal_date ?? original_entry.posting_date}"
+      default_to: next_period
+    output: reversal_period
+
+  - sequence: 4
+    action: check_period
+    description: "Verify the reversal period is open"
+    tool_hint: sor_period_status
+    parameters:
+      entity_code: "${original_entry.entity_code}"
+      period: "${reversal_period}"
+    output: period_status
+
+  - sequence: 5
+    action: create_journal_entry
+    description: "Create the reversing journal entry"
+    tool_hint: sor_journal_entry_reverse
+    requires_approval: true
+    approval_threshold: 10000
+    parameters:
+      original_entry_id: "${original_entry_id}"
+      reversal_date: "${reversal_date}"
+      period: "${reversal_period}"
+      description: "Reversal of ${original_entry.entry_number} - ${original_entry.description}"
+      source: AI-Generated
+      procedure_id: proc-reversing-entry
+      lines: |
+        For each line in original_entry.lines:
+          Swap debit and credit amounts
+    output: reversal_entry
+
+  - sequence: 6
+    action: link_entries
+    description: "Link the reversal to the original entry"
+    tool_hint: sor_journal_entry_update
+    parameters:
+      journal_entry_id: "${original_entry_id}"
+      updates:
+        reversed_by_id: "${reversal_entry.id}"
+
+validation_rules:
+  - name: not_already_reversed
+    description: "Entry cannot be reversed if already reversed"
+  - name: original_posted
+    description: "Only posted entries can be reversed"
+  - name: period_open
+    description: "Reversal period must be open"
+  - name: balanced_reversal
+    description: "Reversal must be balanced"
+
+tags:
+  - journal_entry
+  - reversal
+  - correction
+  - manual

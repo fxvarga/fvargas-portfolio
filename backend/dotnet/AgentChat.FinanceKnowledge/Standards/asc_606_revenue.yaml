@@ -1,0 +1,236 @@
+id: ASC-606
+name: Revenue from Contracts with Customers
+codification: ASC 606
+effective_date: "2018-01-01"
+description: >
+  Accounting Standards Codification Topic 606 - Revenue from Contracts with Customers.
+  Establishes a comprehensive framework for revenue recognition based on the 
+  transfer of control of goods and services to customers.
+
+ifrs_equivalent: IFRS-15
+
+core_principle: >
+  Recognize revenue to depict the transfer of promised goods or services 
+  to customers in an amount that reflects the consideration to which the 
+  entity expects to be entitled in exchange for those goods or services.
+
+five_step_model:
+  step_1_identify_contract:
+    description: "Identify the contract(s) with a customer"
+    criteria_all:
+      - parties_approved_contract
+      - rights_identifiable
+      - payment_terms_identifiable
+      - commercial_substance
+      - collection_probable
+    combination_criteria:
+      - negotiated_as_package
+      - consideration_depends_on_other_contracts
+      - single_performance_obligation
+      
+  step_2_identify_performance_obligations:
+    description: "Identify the performance obligations in the contract"
+    distinct_criteria:
+      capable_of_being_distinct:
+        - customer_can_benefit_on_own
+        - customer_can_benefit_with_readily_available_resources
+      distinct_in_context:
+        - not_highly_dependent_on_other_promises
+        - not_significantly_modifying_other_promises
+        - not_highly_interrelated
+    series_guidance:
+      criteria:
+        - each_distinct_service_period_is_performance_obligation
+        - same_method_to_measure_progress
+        
+  step_3_determine_transaction_price:
+    description: "Determine the transaction price"
+    components:
+      fixed_consideration:
+        description: "Stated contract price"
+      variable_consideration:
+        description: "Discounts, rebates, refunds, credits, incentives, bonuses, penalties"
+        estimation_methods:
+          expected_value: "Probability-weighted amounts"
+          most_likely_amount: "Single most likely amount"
+        constraint:
+          description: "Include only to extent highly probable no significant reversal"
+          factors:
+            - highly_susceptible_to_external_factors
+            - long_resolution_period
+            - limited_experience
+            - broad_range_of_outcomes
+            - large_number_of_contracts
+      significant_financing:
+        description: "Adjust for time value if significant"
+        practical_expedient: "Ignore if payment within one year"
+      noncash_consideration:
+        description: "Measure at fair value"
+      consideration_payable_to_customer:
+        description: "Reduce transaction price unless payment for distinct goods/services"
+        
+  step_4_allocate_transaction_price:
+    description: "Allocate the transaction price to the performance obligations"
+    basis: relative_standalone_selling_prices
+    determining_ssp:
+      observable_price: "Best evidence"
+      adjusted_market_assessment: "Market-based approach"
+      expected_cost_plus_margin: "Cost-based approach"
+      residual_approach: "Limited circumstances"
+    discount_allocation:
+      general: "Proportionally to all performance obligations"
+      exception: "Allocate entirely to one or more obligations if criteria met"
+    variable_consideration_allocation:
+      general: "Proportionally based on SSP"
+      exception: "Allocate entirely if relates specifically to one obligation"
+      
+  step_5_recognize_revenue:
+    description: "Recognize revenue when (or as) the entity satisfies a performance obligation"
+    over_time_criteria_any:
+      - customer_receives_and_consumes_benefits
+      - customer_controls_asset_as_created
+      - no_alternative_use_and_enforceable_right_to_payment
+    point_in_time_indicators:
+      - entity_has_present_right_to_payment
+      - customer_has_legal_title
+      - customer_has_physical_possession
+      - customer_has_risks_and_rewards
+      - customer_has_accepted_asset
+    measuring_progress_over_time:
+      output_methods:
+        - units_produced
+        - milestones_reached
+        - time_elapsed
+        - units_delivered
+      input_methods:
+        - costs_incurred
+        - labor_hours
+        - machine_hours
+        - time_elapsed
+
+contract_modifications:
+  separate_contract_criteria:
+    - additional_distinct_goods_services
+    - price_reflects_standalone_selling_price
+  prospective_accounting:
+    when: "Remaining goods/services distinct from transferred goods/services"
+  cumulative_catch_up:
+    when: "Remaining goods/services not distinct"
+
+specific_topics:
+  licenses:
+    functional_license:
+      description: "Right to use IP as it exists at point in time"
+      recognition: point_in_time
+    symbolic_license:
+      description: "Right to access IP throughout license period"
+      recognition: over_time
+    sales_and_usage_based_royalties:
+      constraint: "Recognize when sale/usage occurs"
+      
+  warranties:
+    assurance_type:
+      description: "Product meets agreed-upon specifications"
+      accounting: "Accrue as cost (ASC 460)"
+    service_type:
+      description: "Provides service beyond assurance"
+      accounting: "Separate performance obligation"
+      
+  principal_vs_agent:
+    principal_indicators:
+      - primary_responsibility
+      - inventory_risk
+      - pricing_discretion
+    agent_accounting: "Recognize net fee/commission"
+    principal_accounting: "Recognize gross revenue"
+    
+  bill_and_hold:
+    criteria:
+      - substantive_reason
+      - separately_identified
+      - ready_for_transfer
+      - cannot_be_used_by_entity
+      
+  repurchase_agreements:
+    forward_or_call_option:
+      less_than_selling_price: lease
+      equal_or_greater_than_selling_price: financing
+    put_option:
+      less_than_selling_price_expected_exercise: lease
+      equal_or_greater_than_selling_price: financing
+
+contract_costs:
+  incremental_costs_of_obtaining:
+    capitalize_if: "Expected to recover through contract"
+    practical_expedient: "Expense if amortization one year or less"
+    amortization: systematic_basis_consistent_with_transfer
+    
+  costs_to_fulfill:
+    capitalize_if:
+      - directly_relate_to_contract
+      - generate_or_enhance_resources
+      - expected_to_be_recovered
+    examples:
+      - direct_labor
+      - direct_materials
+      - allocated_overhead
+      - explicitly_chargeable_costs
+      - incurred_solely_from_contract
+
+disclosures:
+  disaggregation:
+    requirement: "Disaggregate revenue into categories"
+    basis: "Nature, amount, timing, uncertainty of revenue and cash flows"
+    examples:
+      - product_type
+      - geographic_region
+      - customer_type
+      - contract_type
+      - timing_of_transfer
+      
+  contract_balances:
+    - contract_assets
+    - contract_liabilities
+    - receivables
+    - changes_during_period
+    
+  performance_obligations:
+    - types_of_goods_services
+    - significant_payment_terms
+    - obligations_for_returns_refunds
+    - types_of_warranties
+    - obligations_satisfied_over_time
+    
+  significant_judgments:
+    - timing_of_satisfaction
+    - transaction_price_determination
+    - allocation_methodology
+    
+  remaining_performance_obligations:
+    - aggregate_amount
+    - expected_timing_of_recognition
+    - practical_expedients_used
+
+common_issues:
+  - issue: "Identifying distinct performance obligations in bundled arrangements"
+    guidance: "Evaluate if customer can benefit separately and promises are separately identifiable"
+    
+  - issue: "Variable consideration estimation and constraint"
+    guidance: "Use expected value or most likely amount; constrain if reversal highly probable"
+    
+  - issue: "Determining standalone selling prices"
+    guidance: "Observable price preferred; use estimation methods if not observable"
+    
+  - issue: "Over time vs point in time recognition"
+    guidance: "Apply three over-time criteria; default to point in time if none met"
+    
+  - issue: "Principal vs agent determination"
+    guidance: "Focus on control of goods/services before transfer to customer"
+
+related_standards:
+  - id: ASC-340-40
+    relationship: contract_costs
+  - id: ASC-605
+    relationship: superseded
+  - id: ASC-985-605
+    relationship: software_revenue_superseded

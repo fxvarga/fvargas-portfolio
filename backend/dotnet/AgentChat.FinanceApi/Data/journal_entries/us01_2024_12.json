@@ -1,0 +1,167 @@
+[
+  {
+    "id": "je-001",
+    "entry_number": "JE-US01-202412-001",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 12,
+    "entry_date": "2024-12-31T10:00:00Z",
+    "effective_date": "2024-12-31T00:00:00Z",
+    "entry_type": "STANDARD",
+    "description": "Monthly depreciation - December 2024",
+    "lines": [
+      {
+        "line_number": 1,
+        "account_number": "6100",
+        "account_name": "Depreciation Expense",
+        "debit_amount": 45000.00,
+        "credit_amount": 0,
+        "currency": "USD",
+        "cost_center": "CORP",
+        "description": "Building depreciation"
+      },
+      {
+        "line_number": 2,
+        "account_number": "1520",
+        "account_name": "Accumulated Depreciation - Buildings",
+        "debit_amount": 0,
+        "credit_amount": 45000.00,
+        "currency": "USD",
+        "cost_center": "CORP",
+        "description": "Building depreciation"
+      }
+    ],
+    "status": "POSTED",
+    "created_by": "system@acme.com",
+    "created_at": "2024-12-31T10:00:00Z",
+    "approved_by": "controller@acme.com",
+    "approved_at": "2024-12-31T11:00:00Z",
+    "posted_by": "controller@acme.com",
+    "posted_at": "2024-12-31T11:30:00Z",
+    "source_system": "AUTOMATED",
+    "is_reversing": false,
+    "procedure_id": "proc-monthly-depreciation"
+  },
+  {
+    "id": "je-002",
+    "entry_number": "JE-US01-202412-002",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 12,
+    "entry_date": "2024-12-31T14:00:00Z",
+    "effective_date": "2024-12-31T00:00:00Z",
+    "entry_type": "STANDARD",
+    "description": "Rent accrual - December 2024",
+    "lines": [
+      {
+        "line_number": 1,
+        "account_number": "6200",
+        "account_name": "Rent Expense",
+        "debit_amount": 125000.00,
+        "credit_amount": 0,
+        "currency": "USD",
+        "cost_center": "ADMIN",
+        "description": "Office rent accrual"
+      },
+      {
+        "line_number": 2,
+        "account_number": "2100",
+        "account_name": "Accrued Expenses",
+        "debit_amount": 0,
+        "credit_amount": 125000.00,
+        "currency": "USD",
+        "cost_center": "ADMIN",
+        "description": "Office rent accrual"
+      }
+    ],
+    "status": "POSTED",
+    "created_by": "accountant@acme.com",
+    "created_at": "2024-12-31T14:00:00Z",
+    "approved_by": "controller@acme.com",
+    "approved_at": "2024-12-31T15:00:00Z",
+    "posted_by": "controller@acme.com",
+    "posted_at": "2024-12-31T15:30:00Z",
+    "source_system": "MANUAL",
+    "is_reversing": true,
+    "reversal_date": "2025-01-01T00:00:00Z",
+    "procedure_id": "proc-rent-accrual"
+  },
+  {
+    "id": "je-003",
+    "entry_number": "JE-US01-202412-003",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 12,
+    "entry_date": "2024-12-31T16:00:00Z",
+    "effective_date": "2024-12-31T00:00:00Z",
+    "entry_type": "STANDARD",
+    "description": "Prepaid insurance amortization - December 2024",
+    "lines": [
+      {
+        "line_number": 1,
+        "account_number": "6300",
+        "account_name": "Insurance Expense",
+        "debit_amount": 8333.33,
+        "credit_amount": 0,
+        "currency": "USD",
+        "cost_center": "CORP",
+        "description": "Monthly insurance amortization"
+      },
+      {
+        "line_number": 2,
+        "account_number": "1400",
+        "account_name": "Prepaid Insurance",
+        "debit_amount": 0,
+        "credit_amount": 8333.33,
+        "currency": "USD",
+        "cost_center": "CORP",
+        "description": "Monthly insurance amortization"
+      }
+    ],
+    "status": "PENDING_APPROVAL",
+    "created_by": "accountant@acme.com",
+    "created_at": "2024-12-31T16:00:00Z",
+    "source_system": "MANUAL",
+    "is_reversing": false,
+    "procedure_id": "proc-prepaid-amortization"
+  },
+  {
+    "id": "je-004",
+    "entry_number": "JE-US01-202412-004",
+    "entity_code": "US01",
+    "fiscal_year": 2024,
+    "fiscal_period": 12,
+    "entry_date": "2024-12-31T17:00:00Z",
+    "effective_date": "2024-12-31T00:00:00Z",
+    "entry_type": "RECLASSIFICATION",
+    "description": "Reclassify AR aging to doubtful accounts",
+    "lines": [
+      {
+        "line_number": 1,
+        "account_number": "6400",
+        "account_name": "Bad Debt Expense",
+        "debit_amount": 15000.00,
+        "credit_amount": 0,
+        "currency": "USD",
+        "cost_center": "SALES",
+        "description": "Q4 bad debt provision"
+      },
+      {
+        "line_number": 2,
+        "account_number": "1210",
+        "account_name": "Allowance for Doubtful Accounts",
+        "debit_amount": 0,
+        "credit_amount": 15000.00,
+        "currency": "USD",
+        "cost_center": "SALES",
+        "description": "Q4 bad debt provision"
+      }
+    ],
+    "status": "DRAFT",
+    "created_by": "accountant@acme.com",
+    "created_at": "2024-12-31T17:00:00Z",
+    "source_system": "MANUAL",
+    "is_reversing": false,
+    "procedure_id": "proc-reclassification"
+  }
+]

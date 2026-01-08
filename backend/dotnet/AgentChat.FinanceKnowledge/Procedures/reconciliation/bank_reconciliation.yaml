@@ -1,0 +1,162 @@
+id: proc-bank-reconciliation
+name: Bank Account Reconciliation
+version: "1.0"
+category: reconciliation
+subcategory: cash
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 2
+  depends_on:
+    - bank_statement_received
+
+description: |
+  Reconcile bank account balances per the general ledger to the bank 
+  statement balance. Identify and document reconciling items including 
+  outstanding checks, deposits in transit, and bank errors.
+
+applies_to:
+  entities: all
+  account_types:
+    - cash
+    - bank
+
+related_standards:
+  - id: asc305
+    name: Cash and Cash Equivalents
+    sections:
+      - "305-10"
+
+related_policies:
+  - id: pol-cash-001
+    name: Cash Management Policy
+  - id: pol-recon-001
+    name: Account Reconciliation Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Get GL balance for the bank account"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        entity_code: "${entity_code}"
+        account: "${bank_account}"
+        period: "${current_period}"
+    output: gl_balance
+
+  - sequence: 2
+    action: retrieve_data
+    description: "Get bank statement ending balance"
+    tool_hint: datalake_query
+    parameters:
+      dataset: bank_statements
+      filters:
+        entity_code: "${entity_code}"
+        account: "${bank_account}"
+        statement_date: "${period_end_date}"
+    output: bank_statement
+
+  - sequence: 3
+    action: retrieve_data
+    description: "Get outstanding checks from prior reconciliation"
+    tool_hint: datalake_query
+    parameters:
+      dataset: reconciling_items
+      filters:
+        entity_code: "${entity_code}"
+        account: "${bank_account}"
+        item_type: outstanding_check
+        status: open
+    output: prior_outstanding_checks
+
+  - sequence: 4
+    action: retrieve_data
+    description: "Get deposits in transit from prior reconciliation"
+    tool_hint: datalake_query
+    parameters:
+      dataset: reconciling_items
+      filters:
+        entity_code: "${entity_code}"
+        account: "${bank_account}"
+        item_type: deposit_in_transit
+        status: open
+    output: prior_deposits_in_transit
+
+  - sequence: 5
+    action: compare
+    description: "Compare GL transactions to bank transactions to identify new reconciling items"
+    tool_hint: reconciliation_compare
+    parameters:
+      gl_transactions: "${gl_balance.transactions}"
+      bank_transactions: "${bank_statement.transactions}"
+      match_fields:
+        - amount
+        - reference
+    output: comparison_result
+
+  - sequence: 6
+    action: calculate
+    description: "Calculate reconciled balance"
+    tool_hint: calc_reconciliation
+    parameters:
+      bank_balance: "${bank_statement.ending_balance}"
+      add:
+        - deposits_in_transit
+      subtract:
+        - outstanding_checks
+      prior_items:
+        outstanding_checks: "${prior_outstanding_checks}"
+        deposits_in_transit: "${prior_deposits_in_transit}"
+      new_items: "${comparison_result}"
+    output: reconciliation_calc
+
+  - sequence: 7
+    action: validate
+    description: "Verify reconciled balance equals GL balance"
+    tool_hint: validate_reconciliation
+    parameters:
+      reconciled_balance: "${reconciliation_calc.reconciled_balance}"
+      gl_balance: "${gl_balance.balance}"
+      tolerance: 0.01
+    output: validation_result
+
+  - sequence: 8
+    action: create_reconciliation
+    description: "Create the bank reconciliation document"
+    tool_hint: sor_reconciliation_create
+    parameters:
+      account: "${bank_account}"
+      entity_code: "${entity_code}"
+      period: "${current_period}"
+      gl_balance: "${gl_balance.balance}"
+      bank_balance: "${bank_statement.ending_balance}"
+      reconciling_items: "${reconciliation_calc.items}"
+      reconciled_balance: "${reconciliation_calc.reconciled_balance}"
+      variance: "${validation_result.variance}"
+    output: reconciliation_id
+
+  - sequence: 9
+    action: update_close_task
+    description: "Mark bank reconciliation task as complete"
+    tool_hint: sor_close_task_update
+    condition: "${validation_result.is_valid}"
+    parameters:
+      task_id: "bank_recon_${bank_account}"
+      status: completed
+      notes: "Reconciled with ${count(reconciliation_calc.items)} items"
+
+validation_rules:
+  - name: zero_variance
+    description: "Reconciled balance must equal GL balance (within tolerance)"
+  - name: aged_items_reviewed
+    description: "Outstanding items over 90 days must be investigated"
+  - name: completeness
+    description: "All bank transactions must be accounted for"
+
+tags:
+  - reconciliation
+  - bank
+  - cash
+  - month_end

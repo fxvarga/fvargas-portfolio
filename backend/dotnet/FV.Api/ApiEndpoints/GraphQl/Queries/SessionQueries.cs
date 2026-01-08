@@ -1,5 +1,4 @@
 using FV.Api.GraphQL.Types;
-using FV.Api.Services;
 using HotChocolate;
 using HotChocolate.Subscriptions;
 using Microsoft.AspNetCore.Http;

@@ -1,0 +1,132 @@
+id: proc-standard-accrual
+name: Standard Expense Accrual
+version: "1.0"
+category: journal_entry
+subcategory: accruals
+frequency: on_demand
+trigger:
+  type: manual
+
+description: |
+  Create a standard expense accrual journal entry for goods or services 
+  received but not yet invoiced. This is a general-purpose procedure 
+  that can be used for various accrual scenarios.
+
+applies_to:
+  entities: all
+  account_types:
+    - expense
+    - accrued_liabilities
+
+related_standards:
+  - id: asc450
+    name: Contingencies
+    sections:
+      - "450-20"
+
+related_policies:
+  - id: pol-accrual-001
+    name: Accrual Policy
+
+steps:
+  - sequence: 1
+    action: validate_inputs
+    description: "Validate required inputs for the accrual"
+    tool_hint: validate_data
+    parameters:
+      required:
+        - entity_code
+        - expense_account
+        - amount
+        - description
+        - period
+      optional:
+        - cost_center
+        - vendor
+        - reversing
+        - reversal_date
+    output: validation_result
+
+  - sequence: 2
+    action: lookup_accounts
+    description: "Validate expense and liability accounts exist"
+    tool_hint: datalake_query
+    parameters:
+      dataset: chart_of_accounts
+      filters:
+        account:
+          in:
+            - "${expense_account}"
+            - "${liability_account}"
+        entity_code: "${entity_code}"
+    output: account_validation
+
+  - sequence: 3
+    action: check_period
+    description: "Verify the posting period is open"
+    tool_hint: sor_period_status
+    parameters:
+      entity_code: "${entity_code}"
+      period: "${period}"
+    output: period_status
+
+  - sequence: 4
+    action: create_journal_entry
+    description: "Create the accrual journal entry"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 5000
+    parameters:
+      entity_code: "${entity_code}"
+      period: "${period}"
+      description: "${description}"
+      source: AI-Generated
+      procedure_id: proc-standard-accrual
+      reversing: "${reversing}"
+      reversal_date: "${reversal_date}"
+      lines:
+        - account: "${expense_account}"
+          debit: "${amount}"
+          credit: 0
+          cost_center: "${cost_center}"
+          description: "${description}"
+        - account: "${liability_account}"
+          debit: 0
+          credit: "${amount}"
+          description: "Accrual - ${description}"
+    output: journal_entry
+
+  - sequence: 5
+    action: attach_documentation
+    description: "Attach supporting documentation if provided"
+    condition: "${supporting_docs != null}"
+    tool_hint: sor_journal_entry_attach
+    parameters:
+      journal_entry_id: "${journal_entry.id}"
+      documents: "${supporting_docs}"
+
+accounts_mapping:
+  accrued_liabilities:
+    default: "2100"
+  accrued_payroll:
+    default: "2110"
+  accrued_taxes:
+    default: "2120"
+  accrued_interest:
+    default: "2130"
+
+validation_rules:
+  - name: balanced_entry
+    description: "Debit must equal credit"
+  - name: valid_accounts
+    description: "All accounts must exist in chart of accounts"
+  - name: period_open
+    description: "Posting period must be open"
+  - name: amount_positive
+    description: "Accrual amount must be positive"
+
+tags:
+  - journal_entry
+  - accrual
+  - expense
+  - manual

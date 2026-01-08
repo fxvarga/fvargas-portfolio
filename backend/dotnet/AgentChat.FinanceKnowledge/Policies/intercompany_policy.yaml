@@ -1,0 +1,280 @@
+id: POL-IC-001
+name: Intercompany Transaction and Settlement Policy
+version: "2.0"
+effective_date: "2024-01-01"
+owner: corporate_controller
+approvers:
+  - cfo
+  - chief_accounting_officer
+  - vp_tax
+last_review_date: "2023-12-01"
+next_review_date: "2024-12-01"
+
+description: >
+  Establishes requirements for intercompany transactions including pricing, 
+  documentation, settlement timing, and elimination procedures. Ensures 
+  compliance with transfer pricing regulations and accurate consolidated 
+  financial reporting.
+
+scope:
+  entities:
+    - "*"
+  transaction_types:
+    - goods_and_services
+    - management_fees
+    - royalties_and_licensing
+    - intercompany_loans
+    - cost_sharing
+    - dividends
+    - capital_contributions
+
+transfer_pricing:
+  arm_length_principle:
+    requirement: "All intercompany transactions at arm's length prices"
+    documentation_required: true
+    
+  pricing_methods:
+    comparable_uncontrolled_price:
+      priority: 1
+      use_when: "Comparable third-party transactions exist"
+      
+    resale_price_method:
+      priority: 2
+      use_when: "Distributor transactions"
+      
+    cost_plus_method:
+      priority: 3
+      use_when: "Manufacturing or service transactions"
+      
+    transactional_net_margin:
+      priority: 4
+      use_when: "No reliable comparables for gross margin"
+      
+    profit_split:
+      priority: 5
+      use_when: "Highly integrated transactions"
+      
+  documentation:
+    master_file: required
+    local_file: required_by_jurisdiction
+    country_by_country_report:
+      threshold: 750000000
+      currency: EUR
+    retention_period_years: 7
+
+transaction_categories:
+  goods:
+    inventory_transfers:
+      pricing_basis: cost_plus
+      markup_range:
+        min_percent: 5
+        max_percent: 15
+      documentation:
+        - intercompany_invoice
+        - shipping_documentation
+        - transfer_pricing_support
+        
+    finished_goods:
+      pricing_basis: "Resale price or cost plus"
+      markup_range:
+        min_percent: 8
+        max_percent: 20
+        
+  services:
+    shared_services:
+      categories:
+        - finance_and_accounting
+        - human_resources
+        - information_technology
+        - legal
+        - procurement
+      pricing_basis: cost_plus
+      markup_percent: 5
+      allocation_keys:
+        - headcount
+        - revenue
+        - transaction_volume
+        - square_footage
+        
+    management_fees:
+      pricing_basis: cost_plus
+      markup_percent: 7.5
+      documentation:
+        - service_agreement
+        - benefit_analysis
+        - cost_allocation_methodology
+        
+    technical_services:
+      pricing_basis: cost_plus
+      markup_range:
+        min_percent: 10
+        max_percent: 20
+        
+  intellectual_property:
+    royalties:
+      basis: net_sales
+      rate_range:
+        min_percent: 2
+        max_percent: 8
+      determination: "Comparable uncontrolled transactions"
+      
+    licensing_fees:
+      basis: "Per agreement terms"
+      benchmark: "Comparable license arrangements"
+      
+  financing:
+    intercompany_loans:
+      interest_rate_basis: "Arm's length rate"
+      benchmarking:
+        - comparable_bank_loans
+        - published_interest_rate_data
+      documentation:
+        - loan_agreement
+        - rate_benchmarking_study
+        - credit_analysis
+      minimum_loan_documentation_threshold: 500000
+      
+    cash_pooling:
+      interest_on_deposits: "Market-based deposit rate"
+      interest_on_borrowings: "Market-based borrowing rate"
+      netting_allowed: true
+
+settlement_requirements:
+  timing:
+    goods_and_services:
+      standard_terms_days: 30
+      maximum_terms_days: 60
+      
+    royalties_and_fees:
+      frequency: quarterly
+      payment_due_days: 30
+      
+    intercompany_loans:
+      interest_payment: "Per loan agreement"
+      principal_repayment: "Per loan agreement"
+      
+    dividends:
+      declaration_to_payment_days: 30
+      
+  netting:
+    allowed: true
+    frequency: monthly
+    netting_center: corporate_treasury
+    minimum_threshold: 10000
+    
+  currency:
+    invoicing: "Functional currency of seller"
+    settlement: "As agreed or seller functional currency"
+    fx_exposure_allocation: "Per treasury policy"
+
+reconciliation:
+  frequency: monthly
+  deadline: "Close day 3"
+  tolerance_threshold: 500
+  
+  process:
+    step_1: "Exchange trial balances by counterparty"
+    step_2: "Identify and investigate differences"
+    step_3: "Agree on adjusting entries"
+    step_4: "Record adjustments before elimination"
+    
+  aging_requirements:
+    current: "0-30 days"
+    past_due_30: "31-60 days"
+    past_due_60: "61-90 days"
+    past_due_90_plus: "Over 90 days"
+    
+  escalation:
+    past_due_60:
+      notify:
+        - entity_controller
+        - regional_controller
+    past_due_90:
+      notify:
+        - corporate_controller
+        - cfo
+
+elimination:
+  timing: "Before consolidated close"
+  automation: "Automated through consolidation system"
+  
+  categories:
+    intercompany_revenue_and_expense:
+      elimination: full
+      validation: "Reciprocal amounts must match"
+      
+    intercompany_receivables_and_payables:
+      elimination: full
+      tolerance_for_fx: 500
+      
+    intercompany_profit_in_inventory:
+      elimination: required
+      calculation: "Gross margin on intercompany sales remaining in inventory"
+      
+    intercompany_profit_in_fixed_assets:
+      elimination: required
+      release: "Over asset useful life"
+      
+    intercompany_dividends:
+      elimination: full
+      
+    intercompany_investments:
+      elimination: full
+      goodwill_retained: true
+
+approval_requirements:
+  new_agreement:
+    goods_and_services:
+      approvers:
+        - entity_controller
+        - regional_controller
+        - tax_department
+    loans:
+      approvers:
+        - treasury
+        - tax_department
+        - regional_controller
+        - legal
+    licensing:
+      approvers:
+        - legal
+        - tax_department
+        - corporate_controller
+        
+  pricing_changes:
+    approval_required: true
+    approvers:
+      - tax_department
+      - regional_controller
+    documentation: "Updated benchmarking analysis"
+
+compliance:
+  regulatory:
+    oecd_guidelines: required
+    local_transfer_pricing_rules: required
+    anti_avoidance_provisions: required
+    
+  audit_trail:
+    retention_years: 10
+    documentation:
+      - agreements
+      - invoices
+      - pricing_support
+      - reconciliations
+      - payment_records
+      
+  annual_review:
+    transfer_pricing_study: required
+    benchmark_update: "Every 3 years minimum"
+
+related_standards:
+  - id: ASC-810
+    description: "Consolidation"
+  - id: ASC-850
+    description: "Related Party Disclosures"
+
+related_procedures:
+  - id: PROC-RECON-003
+    name: "Intercompany Reconciliation"
+  - id: PROC-CLOSE-005
+    name: "Intercompany Elimination"

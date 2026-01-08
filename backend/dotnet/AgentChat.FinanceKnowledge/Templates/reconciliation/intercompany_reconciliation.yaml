@@ -1,0 +1,469 @@
+id: tmpl-intercompany-reconciliation
+name: Intercompany Reconciliation Workpaper
+version: "1.0"
+category: reconciliation
+subcategory: intercompany
+description: |
+  Intercompany reconciliation template for reconciling balances 
+  between related entities. Supports multi-entity reconciliation 
+  with automatic variance detection and elimination entries.
+purpose: |
+  Standardized workpaper for intercompany reconciliations to ensure 
+  proper elimination of intercompany balances during consolidation.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-intercompany-reconciliation
+  - proc-intercompany-elimination
+
+related_policies:
+  - pol-intercompany
+
+sheets:
+  - name: Summary
+    description: Intercompany reconciliation summary
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Reconciliation Period:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "As of Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Prepared By:"
+          cell: D1
+          value_cell: E1
+          type: text
+        - label: "Prepared Date:"
+          cell: D2
+          value_cell: E2
+          type: date
+          format: "YYYY-MM-DD"
+    formulas:
+      - name: total_pairs
+        cell: B5
+        formula: "=COUNTA('Pair Summary'!A:A)-1"
+        description: "Total IC Pairs"
+      - name: reconciled_pairs
+        cell: B6
+        formula: "=COUNTIF('Pair Summary'!G:G,\"Reconciled\")"
+        description: "Reconciled Pairs"
+      - name: variance_pairs
+        cell: B7
+        formula: "=COUNTIF('Pair Summary'!G:G,\"Variance\")"
+        description: "Pairs with Variance"
+      - name: total_variance
+        cell: B8
+        formula: "=SUMIF('Pair Summary'!G:G,\"Variance\",'Pair Summary'!F:F)"
+        description: "Total Variance Amount"
+        format: "#,##0.00"
+      - name: reconciliation_rate
+        cell: E5
+        formula: "=IF(B5>0,B6/B5,0)"
+        description: "Reconciliation Rate"
+        format: "0%"
+    conditional_formatting:
+      - range: "B8"
+        condition: "ABS(value)>1000"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+      - range: "E5"
+        condition: "value<1"
+        style:
+          background_color: "#FFE066"
+          bold: true
+
+  - name: Pair Summary
+    description: Summary of all intercompany pairs
+    type: data
+    columns:
+      - name: pair_id
+        header: "Pair ID"
+        type: text
+        width: 12
+        required: true
+      - name: entity_1
+        header: "Entity 1"
+        type: text
+        width: 12
+        required: true
+      - name: entity_1_balance
+        header: "Entity 1 Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+        required: true
+      - name: entity_2
+        header: "Entity 2"
+        type: text
+        width: 12
+        required: true
+      - name: entity_2_balance
+        header: "Entity 2 Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+        required: true
+      - name: variance
+        header: "Variance"
+        type: formula
+        formula: "=C{row}+E{row}"
+        format: "#,##0.00"
+        width: 15
+        description: "Should be zero if reconciled (receivable + payable = 0)"
+      - name: status
+        header: "Status"
+        type: formula
+        formula: "=IF(ABS(F{row})<0.01,\"Reconciled\",\"Variance\")"
+        width: 12
+      - name: ic_type
+        header: "IC Type"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Trade
+          - Loan
+          - Dividend
+          - Management Fee
+          - Royalty
+          - Other
+      - name: currency
+        header: "Currency"
+        type: text
+        width: 10
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+    conditional_formatting:
+      - range: "G:G"
+        condition: "value=\"Variance\""
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "G:G"
+        condition: "value=\"Reconciled\""
+        style:
+          background_color: "#51CF66"
+          font_color: "#FFFFFF"
+
+  - name: Detail - Receivables
+    description: Intercompany receivables by entity
+    type: data
+    columns:
+      - name: recording_entity
+        header: "Recording Entity"
+        type: text
+        width: 15
+        required: true
+      - name: counterparty_entity
+        header: "Counterparty"
+        type: text
+        width: 15
+        required: true
+      - name: account_number
+        header: "Account"
+        type: text
+        width: 15
+      - name: invoice_number
+        header: "Invoice #"
+        type: text
+        width: 15
+      - name: invoice_date
+        header: "Invoice Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: due_date
+        header: "Due Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: original_amount
+        header: "Original Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: currency
+        header: "Currency"
+        type: text
+        width: 10
+      - name: outstanding_amount
+        header: "Outstanding"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: aging_bucket
+        header: "Aging"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Current
+          - 1-30 Days
+          - 31-60 Days
+          - 61-90 Days
+          - 90+ Days
+      - name: matched
+        header: "Matched?"
+        type: dropdown
+        width: 10
+        allowed_values:
+          - "Yes"
+          - "No"
+          - "Partial"
+      - name: description
+        header: "Description"
+        type: text
+        width: 30
+
+  - name: Detail - Payables
+    description: Intercompany payables by entity
+    type: data
+    columns:
+      - name: recording_entity
+        header: "Recording Entity"
+        type: text
+        width: 15
+        required: true
+      - name: counterparty_entity
+        header: "Counterparty"
+        type: text
+        width: 15
+        required: true
+      - name: account_number
+        header: "Account"
+        type: text
+        width: 15
+      - name: invoice_number
+        header: "Invoice #"
+        type: text
+        width: 15
+      - name: invoice_date
+        header: "Invoice Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: due_date
+        header: "Due Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: original_amount
+        header: "Original Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: currency
+        header: "Currency"
+        type: text
+        width: 10
+      - name: outstanding_amount
+        header: "Outstanding"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: aging_bucket
+        header: "Aging"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Current
+          - 1-30 Days
+          - 31-60 Days
+          - 61-90 Days
+          - 90+ Days
+      - name: matched
+        header: "Matched?"
+        type: dropdown
+        width: 10
+        allowed_values:
+          - "Yes"
+          - "No"
+          - "Partial"
+      - name: description
+        header: "Description"
+        type: text
+        width: 30
+
+  - name: Variance Analysis
+    description: Analysis of unreconciled variances
+    type: data
+    columns:
+      - name: pair_id
+        header: "Pair ID"
+        type: text
+        width: 12
+        required: true
+      - name: variance_amount
+        header: "Variance Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: variance_type
+        header: "Variance Type"
+        type: dropdown
+        width: 18
+        allowed_values:
+          - Timing Difference
+          - Currency Difference
+          - Recording Error
+          - Unrecorded Transaction
+          - Disputed Amount
+          - Other
+      - name: responsible_entity
+        header: "Responsible Entity"
+        type: text
+        width: 15
+      - name: root_cause
+        header: "Root Cause"
+        type: text
+        width: 40
+      - name: resolution_action
+        header: "Resolution Action"
+        type: text
+        width: 40
+      - name: due_date
+        header: "Resolution Due"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Open
+          - In Progress
+          - Resolved
+          - Escalated
+      - name: je_reference
+        header: "JE Reference"
+        type: text
+        width: 15
+        description: "Correcting journal entry if applicable"
+
+  - name: Elimination Entry
+    description: Consolidation elimination entry
+    type: data
+    header:
+      fields:
+        - label: "Elimination JE Number:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Elimination Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+    columns:
+      - name: line_number
+        header: "Line #"
+        type: number
+        width: 8
+      - name: entity
+        header: "Entity"
+        type: text
+        width: 12
+      - name: account_number
+        header: "Account"
+        type: text
+        width: 15
+      - name: account_name
+        header: "Account Name"
+        type: text
+        width: 30
+      - name: debit
+        header: "Debit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: credit
+        header: "Credit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: description
+        header: "Description"
+        type: text
+        width: 35
+    formulas:
+      - name: total_debits
+        cell: E50
+        formula: "=SUM(E2:E49)"
+        format: "#,##0.00"
+      - name: total_credits
+        cell: F50
+        formula: "=SUM(F2:F49)"
+        format: "#,##0.00"
+      - name: balance_check
+        cell: E51
+        formula: "=E50-F50"
+        format: "#,##0.00"
+
+  - name: Sign-Off
+    description: Reconciliation sign-off
+    type: data
+    columns:
+      - name: role
+        header: "Role"
+        type: dropdown
+        width: 20
+        allowed_values:
+          - Preparer
+          - Reviewer
+          - Approver
+      - name: entity
+        header: "Entity"
+        type: text
+        width: 12
+      - name: name
+        header: "Name"
+        type: text
+        width: 25
+      - name: date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Pending
+          - Approved
+          - Approved with Comments
+          - Rejected
+      - name: comments
+        header: "Comments"
+        type: text
+        width: 40
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - reconciliation
+  - intercompany
+  - consolidation
+  - elimination
+  - month_end

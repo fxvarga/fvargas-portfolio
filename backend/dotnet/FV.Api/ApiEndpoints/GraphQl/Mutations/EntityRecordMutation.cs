@@ -1,5 +1,8 @@
 using System.Text.Json;
-using FV.Application.Commands.EntityRecord;
+using FV.Domain.Entities;
+using FV.Domain.Interfaces;
+using FV.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace FV.Api.ApiEndpoints.GraphQl.Mutations;
 
@@ -8,16 +11,29 @@ public class EntityRecordMutations
 {
     public async Task<Guid> CreateEntityRecord(
         CreateEntityRecordInput input,
-        [Service] CreateEntityRecordHandler handler)
+        [Service] CmsDbContext dbContext,
+        [Service] ITenantContext tenantContext)
     {
-        var dataDict = JsonSerializer.Deserialize<Dictionary<string, object?>>(input.Data.GetRawText())!;
-
-        var command = new CreateEntityRecordCommand
+        if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
         {
+            throw new InvalidOperationException("Tenant context not resolved");
+        }
+
+        var record = new EntityRecord
+        {
+            Id = Guid.NewGuid(),
             EntityType = input.EntityType,
-            Data = dataDict
+            JsonData = input.Data.GetRawText(),
+            IsDraft = true, // Default to draft
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Version = 1,
+            PublishedAt = null,
+            PortfolioId = tenantContext.PortfolioId.Value
         };
 
-        return await handler.HandleAsync(command);
+        dbContext.EntityRecords.Add(record);
+        await dbContext.SaveChangesAsync();
+        return record.Id;
     }
 }

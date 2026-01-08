@@ -1,0 +1,278 @@
+id: tmpl-journal-entry-support
+name: Journal Entry Support Documentation
+version: "1.0"
+category: journal_entry
+subcategory: support
+description: |
+  Standard journal entry support template for documenting and supporting 
+  accounting entries. Includes entry details, line items, approvals, 
+  and supporting documentation checklist.
+purpose: |
+  Provides standardized documentation for journal entries to ensure 
+  proper audit trail and compliance with internal controls.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-reclassification
+  - proc-standard-accrual
+  - proc-reversing-entry
+
+related_policies:
+  - pol-je-001
+
+sheets:
+  - name: Entry Details
+    description: Journal entry header information and summary
+    type: data
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Entry Number:"
+          cell: A2
+          value_cell: B2
+          type: text
+        - label: "Entry Date:"
+          cell: A3
+          value_cell: B3
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Entry Type:"
+          cell: D3
+          value_cell: E3
+          type: dropdown
+          allowed_values:
+            - STANDARD
+            - REVERSING
+            - RECURRING
+            - ADJUSTMENT
+            - RECLASSIFICATION
+        - label: "Description:"
+          cell: A5
+          value_cell: B5
+          type: text
+        - label: "Prepared By:"
+          cell: A6
+          value_cell: B6
+          type: text
+        - label: "Prepared Date:"
+          cell: D6
+          value_cell: E6
+          type: date
+        - label: "Total Debits:"
+          cell: A8
+          value_cell: B8
+          type: currency
+          format: "#,##0.00"
+          formula: "=SUMIF(Lines!D:D,\">0\",Lines!D:D)"
+        - label: "Total Credits:"
+          cell: D8
+          value_cell: E8
+          type: currency
+          format: "#,##0.00"
+          formula: "=SUMIF(Lines!E:E,\">0\",Lines!E:E)"
+        - label: "Difference:"
+          cell: A9
+          value_cell: B9
+          type: currency
+          format: "#,##0.00"
+          formula: "=B8-E8"
+
+  - name: Lines
+    description: Journal entry line items
+    type: data
+    columns:
+      - name: line_number
+        header: "Line #"
+        type: number
+        width: 8
+        required: true
+      - name: account_number
+        header: "Account Number"
+        type: text
+        width: 15
+        required: true
+        description: "GL Account Number"
+      - name: account_name
+        header: "Account Name"
+        type: text
+        width: 30
+        required: true
+      - name: debit_amount
+        header: "Debit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: false
+      - name: credit_amount
+        header: "Credit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: false
+      - name: cost_center
+        header: "Cost Center"
+        type: text
+        width: 12
+        required: false
+      - name: project_code
+        header: "Project"
+        type: text
+        width: 12
+        required: false
+      - name: line_description
+        header: "Description"
+        type: text
+        width: 40
+        required: true
+      - name: reference
+        header: "Reference"
+        type: text
+        width: 20
+        required: false
+        description: "Supporting document reference"
+    validations:
+      - column: debit_amount
+        rule: "NOT(AND(debit_amount>0,credit_amount>0))"
+        error_message: "Line cannot have both debit and credit"
+      - column: account_number
+        rule: "LEN(account_number)>=4"
+        error_message: "Account number must be at least 4 characters"
+    formulas:
+      - name: total_debits
+        cell: D100
+        formula: "=SUM(D2:D99)"
+        format: "#,##0.00"
+      - name: total_credits
+        cell: E100
+        formula: "=SUM(E2:E99)"
+        format: "#,##0.00"
+    conditional_formatting:
+      - range: "D2:E99"
+        condition: "value>0"
+        style:
+          font_color: "#000000"
+      - range: "B9"
+        condition: "value<>0"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+
+  - name: Support Documentation
+    description: Checklist of supporting documentation
+    type: data
+    columns:
+      - name: doc_type
+        header: "Document Type"
+        type: dropdown
+        width: 25
+        required: true
+        allowed_values:
+          - Invoice
+          - Contract
+          - Calculation Workpaper
+          - Bank Statement
+          - Vendor Statement
+          - System Report
+          - Email Approval
+          - Other
+      - name: doc_reference
+        header: "Reference/File Name"
+        type: text
+        width: 40
+        required: true
+      - name: doc_date
+        header: "Document Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: doc_amount
+        header: "Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: attached
+        header: "Attached?"
+        type: dropdown
+        width: 10
+        allowed_values:
+          - "Yes"
+          - "No"
+          - "N/A"
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 40
+
+  - name: Approvals
+    description: Approval workflow tracking
+    type: data
+    columns:
+      - name: approval_level
+        header: "Level"
+        type: number
+        width: 8
+      - name: approver_role
+        header: "Role"
+        type: text
+        width: 20
+      - name: approver_name
+        header: "Approver Name"
+        type: text
+        width: 25
+      - name: approval_status
+        header: "Status"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Pending
+          - Approved
+          - Rejected
+          - Not Required
+      - name: approval_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: comments
+        header: "Comments"
+        type: text
+        width: 40
+
+  - name: Instructions
+    description: Template usage instructions
+    type: instructions
+    protected: true
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+  company: "{{company_name}}"
+
+tags:
+  - journal_entry
+  - support
+  - documentation
+  - audit
+  - controls

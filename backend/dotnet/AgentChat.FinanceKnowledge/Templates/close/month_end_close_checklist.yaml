@@ -1,0 +1,456 @@
+id: tmpl-month-end-close-checklist
+name: Month-End Close Checklist
+version: "1.0"
+category: close
+subcategory: checklist
+description: |
+  Comprehensive month-end close checklist template for tracking 
+  all close activities, assignments, and completion status.
+purpose: |
+  Provides a standardized checklist to ensure all month-end close 
+  activities are completed timely and documented properly.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-monthly-depreciation
+  - proc-prepaid-amortization
+  - proc-rent-accrual
+  - proc-fx-revaluation
+  - proc-intercompany-elimination
+
+related_policies:
+  - pol-close-calendar
+
+sheets:
+  - name: Close Summary
+    description: Overall close status summary
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Entity Name:"
+          cell: A2
+          value_cell: B2
+          type: text
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Period End Date:"
+          cell: A3
+          value_cell: B3
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Close Deadline:"
+          cell: D3
+          value_cell: E3
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Controller:"
+          cell: A4
+          value_cell: B4
+          type: text
+    formulas:
+      - name: total_tasks
+        cell: B7
+        formula: "=COUNTA(Checklist!A:A)-1"
+        description: "Total Close Tasks"
+      - name: completed_tasks
+        cell: B8
+        formula: "=COUNTIF(Checklist!F:F,\"Completed\")"
+        description: "Completed Tasks"
+      - name: in_progress_tasks
+        cell: B9
+        formula: "=COUNTIF(Checklist!F:F,\"In Progress\")"
+        description: "In Progress Tasks"
+      - name: blocked_tasks
+        cell: B10
+        formula: "=COUNTIF(Checklist!F:F,\"Blocked\")"
+        description: "Blocked Tasks"
+      - name: completion_percentage
+        cell: E7
+        formula: "=IF(B7>0,B8/B7,0)"
+        description: "Completion %"
+        format: "0%"
+      - name: days_to_deadline
+        cell: E8
+        formula: "=E3-TODAY()"
+        description: "Days to Deadline"
+      - name: on_track
+        cell: E9
+        formula: "=IF(AND(E8>=0,E7>=0.8),\"On Track\",IF(E8<0,\"Overdue\",\"At Risk\"))"
+        description: "Close Status"
+    conditional_formatting:
+      - range: "E9"
+        condition: "value=\"On Track\""
+        style:
+          background_color: "#51CF66"
+          font_color: "#FFFFFF"
+          bold: true
+      - range: "E9"
+        condition: "value=\"At Risk\""
+        style:
+          background_color: "#FFE066"
+          bold: true
+      - range: "E9"
+        condition: "value=\"Overdue\""
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+
+  - name: Checklist
+    description: Detailed close task checklist
+    type: data
+    columns:
+      - name: task_id
+        header: "Task ID"
+        type: text
+        width: 10
+        required: true
+      - name: category
+        header: "Category"
+        type: dropdown
+        width: 18
+        required: true
+        allowed_values:
+          - Subledger Close
+          - Journal Entries
+          - Reconciliations
+          - Accruals & Reserves
+          - Intercompany
+          - Consolidation
+          - Reporting
+          - Review & Approval
+      - name: task_description
+        header: "Task Description"
+        type: text
+        width: 45
+        required: true
+      - name: assigned_to
+        header: "Assigned To"
+        type: text
+        width: 20
+        required: true
+      - name: due_date
+        header: "Due Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+        required: true
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 15
+        required: true
+        allowed_values:
+          - Not Started
+          - In Progress
+          - Completed
+          - Blocked
+          - N/A
+      - name: completion_date
+        header: "Completed"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: days_variance
+        header: "Variance"
+        type: formula
+        formula: "=IF(G{row}<>\"\",G{row}-E{row},TODAY()-E{row})"
+        width: 10
+        description: "Days early (negative) or late (positive)"
+      - name: predecessor
+        header: "Predecessor"
+        type: text
+        width: 12
+        description: "Task ID of prerequisite task"
+      - name: journal_entry_ref
+        header: "JE Ref"
+        type: text
+        width: 12
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 35
+    conditional_formatting:
+      - range: "F:F"
+        condition: "value=\"Completed\""
+        style:
+          background_color: "#D3F9D8"
+      - range: "F:F"
+        condition: "value=\"Blocked\""
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "F:F"
+        condition: "value=\"In Progress\""
+        style:
+          background_color: "#E7F5FF"
+      - range: "H:H"
+        condition: "value>0"
+        style:
+          font_color: "#FF0000"
+          bold: true
+      - range: "H:H"
+        condition: "value<0"
+        style:
+          font_color: "#008000"
+
+  - name: Subledger Status
+    description: Subledger close status tracking
+    type: data
+    columns:
+      - name: subledger
+        header: "Subledger"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Accounts Payable
+          - Accounts Receivable
+          - Fixed Assets
+          - Inventory
+          - Payroll
+          - Projects
+          - Intercompany
+      - name: module
+        header: "Module/System"
+        type: text
+        width: 20
+      - name: responsible_party
+        header: "Responsible"
+        type: text
+        width: 20
+      - name: cutoff_date
+        header: "Cutoff Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: close_date
+        header: "Close Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Open
+          - Soft Close
+          - Hard Close
+      - name: recon_status
+        header: "Recon Status"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Not Started
+          - In Progress
+          - Completed
+          - Exception
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+
+  - name: JE Log
+    description: Journal entry log for the close
+    type: data
+    columns:
+      - name: je_number
+        header: "JE Number"
+        type: text
+        width: 15
+        required: true
+      - name: je_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: je_type
+        header: "Type"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Standard
+          - Recurring
+          - Reversing
+          - Adjustment
+          - Reclassification
+          - Accrual
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+      - name: debit_total
+        header: "Total Debit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: credit_total
+        header: "Total Credit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: prepared_by
+        header: "Prepared By"
+        type: text
+        width: 15
+      - name: approved_by
+        header: "Approved By"
+        type: text
+        width: 15
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Draft
+          - Pending Approval
+          - Approved
+          - Posted
+          - Reversed
+      - name: related_task
+        header: "Task ID"
+        type: text
+        width: 10
+
+  - name: Issues Log
+    description: Log of issues encountered during close
+    type: data
+    columns:
+      - name: issue_id
+        header: "Issue ID"
+        type: text
+        width: 10
+        required: true
+      - name: date_identified
+        header: "Date Identified"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: category
+        header: "Category"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Data Issue
+          - System Issue
+          - Process Issue
+          - Timing Issue
+          - Resource Issue
+          - Other
+      - name: description
+        header: "Description"
+        type: text
+        width: 45
+        required: true
+      - name: impact
+        header: "Impact"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - High
+          - Medium
+          - Low
+      - name: assigned_to
+        header: "Assigned To"
+        type: text
+        width: 20
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Open
+          - In Progress
+          - Resolved
+          - Escalated
+      - name: resolution
+        header: "Resolution"
+        type: text
+        width: 40
+      - name: date_resolved
+        header: "Date Resolved"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+    conditional_formatting:
+      - range: "E:E"
+        condition: "value=\"High\""
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+      - range: "G:G"
+        condition: "value=\"Escalated\""
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+
+  - name: Sign-Off
+    description: Close sign-off and certification
+    type: data
+    header:
+      fields:
+        - label: "Close Certification"
+          cell: A1
+          type: text
+        - label: "I certify that all close activities have been completed accurately and in accordance with company policies."
+          cell: A3
+          type: text
+    columns:
+      - name: role
+        header: "Role"
+        type: text
+        width: 25
+      - name: name
+        header: "Name"
+        type: text
+        width: 25
+      - name: signature_date
+        header: "Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: certification
+        header: "Certification"
+        type: dropdown
+        width: 20
+        allowed_values:
+          - Pending
+          - Certified
+          - Certified with Exceptions
+      - name: exceptions
+        header: "Exceptions (if any)"
+        type: text
+        width: 50
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - close
+  - checklist
+  - month_end
+  - tracking
+  - workflow

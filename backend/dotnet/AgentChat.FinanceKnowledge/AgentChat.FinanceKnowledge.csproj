@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AgentChat.Shared\AgentChat.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="YamlDotNet" Version="16.2.1" />
+  </ItemGroup>
+
+  <!-- Embed YAML files as resources -->
+  <ItemGroup>
+    <EmbeddedResource Include="Procedures\**\*.yaml" />
+    <EmbeddedResource Include="Standards\*.yaml" />
+    <EmbeddedResource Include="Policies\*.yaml" />
+    <EmbeddedResource Include="Templates\**\*.yaml" />
+  </ItemGroup>
+
+</Project>

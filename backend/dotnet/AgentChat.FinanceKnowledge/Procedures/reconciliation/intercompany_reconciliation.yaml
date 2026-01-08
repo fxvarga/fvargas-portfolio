@@ -1,0 +1,153 @@
+id: proc-intercompany-reconciliation
+name: Intercompany Balance Reconciliation
+version: "1.0"
+category: reconciliation
+subcategory: intercompany
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 4
+  depends_on:
+    - all_entities_closed
+
+description: |
+  Reconcile intercompany receivable and payable balances between legal 
+  entities to ensure they are in agreement before consolidation eliminations.
+  Identify and resolve any out-of-balance conditions.
+
+applies_to:
+  entities: all
+  account_types:
+    - intercompany_receivable
+    - intercompany_payable
+
+related_standards:
+  - id: asc810
+    name: Consolidation
+    sections:
+      - "810-10"
+
+related_policies:
+  - id: pol-ic-001
+    name: Intercompany Policy
+  - id: pol-ic-002
+    name: Intercompany Settlement Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Get all intercompany receivable balances"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        period: "${current_period}"
+        account_type: intercompany_receivable
+    output: ic_receivables
+
+  - sequence: 2
+    action: retrieve_data
+    description: "Get all intercompany payable balances"
+    tool_hint: datalake_query
+    parameters:
+      dataset: gl_balances
+      filters:
+        period: "${current_period}"
+        account_type: intercompany_payable
+    output: ic_payables
+
+  - sequence: 3
+    action: transform
+    description: "Create IC relationship pairs for matching"
+    tool_hint: datalake_join
+    parameters:
+      left: "${ic_receivables}"
+      right: "${ic_payables}"
+      join_type: full_outer
+      left_key: 
+        - entity_code
+        - counterparty_entity
+      right_key:
+        - counterparty_entity
+        - entity_code
+    output: ic_pairs
+
+  - sequence: 4
+    action: calculate
+    description: "Calculate out-of-balance amounts for each IC pair"
+    tool_hint: calc_variance
+    parameters:
+      data: "${ic_pairs}"
+      receivable_field: receivable_balance
+      payable_field: payable_balance
+    output: ic_variances
+
+  - sequence: 5
+    action: filter
+    description: "Identify pairs with material out-of-balance"
+    tool_hint: datalake_query
+    parameters:
+      data: "${ic_variances}"
+      filters:
+        abs_variance:
+          gt: 1.00
+    output: oob_pairs
+
+  - sequence: 6
+    action: conditional
+    description: "If out-of-balance items exist, investigate root cause"
+    condition: "${count(oob_pairs)} > 0"
+    tool_hint: investigate_ic_variance
+    parameters:
+      pairs: "${oob_pairs}"
+      look_for:
+        - timing_differences
+        - unrecorded_transactions
+        - fx_differences
+        - posting_errors
+    output: investigation_results
+
+  - sequence: 7
+    action: create_reconciliation
+    description: "Create IC reconciliation document for each entity pair"
+    tool_hint: sor_reconciliation_create
+    parameters:
+      reconciliation_type: intercompany
+      period: "${current_period}"
+      pairs: "${ic_variances}"
+      issues: "${oob_pairs}"
+      investigation: "${investigation_results}"
+    output: reconciliation_ids
+
+  - sequence: 8
+    action: conditional
+    description: "If unresolved variances, notify IC coordinator"
+    condition: "${count(oob_pairs)} > 0 && !${all_resolved}"
+    tool_hint: notification_send
+    parameters:
+      recipient: ic_coordinator
+      subject: "IC Reconciliation Variances - ${period_name}"
+      body: "Found ${count(oob_pairs)} IC pairs with out-of-balance conditions"
+
+  - sequence: 9
+    action: update_close_task
+    description: "Update IC reconciliation task status"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: intercompany_reconciliation
+      status: "${count(oob_pairs) == 0 ? 'completed' : 'pending_resolution'}"
+      notes: "Reconciled ${count(ic_pairs)} pairs. OOB: ${count(oob_pairs)}"
+
+validation_rules:
+  - name: offsetting_balances
+    description: "IC AR at Entity A should equal IC AP at Entity B"
+  - name: currency_consistency
+    description: "Both sides must use consistent exchange rates"
+  - name: complete_matching
+    description: "All IC accounts must have a counterparty match"
+
+tags:
+  - reconciliation
+  - intercompany
+  - consolidation
+  - month_end

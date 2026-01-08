@@ -1,0 +1,135 @@
+id: proc-prepaid-amortization
+name: Prepaid Expense Amortization
+version: "1.0"
+category: close
+subcategory: prepaids
+frequency: monthly
+trigger:
+  type: close_calendar
+  day: 2
+  depends_on: []
+
+description: |
+  Amortize prepaid expenses (insurance, software subscriptions, etc.) 
+  to recognize the expense over the benefit period. This ensures proper 
+  matching of expenses to the periods benefited.
+
+applies_to:
+  entities: all
+  account_types:
+    - prepaid_insurance
+    - prepaid_software
+    - prepaid_maintenance
+    - prepaid_rent
+    - other_prepaids
+
+related_standards:
+  - id: asc340
+    name: Other Assets and Deferred Costs
+    sections:
+      - "340-10"
+
+related_policies:
+  - id: pol-prepaid-001
+    name: Prepaid Expense Policy
+
+steps:
+  - sequence: 1
+    action: retrieve_data
+    description: "Query the prepaid schedule from data lake for all active prepaids"
+    tool_hint: datalake_query
+    parameters:
+      dataset: prepaid_schedule
+      filters:
+        status: active
+        start_date:
+          lte: "${period_end_date}"
+        end_date:
+          gte: "${period_start_date}"
+    output: active_prepaids
+
+  - sequence: 2
+    action: calculate
+    description: "Calculate monthly amortization for each prepaid using straight-line method"
+    tool_hint: calc_amortization
+    parameters:
+      items: "${active_prepaids}"
+      method: straight_line
+      period: "${current_period}"
+    output: amortization_amounts
+
+  - sequence: 3
+    action: aggregate
+    description: "Group amortization amounts by entity and expense category"
+    tool_hint: datalake_aggregate
+    parameters:
+      data: "${amortization_amounts}"
+      group_by:
+        - entity_code
+        - expense_category
+      aggregations:
+        amortization_amount: sum
+    output: grouped_amortization
+
+  - sequence: 4
+    action: create_journal_entry
+    description: "Create amortization journal entry for each entity"
+    tool_hint: sor_journal_entry_create
+    requires_approval: true
+    approval_threshold: 10000
+    parameters:
+      entries_template: |
+        For each entity/category in grouped_amortization:
+          Debit: Expense Account (by category)
+          Credit: Prepaid Asset Account (by category)
+      description: "Prepaid amortization - ${period_name}"
+      source: AI-Generated
+      procedure_id: proc-prepaid-amortization
+    output: journal_entry_ids
+
+  - sequence: 5
+    action: reconcile
+    description: "Reconcile prepaid balances to supporting schedule"
+    tool_hint: sor_reconciliation_create
+    parameters:
+      account_type: prepaid_expenses
+      period: "${current_period}"
+      source_system: prepaid_schedule
+    output: reconciliation_result
+
+  - sequence: 6
+    action: update_close_task
+    description: "Mark prepaid amortization task as complete"
+    tool_hint: sor_close_task_update
+    parameters:
+      task_id: prepaid_amortization
+      status: completed
+
+accounts_mapping:
+  prepaid_assets:
+    insurance: "1310"
+    software: "1320"
+    maintenance: "1330"
+    rent: "1340"
+    other: "1390"
+  expense_accounts:
+    insurance: "6300"
+    software: "6310"
+    maintenance: "6320"
+    rent: "6200"
+    other: "6390"
+
+validation_rules:
+  - name: balanced_entry
+    description: "Journal entry must be balanced"
+  - name: no_over_amortization
+    description: "Cannot amortize more than remaining prepaid balance"
+  - name: period_open
+    description: "Posting period must be open"
+
+tags:
+  - amortization
+  - prepaid
+  - month_end
+  - close
+  - expense

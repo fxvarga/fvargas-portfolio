@@ -1,0 +1,486 @@
+id: tmpl-accrual-rollforward
+name: Accrual Rollforward Workpaper
+version: "1.0"
+category: close
+subcategory: accruals
+description: |
+  Monthly accrual tracking and rollforward workpaper for managing all 
+  accrued liabilities. Tracks accrual balances, reversals, payments, 
+  and new accruals with aging analysis.
+purpose: |
+  Provides comprehensive tracking of all accrued expenses to ensure 
+  proper cut-off, timely reversal, and accurate liability balances.
+  Supports month-end close and audit requirements.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-standard-accrual
+  - proc-reversing-entry
+
+related_policies:
+  - pol-close-001
+
+sheets:
+  - name: Summary
+    description: Accrual summary by category
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "Period End Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+        - label: "Prepared By:"
+          cell: A3
+          value_cell: B3
+          type: text
+        - label: "Prepared Date:"
+          cell: D3
+          value_cell: E3
+          type: date
+    formulas:
+      - name: total_beginning
+        cell: B6
+        formula: "=SUM('Accrual Detail'!E:E)"
+        description: "Total Beginning Balance"
+        format: "#,##0.00"
+      - name: total_reversals
+        cell: B7
+        formula: "=SUM('Accrual Detail'!F:F)"
+        description: "Total Reversals"
+        format: "#,##0.00"
+      - name: total_payments
+        cell: B8
+        formula: "=SUM('Accrual Detail'!G:G)"
+        description: "Total Payments/Settlements"
+        format: "#,##0.00"
+      - name: total_new_accruals
+        cell: B9
+        formula: "=SUM('Accrual Detail'!H:H)"
+        description: "Total New Accruals"
+        format: "#,##0.00"
+      - name: total_ending
+        cell: B10
+        formula: "=SUM('Accrual Detail'!I:I)"
+        description: "Total Ending Balance"
+        format: "#,##0.00"
+      - name: net_change
+        cell: B11
+        formula: "=B10-B6"
+        description: "Net Change"
+        format: "#,##0.00"
+
+  - name: Accrual Detail
+    description: Detailed accrual tracking by item
+    type: data
+    columns:
+      - name: accrual_id
+        header: "Accrual ID"
+        type: text
+        width: 12
+        required: true
+        description: "Unique accrual identifier"
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+        required: true
+      - name: category
+        header: "Category"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Compensation & Benefits
+          - Professional Services
+          - Utilities
+          - Rent
+          - Taxes
+          - Interest
+          - Royalties
+          - Marketing
+          - IT Services
+          - Maintenance
+          - Legal
+          - Insurance
+          - Other Operating
+      - name: vendor_payee
+        header: "Vendor/Payee"
+        type: text
+        width: 25
+      - name: beginning_balance
+        header: "Beginning Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: reversals
+        header: "Reversals"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: payments
+        header: "Payments"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+        description: "Actual payments/settlements"
+      - name: new_accrual
+        header: "New Accrual"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: ending_balance
+        header: "Ending Balance"
+        type: formula
+        formula: "=E{row}-F{row}-G{row}+H{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: gl_account
+        header: "GL Account"
+        type: text
+        width: 12
+        required: true
+      - name: expense_account
+        header: "Expense Account"
+        type: text
+        width: 12
+      - name: cost_center
+        header: "Cost Center"
+        type: text
+        width: 12
+      - name: accrual_type
+        header: "Accrual Type"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Recurring
+          - Non-recurring
+          - True-up
+          - Estimate
+      - name: frequency
+        header: "Frequency"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - Monthly
+          - Quarterly
+          - Semi-annual
+          - Annual
+          - One-time
+      - name: support_reference
+        header: "Support Reference"
+        type: text
+        width: 20
+        description: "Invoice, contract, or calculation reference"
+      - name: expected_payment_date
+        header: "Expected Payment"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+      - name: age_months
+        header: "Age (Months)"
+        type: number
+        width: 10
+      - name: notes
+        header: "Notes"
+        type: text
+        width: 30
+    conditional_formatting:
+      - range: "Q:Q"
+        condition: "value>=3"
+        style:
+          background_color: "#FFE066"
+      - range: "Q:Q"
+        condition: "value>=6"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "I:I"
+        condition: "value<0"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+
+  - name: Category Rollforward
+    description: Rollforward summary by category
+    type: summary
+    columns:
+      - name: category
+        header: "Category"
+        type: text
+        width: 25
+      - name: beginning_balance
+        header: "Beginning Balance"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: reversals
+        header: "Reversals"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: payments
+        header: "Payments"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: new_accruals
+        header: "New Accruals"
+        type: currency
+        format: "#,##0.00"
+        width: 12
+      - name: ending_balance
+        header: "Ending Balance"
+        type: formula
+        formula: "=B{row}-C{row}-D{row}+E{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: variance_to_prior
+        header: "Variance to Prior"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+
+  - name: Aging Analysis
+    description: Accrual aging by months outstanding
+    type: summary
+    columns:
+      - name: accrual_id
+        header: "Accrual ID"
+        type: lookup
+        lookup_sheet: "Accrual Detail"
+        lookup_column: "accrual_id"
+        width: 12
+      - name: description
+        header: "Description"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Accrual Detail'!A:B,2,FALSE)"
+        width: 35
+      - name: current
+        header: "Current (0-1 Mo)"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: one_to_three
+        header: "1-3 Months"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: three_to_six
+        header: "3-6 Months"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: six_plus
+        header: "6+ Months"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: total
+        header: "Total"
+        type: formula
+        formula: "=C{row}+D{row}+E{row}+F{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: action_required
+        header: "Action Required"
+        type: dropdown
+        width: 18
+        allowed_values:
+          - None
+          - Follow-up
+          - Write-off
+          - Research
+    conditional_formatting:
+      - range: "F:F"
+        condition: "value>0"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+          bold: true
+
+  - name: True-up Analysis
+    description: Comparison of accruals to actual invoices
+    type: data
+    columns:
+      - name: accrual_id
+        header: "Accrual ID"
+        type: lookup
+        lookup_sheet: "Accrual Detail"
+        lookup_column: "accrual_id"
+        width: 12
+      - name: description
+        header: "Description"
+        type: text
+        width: 35
+      - name: accrued_amount
+        header: "Accrued Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: actual_amount
+        header: "Actual Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: variance
+        header: "Variance"
+        type: formula
+        formula: "=D{row}-C{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: variance_pct
+        header: "Variance %"
+        type: formula
+        formula: "=IF(C{row}=0,0,(D{row}-C{row})/C{row})"
+        format: "0.0%"
+        width: 12
+      - name: invoice_number
+        header: "Invoice #"
+        type: text
+        width: 15
+      - name: invoice_date
+        header: "Invoice Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: variance_explanation
+        header: "Variance Explanation"
+        type: text
+        width: 40
+    conditional_formatting:
+      - range: "F:F"
+        condition: "value>0.1"
+        style:
+          background_color: "#FFE066"
+      - range: "F:F"
+        condition: "value<-0.1"
+        style:
+          background_color: "#FFE066"
+      - range: "F:F"
+        condition: "value>0.25"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+      - range: "F:F"
+        condition: "value<-0.25"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+
+  - name: Monthly Comparison
+    description: Month-over-month accrual comparison
+    type: summary
+    columns:
+      - name: category
+        header: "Category"
+        type: text
+        width: 25
+      - name: prior_month
+        header: "Prior Month"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: current_month
+        header: "Current Month"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: change
+        header: "Change"
+        type: formula
+        formula: "=C{row}-B{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: change_pct
+        header: "Change %"
+        type: formula
+        formula: "=IF(B{row}=0,0,(C{row}-B{row})/B{row})"
+        format: "0.0%"
+        width: 12
+      - name: explanation
+        header: "Explanation"
+        type: text
+        width: 40
+
+  - name: Journal Entries
+    description: Supporting journal entries for period
+    type: data
+    columns:
+      - name: je_number
+        header: "JE Number"
+        type: text
+        width: 15
+        required: true
+      - name: je_type
+        header: "Type"
+        type: dropdown
+        width: 15
+        allowed_values:
+          - Accrual
+          - Reversal
+          - True-up
+      - name: posting_date
+        header: "Posting Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 12
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+      - name: debit_account
+        header: "Debit Account"
+        type: text
+        width: 15
+      - name: credit_account
+        header: "Credit Account"
+        type: text
+        width: 15
+      - name: amount
+        header: "Amount"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: accrual_id
+        header: "Accrual ID"
+        type: lookup
+        lookup_sheet: "Accrual Detail"
+        lookup_column: "accrual_id"
+        width: 12
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - accruals
+  - rollforward
+  - month_end
+  - close
+  - liabilities
+  - audit

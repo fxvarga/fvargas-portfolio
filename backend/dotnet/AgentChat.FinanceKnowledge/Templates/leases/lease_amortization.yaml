@@ -1,0 +1,506 @@
+id: tmpl-lease-amortization
+name: Lease Amortization Schedule (ASC 842)
+version: "1.0"
+category: leases
+subcategory: amortization
+description: |
+  ASC 842 compliant lease amortization schedule for calculating ROU asset 
+  amortization and lease liability payments. Supports both operating and 
+  finance leases with automatic present value calculations.
+purpose: |
+  Provides standardized lease accounting workpapers compliant with ASC 842 
+  requirements. Calculates ROU asset, lease liability, and monthly 
+  amortization entries for all lease types.
+
+applies_to:
+  entities:
+    - "*"
+  business_units:
+    - "*"
+
+related_procedures:
+  - proc-lease-accounting
+
+related_policies:
+  - pol-lease-001
+
+sheets:
+  - name: Lease Summary
+    description: Overview of all leases and key metrics
+    type: summary
+    header:
+      start_row: 1
+      fields:
+        - label: "Entity Code:"
+          cell: A1
+          value_cell: B1
+          type: text
+        - label: "As of Date:"
+          cell: A2
+          value_cell: B2
+          type: date
+          format: "YYYY-MM-DD"
+        - label: "Fiscal Year:"
+          cell: D1
+          value_cell: E1
+          type: number
+        - label: "Fiscal Period:"
+          cell: D2
+          value_cell: E2
+          type: number
+    formulas:
+      - name: total_rou_asset
+        cell: B5
+        formula: "=SUM('Lease Register'!J:J)"
+        description: "Total ROU Asset (Net)"
+        format: "#,##0.00"
+      - name: total_lease_liability
+        cell: B6
+        formula: "=SUM('Lease Register'!K:K)"
+        description: "Total Lease Liability"
+        format: "#,##0.00"
+      - name: current_liability
+        cell: B7
+        formula: "=SUMIF('Amortization Schedule'!H:H,\"<=12\",'Amortization Schedule'!F:F)"
+        description: "Current Portion of Lease Liability"
+        format: "#,##0.00"
+      - name: noncurrent_liability
+        cell: B8
+        formula: "=B6-B7"
+        description: "Non-current Portion of Lease Liability"
+        format: "#,##0.00"
+      - name: operating_lease_count
+        cell: E5
+        formula: "=COUNTIF('Lease Register'!F:F,\"Operating\")"
+        description: "Number of Operating Leases"
+      - name: finance_lease_count
+        cell: E6
+        formula: "=COUNTIF('Lease Register'!F:F,\"Finance\")"
+        description: "Number of Finance Leases"
+      - name: current_month_expense
+        cell: B10
+        formula: "=SUMPRODUCT(('Amortization Schedule'!A:A=E1)*('Amortization Schedule'!B:B=E2)*('Amortization Schedule'!G:G))"
+        description: "Current Month Lease Expense"
+        format: "#,##0.00"
+
+  - name: Lease Register
+    description: Master list of all leases
+    type: data
+    columns:
+      - name: lease_id
+        header: "Lease ID"
+        type: text
+        width: 12
+        required: true
+        description: "Unique lease identifier"
+      - name: lease_name
+        header: "Lease Name/Description"
+        type: text
+        width: 35
+        required: true
+      - name: lessor
+        header: "Lessor"
+        type: text
+        width: 25
+        required: true
+      - name: asset_type
+        header: "Asset Type"
+        type: dropdown
+        width: 20
+        required: true
+        allowed_values:
+          - Real Estate - Office
+          - Real Estate - Retail
+          - Real Estate - Warehouse
+          - Equipment
+          - Vehicles
+          - IT Equipment
+          - Other
+      - name: location
+        header: "Location"
+        type: text
+        width: 25
+      - name: lease_classification
+        header: "Classification"
+        type: dropdown
+        width: 15
+        required: true
+        allowed_values:
+          - Operating
+          - Finance
+      - name: commencement_date
+        header: "Commencement Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+        required: true
+      - name: expiration_date
+        header: "Expiration Date"
+        type: date
+        format: "YYYY-MM-DD"
+        width: 15
+        required: true
+      - name: lease_term_months
+        header: "Lease Term (Mo)"
+        type: number
+        width: 12
+        required: true
+      - name: rou_asset_net
+        header: "ROU Asset (Net)"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: lease_liability
+        header: "Lease Liability"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: monthly_payment
+        header: "Monthly Payment"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        required: true
+      - name: annual_escalation
+        header: "Annual Escalation %"
+        type: percentage
+        format: "0.0%"
+        width: 12
+      - name: discount_rate
+        header: "Discount Rate"
+        type: percentage
+        format: "0.00%"
+        width: 12
+        required: true
+        description: "Incremental borrowing rate"
+      - name: renewal_options
+        header: "Renewal Options"
+        type: text
+        width: 20
+      - name: renewal_included
+        header: "Renewal Included?"
+        type: dropdown
+        width: 12
+        allowed_values:
+          - "Yes"
+          - "No"
+      - name: purchase_option
+        header: "Purchase Option"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: status
+        header: "Status"
+        type: dropdown
+        width: 12
+        required: true
+        allowed_values:
+          - Active
+          - Expired
+          - Terminated
+          - Pending
+    conditional_formatting:
+      - range: "H:H"
+        condition: "value<TODAY()+90"
+        style:
+          background_color: "#FFE066"
+      - range: "H:H"
+        condition: "value<TODAY()"
+        style:
+          background_color: "#FF6B6B"
+          font_color: "#FFFFFF"
+
+  - name: Amortization Schedule
+    description: Monthly amortization detail for all leases
+    type: calculation
+    columns:
+      - name: fiscal_year
+        header: "Fiscal Year"
+        type: number
+        width: 10
+        required: true
+      - name: fiscal_period
+        header: "Period"
+        type: number
+        width: 8
+        required: true
+      - name: lease_id
+        header: "Lease ID"
+        type: lookup
+        lookup_sheet: "Lease Register"
+        lookup_column: "lease_id"
+        width: 12
+        required: true
+      - name: beginning_liability
+        header: "Beginning Liability"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: interest_expense
+        header: "Interest Expense"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        description: "Finance charge for the period"
+      - name: principal_payment
+        header: "Principal Payment"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: lease_expense
+        header: "Lease Expense"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+        description: "Operating lease: straight-line expense"
+      - name: months_remaining
+        header: "Months Remaining"
+        type: number
+        width: 12
+      - name: cash_payment
+        header: "Cash Payment"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_liability
+        header: "Ending Liability"
+        type: formula
+        formula: "=D{row}-F{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: rou_amortization
+        header: "ROU Amortization"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_rou_asset
+        header: "Ending ROU Asset"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+
+  - name: ROU Asset Rollforward
+    description: Right-of-use asset rollforward by lease
+    type: data
+    columns:
+      - name: lease_id
+        header: "Lease ID"
+        type: lookup
+        lookup_sheet: "Lease Register"
+        lookup_column: "lease_id"
+        width: 12
+        required: true
+      - name: lease_name
+        header: "Lease Name"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Lease Register'!A:B,2,FALSE)"
+        width: 30
+      - name: classification
+        header: "Classification"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Lease Register'!A:F,6,FALSE)"
+        width: 12
+      - name: beginning_balance
+        header: "Beginning ROU"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: additions
+        header: "Additions"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: modifications
+        header: "Modifications"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: amortization
+        header: "Amortization"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: impairment
+        header: "Impairment"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: terminations
+        header: "Terminations"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_balance
+        header: "Ending ROU"
+        type: formula
+        formula: "=D{row}+E{row}+F{row}-G{row}-H{row}-I{row}"
+        format: "#,##0.00"
+        width: 15
+
+  - name: Lease Liability Rollforward
+    description: Lease liability rollforward by lease
+    type: data
+    columns:
+      - name: lease_id
+        header: "Lease ID"
+        type: lookup
+        lookup_sheet: "Lease Register"
+        lookup_column: "lease_id"
+        width: 12
+        required: true
+      - name: lease_name
+        header: "Lease Name"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Lease Register'!A:B,2,FALSE)"
+        width: 30
+      - name: classification
+        header: "Classification"
+        type: formula
+        formula: "=VLOOKUP(A{row},'Lease Register'!A:F,6,FALSE)"
+        width: 12
+      - name: beginning_balance
+        header: "Beginning Liability"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: additions
+        header: "Additions"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: modifications
+        header: "Modifications"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: interest_accretion
+        header: "Interest Accretion"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: payments
+        header: "Payments"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: terminations
+        header: "Terminations"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: ending_balance
+        header: "Ending Liability"
+        type: formula
+        formula: "=D{row}+E{row}+F{row}+G{row}-H{row}-I{row}"
+        format: "#,##0.00"
+        width: 15
+      - name: current_portion
+        header: "Current Portion"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: noncurrent_portion
+        header: "Non-current"
+        type: formula
+        formula: "=J{row}-K{row}"
+        format: "#,##0.00"
+        width: 15
+
+  - name: Maturity Analysis
+    description: Future minimum lease payments by year
+    type: summary
+    columns:
+      - name: year
+        header: "Year"
+        type: text
+        width: 15
+      - name: operating_leases
+        header: "Operating Leases"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: finance_leases
+        header: "Finance Leases"
+        type: currency
+        format: "#,##0.00"
+        width: 18
+      - name: total_payments
+        header: "Total Payments"
+        type: formula
+        formula: "=B{row}+C{row}"
+        format: "#,##0.00"
+        width: 18
+    formulas:
+      - name: total_operating
+        cell: B10
+        formula: "=SUM(B2:B9)"
+        format: "#,##0.00"
+      - name: total_finance
+        cell: C10
+        formula: "=SUM(C2:C9)"
+        format: "#,##0.00"
+      - name: grand_total
+        cell: D10
+        formula: "=SUM(D2:D9)"
+        format: "#,##0.00"
+
+  - name: Journal Entries
+    description: Monthly lease accounting entries
+    type: data
+    columns:
+      - name: period
+        header: "Period"
+        type: text
+        width: 10
+      - name: lease_id
+        header: "Lease ID"
+        type: lookup
+        lookup_sheet: "Lease Register"
+        lookup_column: "lease_id"
+        width: 12
+      - name: entry_type
+        header: "Entry Type"
+        type: dropdown
+        width: 18
+        allowed_values:
+          - Initial Recognition
+          - Monthly Amortization
+          - Lease Payment
+          - Modification
+          - Termination
+          - Impairment
+      - name: account
+        header: "Account"
+        type: text
+        width: 30
+      - name: debit
+        header: "Debit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: credit
+        header: "Credit"
+        type: currency
+        format: "#,##0.00"
+        width: 15
+      - name: description
+        header: "Description"
+        type: text
+        width: 40
+
+settings:
+  default_font: "Calibri"
+  default_font_size: 11
+  freeze_panes: true
+  freeze_at: "A2"
+  show_gridlines: true
+  author: "Finance AI Assistant"
+
+tags:
+  - leases
+  - asc_842
+  - rou_asset
+  - lease_liability
+  - amortization
+  - month_end
+  - audit

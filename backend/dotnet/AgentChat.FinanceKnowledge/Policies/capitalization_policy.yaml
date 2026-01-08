@@ -1,0 +1,217 @@
+id: POL-CAP-001
+name: Fixed Asset Capitalization Policy
+version: "2.0"
+effective_date: "2024-01-01"
+owner: corporate_controller
+approvers:
+  - cfo
+  - chief_accounting_officer
+last_review_date: "2023-11-15"
+next_review_date: "2024-11-15"
+
+description: >
+  Defines the criteria for capitalizing costs related to property, plant, 
+  and equipment. Establishes materiality thresholds, useful lives, and 
+  capitalization rules for tangible fixed assets.
+
+scope:
+  entities:
+    - "*"
+  asset_classes:
+    - land
+    - buildings
+    - building_improvements
+    - machinery_and_equipment
+    - furniture_and_fixtures
+    - vehicles
+    - computer_hardware
+    - leasehold_improvements
+    - construction_in_progress
+
+capitalization_thresholds:
+  default:
+    minimum_amount: 5000
+    currency: USD
+    description: "Single item or group forming a unit"
+    
+  by_entity_type:
+    large_entities:
+      entities:
+        - US01
+        - UK01
+        - DE01
+      threshold: 5000
+      
+    small_entities:
+      entities:
+        - CA01
+        - AU01
+      threshold: 2500
+      
+  exceptions:
+    safety_equipment:
+      threshold: 1000
+      justification: "Regulatory and safety compliance"
+    it_infrastructure:
+      threshold: 2500
+      justification: "Grouped hardware components"
+
+capitalizable_costs:
+  included:
+    - purchase_price_net_of_discounts
+    - import_duties_and_taxes
+    - delivery_and_handling
+    - site_preparation
+    - installation_and_assembly
+    - professional_fees_directly_attributable
+    - testing_costs
+    - borrowing_costs_during_construction
+    
+  excluded:
+    - administrative_overhead
+    - training_costs
+    - relocation_costs
+    - opening_ceremony_costs
+    - operating_losses_during_start_up
+    - abnormal_waste
+    - maintenance_and_repairs
+
+useful_lives:
+  land:
+    life_years: null
+    depreciation: none
+    
+  buildings:
+    life_years: 40
+    method: straight_line
+    residual_value_percent: 10
+    
+  building_improvements:
+    life_years: 15
+    method: straight_line
+    residual_value_percent: 0
+    
+  machinery_and_equipment:
+    life_years:
+      default: 10
+      heavy_manufacturing: 15
+      precision_equipment: 7
+    method: straight_line
+    residual_value_percent: 5
+    
+  furniture_and_fixtures:
+    life_years: 7
+    method: straight_line
+    residual_value_percent: 0
+    
+  vehicles:
+    life_years: 5
+    method: straight_line
+    residual_value_percent: 10
+    
+  computer_hardware:
+    life_years: 3
+    method: straight_line
+    residual_value_percent: 0
+    
+  leasehold_improvements:
+    life_years: "Lesser of useful life or remaining lease term"
+    method: straight_line
+    residual_value_percent: 0
+
+depreciation_convention:
+  start_of_depreciation: "Month placed in service"
+  partial_period:
+    method: half_month
+    description: "Full month if placed in service before 15th, no depreciation if after"
+  component_depreciation:
+    required_if: "Component has significantly different useful life"
+    minimum_component_value: 50000
+
+approval_matrix:
+  tier_1:
+    amount_range:
+      min: 5000
+      max: 25000
+    approvers:
+      - department_manager
+      - plant_controller
+    sla_days: 3
+    
+  tier_2:
+    amount_range:
+      min: 25001
+      max: 100000
+    approvers:
+      - department_manager
+      - plant_controller
+      - regional_controller
+    sla_days: 5
+    
+  tier_3:
+    amount_range:
+      min: 100001
+      max: 500000
+    approvers:
+      - department_director
+      - regional_controller
+      - corporate_controller
+    sla_days: 10
+    
+  tier_4:
+    amount_range:
+      min: 500001
+      max: null
+    approvers:
+      - department_vp
+      - cfo
+      - board_capex_committee
+    sla_days: 30
+
+impairment:
+  testing_frequency: "When triggering events occur"
+  triggering_events:
+    - significant_decline_in_market_value
+    - adverse_change_in_use
+    - physical_damage
+    - adverse_change_in_business_climate
+    - significant_cost_overruns
+    - operating_losses
+  measurement:
+    standard: ASC-360
+    recoverable_amount: "Higher of fair value less costs to sell and value in use"
+
+disposal:
+  authorization_required: true
+  approval_threshold: 10000
+  gain_loss_recognition: "Period of disposal"
+  documentation_required:
+    - disposal_authorization_form
+    - fair_value_support
+    - gain_loss_calculation
+
+documentation_requirements:
+  acquisition:
+    - purchase_order
+    - invoice
+    - receiving_report
+    - capitalization_form
+    - approval_documentation
+  ongoing:
+    - physical_inventory_annually
+    - impairment_assessment
+    - useful_life_review
+
+related_standards:
+  - id: ASC-360
+    description: "Property, Plant, and Equipment"
+  - id: ASC-835
+    description: "Interest Capitalization"
+  - id: IAS-16
+    description: "Property, Plant and Equipment (IFRS)"
+
+related_procedures:
+  - id: PROC-CLOSE-001
+    name: "Monthly Depreciation"
+  - id: PROC-FA-002
+    name: "Asset Retirement"
