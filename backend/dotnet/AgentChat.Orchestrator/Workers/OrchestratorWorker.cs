@@ -4,6 +4,7 @@ using AgentChat.Shared.Dtos;
 using AgentChat.Shared.Events;
 using AgentChat.Shared.Models;
 using AgentChat.Orchestrator.Prompts;
+using Microsoft.Extensions.Options;
 
 namespace AgentChat.Orchestrator.Workers;
 
@@ -16,6 +17,7 @@ public class OrchestratorWorker : BackgroundService
     private readonly IEventStore _eventStore;
     private readonly IRunStateProjector _projector;
     private readonly IToolRegistry _toolRegistry;
+    private readonly OrchestratorOptions _options;
     private readonly ILogger<OrchestratorWorker> _logger;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -28,12 +30,14 @@ public class OrchestratorWorker : BackgroundService
         IEventStore eventStore,
         IRunStateProjector projector,
         IToolRegistry toolRegistry,
+        IOptions<OrchestratorOptions> options,
         ILogger<OrchestratorWorker> logger)
     {
         _messageQueue = messageQueue;
         _eventStore = eventStore;
         _projector = projector;
         _toolRegistry = toolRegistry;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -107,11 +111,19 @@ public class OrchestratorWorker : BackgroundService
         // Build messages with system prompt
         var messages = new List<ChatMessagePayload>();
         
-        // Add Finance Assistant system prompt
+        // Add system prompt based on configured assistant type
+        var assistantType = ParseAssistantType(_options.AssistantType);
+        var systemPrompt = SystemPrompts.GetSystemPrompt(
+            assistantType,
+            ownerName: _options.OwnerName,
+            portfolioName: _options.PortfolioName);
+        
+        _logger.LogInformation("Using {AssistantType} assistant mode", assistantType);
+        
         messages.Add(new ChatMessagePayload 
         { 
             Role = "system", 
-            Content = SystemPrompts.GetFinanceAssistantPrompt() 
+            Content = systemPrompt
         });
         
         // Add conversation history including tool calls and results
@@ -186,6 +198,10 @@ public class OrchestratorWorker : BackgroundService
         await _eventStore.AppendAsync([llmStarted], cancellationToken: cancellationToken);
 
         // Queue LLM call
+        var toolsForCall = GetToolsForAssistantType(assistantType);
+        _logger.LogInformation("Selected {Count} tools for {AssistantType}: {ToolNames}", 
+            toolsForCall.Count, assistantType, string.Join(", ", toolsForCall));
+        
         var llmWorkItem = new RunWorkItem
         {
             Id = Guid.NewGuid(),
@@ -198,7 +214,7 @@ public class OrchestratorWorker : BackgroundService
                 StepId = stepId,
                 Model = "gpt-4o",
                 Messages = messages,
-                ToolNames = _toolRegistry.GetAllTools().Select(t => t.Name).ToList()
+                ToolNames = toolsForCall
             }
         };
 
@@ -306,5 +322,68 @@ public class OrchestratorWorker : BackgroundService
         };
 
         return WorkItemResult.Ok([toolWorkItem]);
+    }
+
+    /// <summary>
+    /// Parse assistant type string from configuration
+    /// </summary>
+    private static AssistantType ParseAssistantType(string? typeString)
+    {
+        if (string.IsNullOrEmpty(typeString))
+            return AssistantType.Finance;
+
+        return typeString.ToLowerInvariant() switch
+        {
+            "finance" => AssistantType.Finance,
+            "portfoliovisitor" or "portfolio_visitor" => AssistantType.PortfolioVisitor,
+            "portfolioautonomous" or "portfolio_autonomous" => AssistantType.PortfolioAutonomous,
+            "portfolioowner" or "portfolio_owner" => AssistantType.PortfolioOwner,
+            _ => AssistantType.Finance
+        };
+    }
+
+    /// <summary>
+    /// Get the list of tools available for a given assistant type
+    /// </summary>
+    private List<string> GetToolsForAssistantType(AssistantType assistantType)
+    {
+        var allTools = _toolRegistry.GetAllTools();
+        
+        return assistantType switch
+        {
+            // Portfolio Visitor: Only public portfolio tools (read-only)
+            AssistantType.PortfolioVisitor => allTools
+                .Where(t => t.Category == "portfolio" || 
+                           (t.Category == "memory" && t.Tags.Contains("visitor-allowed")))
+                .Select(t => t.Name)
+                .ToList(),
+            
+            // Portfolio Autonomous: Portfolio tools for autonomous operation
+            AssistantType.PortfolioAutonomous => allTools
+                .Where(t => t.Category == "portfolio" || 
+                           t.Category == "memory" || 
+                           t.Category == "analysis" || 
+                           t.Category == "content")
+                .Select(t => t.Name)
+                .ToList(),
+            
+            // Portfolio Owner: All portfolio tools
+            AssistantType.PortfolioOwner => allTools
+                .Where(t => t.Category == "portfolio" || 
+                           t.Category == "memory" || 
+                           t.Category == "analysis" || 
+                           t.Category == "content")
+                .Select(t => t.Name)
+                .ToList(),
+            
+            // Finance: All non-portfolio tools
+            AssistantType.Finance => allTools
+                .Where(t => t.Category != "portfolio" && 
+                           !t.Category.StartsWith("portfolio"))
+                .Select(t => t.Name)
+                .ToList(),
+            
+            _ => allTools.Select(t => t.Name).ToList()
+        };
     }
 }

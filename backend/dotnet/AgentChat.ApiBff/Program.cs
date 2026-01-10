@@ -72,8 +72,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors();
-app.UseMiddleware<TenantMiddleware>();
 app.UseAuthentication();
+app.UseMiddleware<TenantMiddleware>();  // Must run AFTER UseAuthentication to access claims
 app.UseAuthorization();
 
 // Map endpoints
@@ -99,13 +99,13 @@ public class DevAuthHandler : Microsoft.AspNetCore.Authentication.Authentication
 
     protected override Task<Microsoft.AspNetCore.Authentication.AuthenticateResult> HandleAuthenticateAsync()
     {
-        // Create a dev user identity
+        // Create a dev user identity using Fernando's portfolio ID
         var claims = new[]
         {
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.NameIdentifier, "00000000-0000-0000-0000-000000000001"),
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Name, "dev-user"),
             new System.Security.Claims.Claim(System.Security.Claims.ClaimTypes.Email, "dev@localhost"),
-            new System.Security.Claims.Claim("tenant_id", "00000000-0000-0000-0000-000000000000"),
+            new System.Security.Claims.Claim("tenant_id", "11111111-1111-1111-1111-111111111111"), // Fernando's portfolio ID
         };
         var identity = new System.Security.Claims.ClaimsIdentity(claims, "DevBypass");
         var principal = new System.Security.Claims.ClaimsPrincipal(identity);

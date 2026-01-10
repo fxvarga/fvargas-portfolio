@@ -13,6 +13,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AgentChat.Shared\AgentChat.Shared.csproj" />
     <ProjectReference Include="..\AgentChat.Infrastructure\AgentChat.Infrastructure.csproj" />
+    <ProjectReference Include="..\AgentChat.PortfolioAgent\AgentChat.PortfolioAgent.csproj" />
   </ItemGroup>
 
 </Project>

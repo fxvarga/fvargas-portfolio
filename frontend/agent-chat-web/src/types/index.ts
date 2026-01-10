@@ -47,6 +47,12 @@ export const ApprovalStatus = {
 } as const;
 export type ApprovalStatus = (typeof ApprovalStatus)[keyof typeof ApprovalStatus];
 
+export const AssistantType = {
+  FinanceAdvisor: 'FinanceAdvisor',
+  PortfolioVisitor: 'PortfolioVisitor',
+} as const;
+export type AssistantType = (typeof AssistantType)[keyof typeof AssistantType];
+
 // DTOs
 export interface MessageDto {
   id: string;
@@ -275,6 +281,7 @@ export interface ApprovalResolvedPayload {
 // Request types
 export interface CreateRunRequest {
   initialMessage: string;
+  assistantType?: AssistantType;
 }
 
 export interface SendMessageRequest {

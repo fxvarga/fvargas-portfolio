@@ -10,14 +10,52 @@ using AgentChat.FinanceKnowledge.Tools;
 using AgentChat.FinanceDataLake.Services;
 using AgentChat.FinanceDataLake.Tools;
 
+// Portfolio Agent services and tools
+using AgentChat.PortfolioAgent;
+
+// Elasticsearch
+using Elastic.Clients.Elasticsearch;
+using FV.Domain.Interfaces;
+using FV.Infrastructure.Services;
+
 var builder = Host.CreateApplicationBuilder(args);
 
 builder.Services.AddAgentChatInfrastructure(builder.Configuration);
 builder.Services.AddHttpClient();
 
+// ============================================
+// Elasticsearch & Search Services (read-only)
+// ============================================
+// Required for Portfolio Agent tools
+// Note: We only register the search service, not the background indexer
+// The main portfolio API handles indexing; tools just query
+var elasticsearchUrl = builder.Configuration["Elasticsearch:Url"]
+    ?? Environment.GetEnvironmentVariable("ELASTICSEARCH_URL")
+    ?? "http://localhost:9200";
+
+builder.Services.AddSingleton<ElasticsearchClient>(sp =>
+{
+    var settings = new ElasticsearchClientSettings(new Uri(elasticsearchUrl))
+        .DisableDirectStreaming();
+    return new ElasticsearchClient(settings);
+});
+
+builder.Services.AddSingleton<ISearchService>(sp =>
+{
+    var client = sp.GetRequiredService<ElasticsearchClient>();
+    var logger = sp.GetRequiredService<ILogger<ElasticsearchService>>();
+    return new ElasticsearchService(client, logger);
+});
+
 // Register core services for Finance tools
 builder.Services.AddSingleton<IKnowledgeBaseService, KnowledgeBaseService>();
 builder.Services.AddSingleton<IDataLakeService, DataLakeService>();
+
+// ============================================
+// Portfolio Agent Services and Tools
+// ============================================
+builder.Services.AddPortfolioAgent();
+builder.Services.AddPortfolioAgentTools();
 
 // ============================================
 // Built-in Tools

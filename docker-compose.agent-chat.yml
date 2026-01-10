@@ -1,5 +1,8 @@
 services:
   # Infrastructure
+  # NOTE: Elasticsearch is provided by the main portfolio's docker-compose.yml
+  # Agent chat connects to portfolio-elasticsearch via the shared portfolio-network
+
   postgres:
     image: postgres:16-alpine
     container_name: agentchat-postgres
@@ -78,6 +81,11 @@ services:
       Database__ConnectionString: Host=postgres;Database=agentchat;Username=postgres;Password=postgres
       RabbitMq__HostName: rabbitmq
       Redis__ConnectionString: redis:6379
+      # Orchestrator configuration for assistant mode
+      # Options: Finance, PortfolioVisitor, PortfolioAutonomous, PortfolioOwner
+      Orchestrator__AssistantType: ${ORCHESTRATOR_ASSISTANT_TYPE:-Finance}
+      Orchestrator__OwnerName: ${ORCHESTRATOR_OWNER_NAME:-Fernando Vargas}
+      Orchestrator__PortfolioName: ${ORCHESTRATOR_PORTFOLIO_NAME:-Fernando's Portfolio}
     depends_on:
       postgres:
         condition: service_healthy
@@ -127,6 +135,14 @@ services:
       RabbitMq__HostName: rabbitmq
       Redis__ConnectionString: redis:6379
       FinanceApi__BaseUrl: http://agentchat-finance-api:8080
+      # Connect to portfolio's Elasticsearch (shared via portfolio-network)
+      Elasticsearch__Url: http://portfolio-elasticsearch:9200
+      # Portfolio agent config
+      PortfolioAgent__DefaultPortfolioId: ${PORTFOLIO_AGENT_DEFAULT_PORTFOLIO_ID:-00000000-0000-0000-0000-000000000001}
+      PortfolioAgent__OwnerName: ${PORTFOLIO_AGENT_OWNER_NAME:-Fernando Vargas}
+    networks:
+      - default
+      - portfolio-network
     depends_on:
       postgres:
         condition: service_healthy
@@ -167,3 +183,9 @@ volumes:
   agentchat_postgres_data:
   agentchat_rabbitmq_data:
   agentchat_redis_data:
+
+# Connect to portfolio's network to access portfolio-elasticsearch
+networks:
+  portfolio-network:
+    external: true
+    name: fvargas-portfolio_portfolio-network

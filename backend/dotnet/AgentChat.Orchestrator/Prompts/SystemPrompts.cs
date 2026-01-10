@@ -1,10 +1,69 @@
+using AgentChat.PortfolioAgent.Prompts;
+
 namespace AgentChat.Orchestrator.Prompts;
+
+/// <summary>
+/// Defines the type of agent/assistant being used
+/// </summary>
+public enum AssistantType
+{
+    Finance,
+    PortfolioVisitor,
+    PortfolioAutonomous,
+    PortfolioOwner
+}
 
 /// <summary>
 /// System prompts for AI assistants.
 /// </summary>
 public static class SystemPrompts
 {
+    /// <summary>
+    /// Get the system prompt based on the assistant type and context
+    /// </summary>
+    public static string GetSystemPrompt(
+        AssistantType assistantType,
+        string? ownerName = null,
+        string? portfolioName = null,
+        string? entityCode = null,
+        string? userName = null)
+    {
+        return assistantType switch
+        {
+            AssistantType.Finance => GetFinanceAssistantPrompt(entityCode, userName),
+            AssistantType.PortfolioVisitor => PortfolioSystemPrompts.GetVisitorPrompt(
+                ownerName ?? "the portfolio owner",
+                portfolioName ?? "this portfolio"),
+            AssistantType.PortfolioAutonomous => PortfolioSystemPrompts.GetAutonomousPrompt(
+                ownerName ?? "the portfolio owner",
+                portfolioName ?? "this portfolio"),
+            AssistantType.PortfolioOwner => PortfolioSystemPrompts.GetOwnerPrompt(
+                ownerName ?? "the portfolio owner",
+                portfolioName ?? "this portfolio"),
+            _ => GetFinanceAssistantPrompt(entityCode, userName)
+        };
+    }
+
+    /// <summary>
+    /// Determine the assistant type from run metadata/context
+    /// </summary>
+    public static AssistantType DetermineAssistantType(IDictionary<string, string>? metadata)
+    {
+        if (metadata == null || !metadata.TryGetValue("assistant_type", out var typeStr))
+        {
+            return AssistantType.Finance; // Default
+        }
+
+        return typeStr.ToLowerInvariant() switch
+        {
+            "portfolio_visitor" => AssistantType.PortfolioVisitor,
+            "portfolio_autonomous" => AssistantType.PortfolioAutonomous,
+            "portfolio_owner" => AssistantType.PortfolioOwner,
+            "finance" => AssistantType.Finance,
+            _ => AssistantType.Finance
+        };
+    }
+
     /// <summary>
     /// Default Finance Operations Assistant system prompt.
     /// </summary>

@@ -1,10 +1,10 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '@/hooks/useChat';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
 import { ApprovalList } from '@/components/approval/ApprovalList';
-import { RunStatus } from '@/types';
+import { RunStatus, AssistantType } from '@/types';
 import type { ChatTimelineItem } from '@/types';
 import { 
   Loader2, 
@@ -16,12 +16,15 @@ import {
   ShieldAlert,
   Ban,
   Plus,
-  MessageCircle
+  MessageCircle,
+  Briefcase,
+  User
 } from 'lucide-react';
 
 export function ChatPage() {
   const { runId } = useParams<{ runId?: string }>();
   const navigate = useNavigate();
+  const [selectedAssistantType, setSelectedAssistantType] = useState<AssistantType>(AssistantType.PortfolioVisitor);
 
   const {
     run,
@@ -36,7 +39,8 @@ export function ChatPage() {
   } = useChat(runId);
 
   const handleSendMessage = async (content: string) => {
-    await sendMessage(content);
+    // Pass the selected assistant type when creating a new run
+    await sendMessage(content, !run ? selectedAssistantType : undefined);
   };
 
   const handleNewChat = () => {
@@ -140,6 +144,69 @@ export function ChatPage() {
                 </p>
               )}
             </div>
+          </div>
+        ) : !run ? (
+          /* New chat - show assistant type selector */
+          <div className="flex-1 flex flex-col items-center justify-center p-8">
+            <h2 className="text-xl font-semibold text-gray-100 mb-6">Choose an Assistant</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
+              <button
+                onClick={() => setSelectedAssistantType(AssistantType.PortfolioVisitor)}
+                className={`p-6 rounded-xl border-2 transition-all text-left ${
+                  selectedAssistantType === AssistantType.PortfolioVisitor
+                    ? 'border-purple-500 bg-purple-500/10'
+                    : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2 rounded-lg ${
+                    selectedAssistantType === AssistantType.PortfolioVisitor
+                      ? 'bg-purple-500/20'
+                      : 'bg-gray-700'
+                  }`}>
+                    <User className={`w-5 h-5 ${
+                      selectedAssistantType === AssistantType.PortfolioVisitor
+                        ? 'text-purple-400'
+                        : 'text-gray-400'
+                    }`} />
+                  </div>
+                  <span className="font-semibold text-gray-100">Portfolio Visitor</span>
+                </div>
+                <p className="text-sm text-gray-400">
+                  Ask questions about Fernando's portfolio, projects, skills, and experience.
+                </p>
+              </button>
+              
+              <button
+                onClick={() => setSelectedAssistantType(AssistantType.FinanceAdvisor)}
+                className={`p-6 rounded-xl border-2 transition-all text-left ${
+                  selectedAssistantType === AssistantType.FinanceAdvisor
+                    ? 'border-blue-500 bg-blue-500/10'
+                    : 'border-gray-700 bg-gray-800/50 hover:border-gray-600'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`p-2 rounded-lg ${
+                    selectedAssistantType === AssistantType.FinanceAdvisor
+                      ? 'bg-blue-500/20'
+                      : 'bg-gray-700'
+                  }`}>
+                    <Briefcase className={`w-5 h-5 ${
+                      selectedAssistantType === AssistantType.FinanceAdvisor
+                        ? 'text-blue-400'
+                        : 'text-gray-400'
+                    }`} />
+                  </div>
+                  <span className="font-semibold text-gray-100">Finance Advisor</span>
+                </div>
+                <p className="text-sm text-gray-400">
+                  Get help with financial planning, investment strategies, and market analysis.
+                </p>
+              </button>
+            </div>
+            <p className="text-sm text-gray-500 mt-6">
+              Type a message below to start your conversation
+            </p>
           </div>
         ) : (
           <>

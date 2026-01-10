@@ -2,7 +2,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useChatStore } from '@/stores/chatStore';
 import { sseConnection } from '@/api/sse';
 import * as api from '@/api/client';
-import type { ApprovalDecision, RunEvent } from '@/types';
+import type { ApprovalDecision, RunEvent, AssistantType } from '@/types';
 
 export function useChat(runId?: string) {
   const store = useChatStore();
@@ -39,9 +39,14 @@ export function useChat(runId?: string) {
   }, []);
 
   // Load run if runId is provided (e.g., from URL params)
+  // Reset store if navigating to new chat (no runId)
   useEffect(() => {
     if (runId && runId !== store.currentRunId) {
       loadRunById(runId);
+    } else if (!runId && store.currentRunId) {
+      // Navigating to new chat - reset the store
+      store.reset();
+      loadedRunIdRef.current = null;
     }
   }, [runId, loadRunById]);
 
@@ -63,12 +68,12 @@ export function useChat(runId?: string) {
   }, [store.currentRunId]);
 
   // Create a new run
-  const createRun = useCallback(async (initialMessage: string) => {
+  const createRun = useCallback(async (initialMessage: string, assistantType?: AssistantType) => {
     store.setLoading(true);
     store.setError(null);
 
     try {
-      const response = await api.createRun({ initialMessage });
+      const response = await api.createRun({ initialMessage, assistantType });
       // Fetch the full run after creation
       const run = await api.getRun(response.runId);
       store.setRun(run);
@@ -85,10 +90,10 @@ export function useChat(runId?: string) {
 
   // Send a message
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (content: string, assistantType?: AssistantType) => {
       if (!store.currentRunId) {
         // Create a new run if none exists
-        await createRun(content);
+        await createRun(content, assistantType);
         return;
       }
 

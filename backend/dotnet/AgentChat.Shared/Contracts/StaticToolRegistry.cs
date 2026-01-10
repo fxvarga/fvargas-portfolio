@@ -691,6 +691,254 @@ public class StaticToolRegistry : IToolRegistry
             """).RootElement
         });
 
+        // Portfolio Agent Tools (13)
+        tools.Add(new()
+        {
+            Name = "portfolio_search",
+            Description = "Search across all portfolio content including blog posts, projects, case studies, and about sections. Returns matching content with relevance scores and snippets.",
+            Category = "portfolio",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "search", "read-only", "visitor-allowed"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "The search query - can be keywords, phrases, or questions" },
+                    "contentTypes": { "type": "array", "items": { "type": "string" }, "description": "Filter by content type: blog-post, case-study-page, hero, about, services, contact" },
+                    "limit": { "type": "integer", "description": "Maximum results", "default": 10 },
+                    "useSemanticSearch": { "type": "boolean", "description": "Use AI-powered semantic search", "default": false }
+                },
+                "required": ["query"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_get_content",
+            Description = "Retrieve detailed content for a specific portfolio item by searching for its exact title or ID.",
+            Category = "portfolio",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "read", "read-only", "visitor-allowed"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "title": { "type": "string", "description": "The title or ID of the content to retrieve" },
+                    "contentType": { "type": "string", "description": "Content type filter" }
+                },
+                "required": ["title"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_get_suggestions",
+            Description = "Get search suggestions based on a prefix. Useful for understanding what content is available.",
+            Category = "portfolio",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "search", "read-only", "visitor-allowed"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "prefix": { "type": "string", "description": "The prefix to get suggestions for" },
+                    "limit": { "type": "integer", "description": "Maximum suggestions", "default": 5 }
+                },
+                "required": ["prefix"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_remember_fact",
+            Description = "Remember a fact or insight about the portfolio or a conversation. Facts can be public (visible to all) or private.",
+            Category = "memory",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "memory", "write"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "fact": { "type": "string", "description": "The fact to remember" },
+                    "category": { "type": "string", "description": "Category", "enum": ["preference", "insight", "feedback", "other"] },
+                    "isPublic": { "type": "boolean", "description": "Whether this fact is public", "default": true }
+                },
+                "required": ["fact"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_recall_public_memories",
+            Description = "Recall public facts and memories about the portfolio.",
+            Category = "memory",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "memory", "read-only", "visitor-allowed"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "category": { "type": "string", "description": "Filter by category" },
+                    "limit": { "type": "integer", "description": "Maximum memories", "default": 10 }
+                }
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_recall_all_memories",
+            Description = "Recall all facts and memories including private ones. Only for authorized users.",
+            Category = "memory",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "memory", "read-only", "owner-only"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "category": { "type": "string", "description": "Filter by category" },
+                    "limit": { "type": "integer", "description": "Maximum memories", "default": 20 }
+                }
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_log_decision",
+            Description = "Log a decision or reasoning process for audit purposes.",
+            Category = "memory",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "audit", "write"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "decision": { "type": "string", "description": "The decision made" },
+                    "reasoning": { "type": "string", "description": "Reasoning behind the decision" },
+                    "context": { "type": "object", "description": "Additional context" }
+                },
+                "required": ["decision", "reasoning"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_analyze_freshness",
+            Description = "Analyze content freshness and suggest updates for stale content.",
+            Category = "analysis",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "analysis", "read-only", "owner-only"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "threshold_days": { "type": "integer", "description": "Days before content is stale", "default": 90 }
+                }
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_analyze_seo",
+            Description = "Analyze content for SEO improvements.",
+            Category = "analysis",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "analysis", "seo", "read-only", "owner-only"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "content_id": { "type": "string", "description": "Content ID to analyze" }
+                },
+                "required": ["content_id"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_log_activity",
+            Description = "Log an activity for analytics purposes.",
+            Category = "analysis",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "analytics", "write"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "event_type": { "type": "string", "description": "Type of event" },
+                    "details": { "type": "object", "description": "Event details" }
+                },
+                "required": ["event_type"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_create_draft",
+            Description = "Create a draft for new content or content updates.",
+            Category = "content",
+            RiskTier = RiskTier.Medium,
+            Tags = ["portfolio", "content", "write", "owner-only"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "title": { "type": "string", "description": "Draft title" },
+                    "content_type": { "type": "string", "description": "Type of content", "enum": ["blog-post", "case-study", "about", "services"] },
+                    "content": { "type": "string", "description": "Draft content in markdown" }
+                },
+                "required": ["title", "content_type", "content"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_queue_proposal",
+            Description = "Queue a content proposal for owner review.",
+            Category = "content",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "content", "write"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "proposal_type": { "type": "string", "description": "Type of proposal", "enum": ["new_content", "update", "seo_improvement", "other"] },
+                    "summary": { "type": "string", "description": "Brief summary of the proposal" },
+                    "details": { "type": "string", "description": "Detailed proposal content" },
+                    "priority": { "type": "string", "description": "Priority level", "enum": ["low", "medium", "high"] }
+                },
+                "required": ["proposal_type", "summary", "details"]
+            }
+            """).RootElement
+        });
+
+        tools.Add(new()
+        {
+            Name = "portfolio_get_pending_reviews",
+            Description = "Get pending content reviews and proposals.",
+            Category = "content",
+            RiskTier = RiskTier.Low,
+            Tags = ["portfolio", "content", "read-only", "owner-only"],
+            ParametersSchema = JsonDocument.Parse("""
+            {
+                "type": "object",
+                "properties": {
+                    "status": { "type": "string", "description": "Filter by status", "enum": ["pending", "approved", "rejected", "all"] }
+                }
+            }
+            """).RootElement
+        });
+
         // Excel Tools (3)
         tools.Add(new()
         {

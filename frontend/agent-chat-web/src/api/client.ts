@@ -34,7 +34,8 @@ async function handleResponse<T>(response: Response): Promise<T> {
 function getHeaders(): HeadersInit {
   return {
     'Content-Type': 'application/json',
-    'X-Tenant-Id': 'default', // TODO: Get from auth context
+    // Use Fernando's portfolio ID for now - TODO: Get from auth context
+    'X-Tenant-Id': '11111111-1111-1111-1111-111111111111',
   };
 }
 
@@ -63,7 +64,10 @@ export async function createRun(request: CreateRunRequest): Promise<CreateRunRes
   const response = await fetch(`${API_BASE}/runs`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ message: request.initialMessage }),
+    body: JSON.stringify({ 
+      message: request.initialMessage,
+      assistantType: request.assistantType,
+    }),
   });
   return handleResponse<CreateRunResponse>(response);
 }
