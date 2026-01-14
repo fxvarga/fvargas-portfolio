@@ -376,3 +376,48 @@ public class PrepaidSchedule
     [JsonPropertyName("last_amortization_date")]
     public DateTime? LastAmortizationDate { get; set; }
 }
+
+/// <summary>
+/// Variance analysis result for comparing periods or budget
+/// </summary>
+public class VarianceAnalysisResult
+{
+    [JsonPropertyName("account_number")]
+    public string AccountNumber { get; set; } = "";
+    
+    [JsonPropertyName("account_name")]
+    public string AccountName { get; set; } = "";
+    
+    [JsonPropertyName("account_type")]
+    public string AccountType { get; set; } = "";
+    
+    [JsonPropertyName("entity_code")]
+    public string EntityCode { get; set; } = "";
+    
+    [JsonPropertyName("current_period")]
+    public string CurrentPeriod { get; set; } = "";
+    
+    [JsonPropertyName("comparison_period")]
+    public string ComparisonPeriod { get; set; } = "";
+    
+    [JsonPropertyName("compare_to")]
+    public string CompareTo { get; set; } = "";
+    
+    [JsonPropertyName("current_balance")]
+    public decimal CurrentBalance { get; set; }
+    
+    [JsonPropertyName("comparison_balance")]
+    public decimal ComparisonBalance { get; set; }
+    
+    [JsonPropertyName("variance_amount")]
+    public decimal VarianceAmount { get; set; }
+    
+    [JsonPropertyName("variance_percent")]
+    public decimal VariancePercent { get; set; }
+    
+    [JsonPropertyName("is_favorable")]
+    public bool IsFavorable { get; set; }
+    
+    [JsonPropertyName("exceeds_threshold")]
+    public bool ExceedsThreshold { get; set; }
+}

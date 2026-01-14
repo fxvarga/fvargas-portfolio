@@ -62,4 +62,13 @@ public interface IDataLakeService
         int fiscalYear,
         int fiscalPeriod,
         string groupBy = "account_type");
+
+    // Variance Analysis
+    IEnumerable<VarianceAnalysisResult> PerformVarianceAnalysis(
+        string? entityCode = null,
+        string? accountPattern = null,
+        int currentYear = 0,
+        int currentPeriod = 0,
+        string compareTo = "prior_period",
+        decimal thresholdPct = 10);
 }

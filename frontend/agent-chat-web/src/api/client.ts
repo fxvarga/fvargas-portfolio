@@ -9,6 +9,10 @@ import type {
   KnowledgeSearchResponse,
   KnowledgeMetadataDto,
   KnowledgeItemType,
+  ToolListResponse,
+  ToolDetailDto,
+  ToolCategoryDto,
+  ToolTestResult,
 } from '@/types';
 
 const API_BASE = '/api';
@@ -235,4 +239,40 @@ export async function getKnowledgeMetadata(): Promise<KnowledgeMetadataDto> {
     headers: getHeaders(),
   });
   return handleResponse<KnowledgeMetadataDto>(response);
+}
+
+// Tools API
+export async function listTools(category?: string): Promise<ToolListResponse> {
+  const params = new URLSearchParams();
+  if (category) params.append('category', category);
+  const queryString = params.toString();
+  const url = `${API_BASE}/tools${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await fetch(url, {
+    headers: getHeaders(),
+  });
+  return handleResponse<ToolListResponse>(response);
+}
+
+export async function getTool(name: string): Promise<ToolDetailDto> {
+  const response = await fetch(`${API_BASE}/tools/${encodeURIComponent(name)}`, {
+    headers: getHeaders(),
+  });
+  return handleResponse<ToolDetailDto>(response);
+}
+
+export async function getToolCategories(): Promise<ToolCategoryDto[]> {
+  const response = await fetch(`${API_BASE}/tools/categories`, {
+    headers: getHeaders(),
+  });
+  return handleResponse<ToolCategoryDto[]>(response);
+}
+
+export async function testTool(name: string, args: Record<string, unknown>): Promise<ToolTestResult> {
+  const response = await fetch(`${API_BASE}/tools/${encodeURIComponent(name)}/test`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(args),
+  });
+  return handleResponse<ToolTestResult>(response);
 }

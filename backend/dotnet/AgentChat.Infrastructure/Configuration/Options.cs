@@ -57,6 +57,11 @@ public class AzureOpenAiOptions
     public string ApiVersion { get; set; } = "2024-08-01-preview";
     public int MaxRetries { get; set; } = 3;
     public TimeSpan Timeout { get; set; } = TimeSpan.FromMinutes(2);
+    
+    /// <summary>
+    /// Use max_completion_tokens instead of max_tokens for newer models (gpt-5.x, o1, etc.)
+    /// </summary>
+    public bool UseMaxCompletionTokens { get; set; } = false;
 }
 
 /// <summary>

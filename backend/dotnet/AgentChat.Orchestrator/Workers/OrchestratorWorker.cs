@@ -190,7 +190,7 @@ public class OrchestratorWorker : BackgroundService
             StepId = stepId,
             TenantId = workItem.TenantId,
             CorrelationId = workItem.CorrelationId,
-            Model = "gpt-4o",
+            Model = null!, // Use model-gateway's configured default
             MaxTokens = 4096,
             Temperature = 0.7
         };
@@ -212,7 +212,7 @@ public class OrchestratorWorker : BackgroundService
             Payload = new ExecuteLlmCallPayload
             {
                 StepId = stepId,
-                Model = "gpt-4o",
+                Model = null!, // Use model-gateway's configured default
                 Messages = messages,
                 ToolNames = toolsForCall
             }

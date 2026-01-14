@@ -4,6 +4,7 @@ using AgentChat.ApiBff.Hubs;
 using AgentChat.ApiBff.Middleware;
 using AgentChat.FinanceKnowledge.Services;
 using AgentChat.Infrastructure;
+using AgentChat.Shared.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,12 @@ builder.Services.AddAgentChatInfrastructure(builder.Configuration);
 
 // Register Knowledge Base Service
 builder.Services.AddSingleton<IKnowledgeBaseService, KnowledgeBaseService>();
+
+// Register Tool Registry for tool metadata API
+builder.Services.AddSingleton<IToolRegistry, StaticToolRegistry>();
+
+// Register HttpClient for proxying requests to tools service
+builder.Services.AddHttpClient();
 
 // Configure JSON serialization to use string enums
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -80,6 +87,7 @@ app.UseAuthorization();
 app.MapRunEndpoints();
 app.MapApprovalEndpoints();
 app.MapKnowledgeEndpoints();
+app.MapToolsEndpoints();
 
 // SignalR hub for real-time events
 app.MapHub<RunEventsHub>("/hubs/runs");

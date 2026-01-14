@@ -1,3 +1,4 @@
+using System.Text.Json;
 using AgentChat.Infrastructure;
 using AgentChat.Shared.Contracts;
 using AgentChat.Tools.BuiltInTools;
@@ -18,7 +19,7 @@ using Elastic.Clients.Elasticsearch;
 using FV.Domain.Interfaces;
 using FV.Infrastructure.Services;
 
-var builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAgentChatInfrastructure(builder.Configuration);
 builder.Services.AddHttpClient();
@@ -85,13 +86,14 @@ builder.Services.AddSingleton<ITool, TreatmentRecommendationTool>();
 builder.Services.AddSingleton<ITool, KnowledgeBaseListTool>();
 
 // ============================================
-// Finance Data Lake Tools (5 tools)
+// Finance Data Lake Tools (6 tools)
 // ============================================
 builder.Services.AddSingleton<ITool, GlBalanceQueryTool>();
 builder.Services.AddSingleton<ITool, FixedAssetQueryTool>();
 builder.Services.AddSingleton<ITool, LeaseQueryTool>();
 builder.Services.AddSingleton<ITool, IntercompanyQueryTool>();
 builder.Services.AddSingleton<ITool, FxRateQueryTool>();
+builder.Services.AddSingleton<ITool, VarianceAnalysisTool>();
 
 // ============================================
 // Finance System of Record API Tools (15 tools)
@@ -130,12 +132,13 @@ builder.Services.AddSingleton<ITool, ExcelSupportDocCreateTool>();
 builder.Services.AddSingleton<IToolRegistry, ToolRegistry>();
 builder.Services.AddSingleton<IToolExecutor, ToolExecutor>();
 
+// Background worker for queue-based tool execution
 builder.Services.AddHostedService<ToolExecutionWorker>();
 
-var host = builder.Build();
+var app = builder.Build();
 
 // Log registered tools on startup
-var toolRegistry = host.Services.GetRequiredService<IToolRegistry>();
+var toolRegistry = app.Services.GetRequiredService<IToolRegistry>();
 var tools = toolRegistry.GetAllTools();
 Console.WriteLine($"Registered {tools.Count} tools:");
 foreach (var tool in tools.OrderBy(t => t.Category).ThenBy(t => t.Name))
@@ -143,4 +146,57 @@ foreach (var tool in tools.OrderBy(t => t.Category).ThenBy(t => t.Name))
     Console.WriteLine($"  [{tool.Category}] {tool.Name} - {tool.RiskTier}");
 }
 
-host.Run();
+// ============================================
+// HTTP Endpoints for Tool Testing
+// ============================================
+
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", tools = tools.Count }));
+
+app.MapPost("/api/tools/{toolName}/test", async (
+    string toolName,
+    HttpRequest request,
+    IToolExecutor toolExecutor,
+    CancellationToken cancellationToken) =>
+{
+    // Parse JSON body
+    JsonElement args;
+    try
+    {
+        using var doc = await JsonDocument.ParseAsync(request.Body, cancellationToken: cancellationToken);
+        args = doc.RootElement.Clone();
+    }
+    catch (JsonException)
+    {
+        args = JsonDocument.Parse("{}").RootElement;
+    }
+
+    // Get tenant ID from header (for testing, use a default)
+    var tenantId = request.Headers.TryGetValue("X-Tenant-Id", out var tenantHeader)
+        ? Guid.Parse(tenantHeader.ToString())
+        : Guid.Parse("11111111-1111-1111-1111-111111111111");
+
+    // Create a test execution context
+    var context = new ToolExecutionContext
+    {
+        RunId = Guid.NewGuid(),
+        StepId = Guid.NewGuid(),
+        ToolCallId = Guid.NewGuid(),
+        TenantId = tenantId,
+        UserId = Guid.Empty, // Test user
+        IdempotencyKey = $"test-{Guid.NewGuid()}",
+        CorrelationId = Guid.NewGuid()
+    };
+
+    var result = await toolExecutor.ExecuteAsync(toolName, args, context, cancellationToken);
+
+    return Results.Ok(new
+    {
+        success = result.Success,
+        result = result.Result,
+        error = result.Error,
+        durationMs = result.Duration.TotalMilliseconds,
+        artifacts = result.Artifacts
+    });
+});
+
+app.Run();

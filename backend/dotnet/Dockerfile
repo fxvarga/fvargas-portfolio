@@ -8,6 +8,16 @@ COPY FV.Api/FV.Api.csproj FV.Api/
 COPY FV.Application/FV.Application.csproj FV.Application/
 COPY FV.Domain/FV.Domain.csproj FV.Domain/
 COPY FV.Infrastructure/FV.Infrastructure.csproj FV.Infrastructure/
+COPY AgentChat.Shared/AgentChat.Shared.csproj AgentChat.Shared/
+COPY AgentChat.Infrastructure/AgentChat.Infrastructure.csproj AgentChat.Infrastructure/
+COPY AgentChat.ApiBff/AgentChat.ApiBff.csproj AgentChat.ApiBff/
+COPY AgentChat.Orchestrator/AgentChat.Orchestrator.csproj AgentChat.Orchestrator/
+COPY AgentChat.ModelGateway/AgentChat.ModelGateway.csproj AgentChat.ModelGateway/
+COPY AgentChat.Tools/AgentChat.Tools.csproj AgentChat.Tools/
+COPY AgentChat.FinanceKnowledge/AgentChat.FinanceKnowledge.csproj AgentChat.FinanceKnowledge/
+COPY AgentChat.FinanceDataLake/AgentChat.FinanceDataLake.csproj AgentChat.FinanceDataLake/
+COPY AgentChat.FinanceApi/AgentChat.FinanceApi.csproj AgentChat.FinanceApi/
+COPY AgentChat.PortfolioAgent/AgentChat.PortfolioAgent.csproj AgentChat.PortfolioAgent/
 
 # Restore dependencies
 RUN dotnet restore Portfolio.sln

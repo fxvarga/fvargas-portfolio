@@ -354,3 +354,48 @@ export interface KnowledgeMetadataDto {
   tags: string[];
   typeCounts: Record<KnowledgeItemType, number>;
 }
+
+// Tool Explorer Types
+export interface ToolSummaryDto {
+  name: string;
+  description: string;
+  category: string;
+  riskTier: string;
+  tags: string[];
+}
+
+export interface ToolParameterDto {
+  name: string;
+  type: string;
+  description?: string;
+  required: boolean;
+  defaultValue?: string;
+  enumValues?: string[];
+}
+
+export interface ToolDetailDto extends ToolSummaryDto {
+  parameters: ToolParameterDto[];
+  parametersSchemaRaw?: string;
+  sourceFile?: string;
+  sourceLine?: number;
+  gitHubUrl?: string;
+}
+
+export interface ToolListResponse {
+  tools: ToolSummaryDto[];
+  totalCount: number;
+}
+
+export interface ToolCategoryDto {
+  name: string;
+  count: number;
+  riskBreakdown: Record<string, number>;
+}
+
+export interface ToolTestResult {
+  success: boolean;
+  result?: unknown;
+  error?: string;
+  durationMs: number;
+  artifacts?: unknown[];
+}

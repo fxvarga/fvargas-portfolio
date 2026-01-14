@@ -391,6 +391,151 @@ public class DataLakeService : IDataLakeService
 
     #endregion
 
+    #region Variance Analysis
+
+    public IEnumerable<VarianceAnalysisResult> PerformVarianceAnalysis(
+        string? entityCode = null,
+        string? accountPattern = null,
+        int currentYear = 0,
+        int currentPeriod = 0,
+        string compareTo = "prior_period",
+        decimal thresholdPct = 10)
+    {
+        EnsureInitialized();
+
+        // Default to current period if not specified - find the latest period in data
+        if (currentYear == 0 || currentPeriod == 0)
+        {
+            var latestBalance = _glBalances
+                .OrderByDescending(g => g.FiscalYear)
+                .ThenByDescending(g => g.FiscalPeriod)
+                .FirstOrDefault();
+
+            if (latestBalance != null)
+            {
+                currentYear = latestBalance.FiscalYear;
+                currentPeriod = latestBalance.FiscalPeriod;
+            }
+            else
+            {
+                return [];
+            }
+        }
+
+        // Get current period balances
+        var currentBalances = _glBalances.Where(g =>
+            g.FiscalYear == currentYear &&
+            g.FiscalPeriod == currentPeriod);
+
+        if (!string.IsNullOrEmpty(entityCode))
+            currentBalances = currentBalances.Where(g => 
+                g.EntityCode.Equals(entityCode, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(accountPattern))
+            currentBalances = currentBalances.Where(g => 
+                g.AccountNumber.StartsWith(accountPattern));
+
+        // Determine comparison period
+        int compYear, compPeriod;
+        string compPeriodLabel;
+
+        switch (compareTo.ToLower())
+        {
+            case "prior_year":
+                compYear = currentYear - 1;
+                compPeriod = currentPeriod;
+                compPeriodLabel = $"FY{compYear} P{compPeriod}";
+                break;
+            case "prior_period":
+            default:
+                if (currentPeriod == 1)
+                {
+                    compYear = currentYear - 1;
+                    compPeriod = 12;
+                }
+                else
+                {
+                    compYear = currentYear;
+                    compPeriod = currentPeriod - 1;
+                }
+                compPeriodLabel = $"FY{compYear} P{compPeriod}";
+                break;
+        }
+
+        // Get comparison period balances
+        var compBalances = _glBalances.Where(g =>
+            g.FiscalYear == compYear &&
+            g.FiscalPeriod == compPeriod);
+
+        if (!string.IsNullOrEmpty(entityCode))
+            compBalances = compBalances.Where(g => 
+                g.EntityCode.Equals(entityCode, StringComparison.OrdinalIgnoreCase));
+
+        if (!string.IsNullOrEmpty(accountPattern))
+            compBalances = compBalances.Where(g => 
+                g.AccountNumber.StartsWith(accountPattern));
+
+        // Build comparison dictionary
+        var compDict = compBalances.ToDictionary(
+            g => (g.EntityCode, g.AccountNumber),
+            g => g);
+
+        var results = new List<VarianceAnalysisResult>();
+
+        foreach (var current in currentBalances)
+        {
+            var key = (current.EntityCode, current.AccountNumber);
+            compDict.TryGetValue(key, out var comp);
+
+            var currentBalance = current.ClosingBalance;
+            var compBalance = comp?.ClosingBalance ?? 0;
+            var varianceAmount = currentBalance - compBalance;
+            var variancePct = compBalance != 0 
+                ? Math.Abs((varianceAmount / compBalance) * 100) 
+                : (varianceAmount != 0 ? 100 : 0);
+
+            // Determine if favorable based on account type
+            // For Revenue: increase is favorable
+            // For Expense: decrease is favorable
+            // For Asset: increase is favorable
+            // For Liability/Equity: context dependent, using increase as favorable for now
+            bool isFavorable = current.AccountType.ToLower() switch
+            {
+                "expense" => varianceAmount < 0,
+                "revenue" => varianceAmount > 0,
+                _ => varianceAmount > 0
+            };
+
+            var exceeds = variancePct >= thresholdPct;
+
+            // Only include items that exceed threshold
+            if (exceeds)
+            {
+                results.Add(new VarianceAnalysisResult
+                {
+                    AccountNumber = current.AccountNumber,
+                    AccountName = current.AccountName,
+                    AccountType = current.AccountType,
+                    EntityCode = current.EntityCode,
+                    CurrentPeriod = $"FY{currentYear} P{currentPeriod}",
+                    ComparisonPeriod = compPeriodLabel,
+                    CompareTo = compareTo,
+                    CurrentBalance = currentBalance,
+                    ComparisonBalance = compBalance,
+                    VarianceAmount = varianceAmount,
+                    VariancePercent = Math.Round(variancePct, 2),
+                    IsFavorable = isFavorable,
+                    ExceedsThreshold = exceeds
+                });
+            }
+        }
+
+        // Sort by absolute variance amount descending
+        return results.OrderByDescending(r => Math.Abs(r.VarianceAmount)).ToList();
+    }
+
+    #endregion
+
     private void EnsureInitialized()
     {
         if (!_isInitialized)

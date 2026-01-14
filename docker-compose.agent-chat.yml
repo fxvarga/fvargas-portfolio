@@ -106,8 +106,8 @@ services:
       # Azure OpenAI (primary)
       AzureOpenAi__Endpoint: ${AZURE_OPENAI_ENDPOINT}
       AzureOpenAi__ApiKey: ${AZURE_OPENAI_API_KEY}
-      AzureOpenAi__ChatDeployment: ${AZURE_OPENAI_CHAT_DEPLOYMENT:-gpt-4o}
-      AzureOpenAi__ToolDeployment: ${AZURE_OPENAI_TOOL_DEPLOYMENT:-gpt-4o}
+      AzureOpenAi__DefaultDeployment: ${AZURE_OPENAI_CHAT_DEPLOYMENT:-gpt-4o}
+      AzureOpenAi__UseMaxCompletionTokens: ${AZURE_OPENAI_USE_MAX_COMPLETION_TOKENS:-false}
       AzureOpenAi__EmbeddingDeployment: ${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-text-embedding-ada-002}
       AzureOpenAi__ApiVersion: ${AZURE_OPENAI_API_VERSION:-2024-08-01-preview}
       AzureOpenAi__MaxTokens: ${AZURE_OPENAI_MAX_TOKENS:-4096}
@@ -130,6 +130,8 @@ services:
       context: ./backend/dotnet
       dockerfile: AgentChat.Tools/Dockerfile
     container_name: agentchat-tools
+    ports:
+      - "5101:8080"
     environment:
       Database__ConnectionString: Host=postgres;Database=agentchat;Username=postgres;Password=postgres
       RabbitMq__HostName: rabbitmq

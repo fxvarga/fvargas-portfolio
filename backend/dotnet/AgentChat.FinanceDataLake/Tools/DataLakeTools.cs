@@ -525,3 +525,125 @@ public class FxRateQueryTool : ITool
         }
     }
 }
+
+/// <summary>
+/// Tool for performing variance analysis on GL balances.
+/// </summary>
+public class VarianceAnalysisTool : ITool
+{
+    private readonly IDataLakeService _dataLake;
+
+    public VarianceAnalysisTool(IDataLakeService dataLake)
+    {
+        _dataLake = dataLake;
+    }
+
+    public ToolDefinition Definition => new()
+    {
+        Name = "datalake_variance_analysis",
+        Description = "Perform variance analysis on GL balances comparing current period to prior period, prior year, or budget. " +
+                      "Returns accounts with significant variances exceeding the specified threshold. " +
+                      "Use for month-end close analysis and identifying unusual fluctuations.",
+        Category = "datalake",
+        RiskTier = RiskTier.Low,
+        ParametersSchema = JsonDocument.Parse("""
+        {
+            "type": "object",
+            "properties": {
+                "entity_code": {
+                    "type": "string",
+                    "description": "Legal entity code (e.g., US01, UK01, DE01)"
+                },
+                "account_pattern": {
+                    "type": "string",
+                    "description": "Account number prefix to filter (e.g., '4' for all revenue accounts)"
+                },
+                "current_period": {
+                    "type": "string",
+                    "description": "Current period in format 'YYYY-MM' or 'FY-Period' (e.g., '2024-12' or '2024-12'). If omitted, uses latest period in data."
+                },
+                "compare_to": {
+                    "type": "string",
+                    "description": "Comparison type: 'prior_period' (previous month) or 'prior_year' (same period last year). Default: prior_period"
+                },
+                "threshold_pct": {
+                    "type": "number",
+                    "description": "Minimum variance percentage to include in results. Default: 10"
+                }
+            }
+        }
+        """).RootElement,
+        Tags = ["datalake", "variance", "analysis", "query", "read-only"]
+    };
+
+    public async Task<ToolExecutionResult> ExecuteAsync(
+        JsonElement args,
+        ToolExecutionContext context,
+        CancellationToken cancellationToken = default)
+    {
+        var startTime = DateTime.UtcNow;
+
+        try
+        {
+            await _dataLake.InitializeAsync();
+
+            string? entityCode = args.TryGetProperty("entity_code", out var ec) ? ec.GetString() : null;
+            string? accountPattern = args.TryGetProperty("account_pattern", out var ap) ? ap.GetString() : null;
+            string compareTo = args.TryGetProperty("compare_to", out var ct) ? ct.GetString() ?? "prior_period" : "prior_period";
+            decimal thresholdPct = args.TryGetProperty("threshold_pct", out var tp) ? tp.GetDecimal() : 10;
+
+            // Parse current_period if provided
+            int currentYear = 0;
+            int currentPeriod = 0;
+            if (args.TryGetProperty("current_period", out var cp))
+            {
+                var periodStr = cp.GetString() ?? "";
+                var parts = periodStr.Split('-');
+                if (parts.Length == 2)
+                {
+                    int.TryParse(parts[0], out currentYear);
+                    int.TryParse(parts[1], out currentPeriod);
+                }
+            }
+
+            var variances = _dataLake.PerformVarianceAnalysis(
+                entityCode, accountPattern, currentYear, currentPeriod, compareTo, thresholdPct);
+
+            var results = variances.Select(v => new
+            {
+                account_number = v.AccountNumber,
+                account_name = v.AccountName,
+                account_type = v.AccountType,
+                entity_code = v.EntityCode,
+                current_period = v.CurrentPeriod,
+                comparison_period = v.ComparisonPeriod,
+                compare_to = v.CompareTo,
+                current_balance = v.CurrentBalance,
+                comparison_balance = v.ComparisonBalance,
+                variance_amount = v.VarianceAmount,
+                variance_percent = v.VariancePercent,
+                is_favorable = v.IsFavorable,
+                exceeds_threshold = v.ExceedsThreshold
+            }).ToList();
+
+            var favorableCount = results.Count(r => r.is_favorable);
+            var unfavorableCount = results.Count(r => !r.is_favorable);
+
+            var result = JsonSerializer.SerializeToElement(new
+            {
+                total_variances = results.Count,
+                favorable_count = favorableCount,
+                unfavorable_count = unfavorableCount,
+                threshold_pct = thresholdPct,
+                compare_to = compareTo,
+                variances = results
+            });
+
+            return ToolExecutionResult.Ok(result, DateTime.UtcNow - startTime);
+        }
+        catch (Exception ex)
+        {
+            return ToolExecutionResult.Fail($"Error performing variance analysis: {ex.Message}", DateTime.UtcNow - startTime);
+        }
+    }
+}

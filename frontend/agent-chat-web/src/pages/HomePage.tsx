@@ -5,7 +5,7 @@ import type { RunSummary } from '@/types';
 import { Card, CardContent } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { formatDate, formatTimestamp } from '@/lib/utils';
-import { Bot, Plus, MessageSquare, Loader2, BookOpen } from 'lucide-react';
+import { Bot, Plus, MessageSquare, Loader2, BookOpen, Settings } from 'lucide-react';
 
 // Map numeric status to string
 const statusMap: Record<number, string> = {
@@ -68,14 +68,19 @@ export function HomePage() {
                 </p>
               </div>
             </div>
-            <Button onClick={handleNewChat}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Chat
-            </Button>
-            <Button variant="secondary" onClick={() => navigate('/knowledge')}>
-              <BookOpen className="w-4 h-4 mr-2" />
-              Knowledge Base
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleNewChat}>
+                <Plus className="w-4 h-4 mr-2" />
+                New Chat
+              </Button>
+              <Button variant="secondary" onClick={() => navigate('/knowledge')}>
+                <BookOpen className="w-4 h-4 mr-2" />
+                Knowledge Base
+              </Button>
+              <Button variant="ghost" onClick={() => navigate('/settings')}>
+                <Settings className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
         </div>
       </header>

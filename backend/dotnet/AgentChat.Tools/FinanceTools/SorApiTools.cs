@@ -782,16 +782,16 @@ public class SorApprovalPendingTool : SorApiToolBase
     public override ToolDefinition Definition => new()
     {
         Name = "sor_approval_pending",
-        Description = "Get pending approvals assigned to a specific user.",
+        Description = "Get pending approvals. Optionally filter by user assigned to approve.",
         Category = "finance_sor",
         RiskTier = RiskTier.Low,
         ParametersSchema = JsonDocument.Parse("""
         {
             "type": "object",
             "properties": {
-                "assigned_to": { "type": "string", "description": "User to get pending approvals for" }
+                "assigned_to": { "type": "string", "description": "Optional: User to get pending approvals for. If not provided, returns all pending approvals." }
             },
-            "required": ["assigned_to"]
+            "required": []
         }
         """).RootElement,
         Tags = ["finance", "sor", "approval", "pending", "read-only"]
@@ -803,17 +803,36 @@ public class SorApprovalPendingTool : SorApiToolBase
 
         try
         {
-            var assignedTo = args.GetProperty("assigned_to").GetString();
+            string? assignedTo = null;
+            if (args.TryGetProperty("assigned_to", out var assignedToProp))
+            {
+                assignedTo = assignedToProp.GetString();
+            }
 
-            var response = await HttpClient.GetAsync($"{BaseUrl}/api/approvals/pending/{assignedTo}", cancellationToken);
+            string url = string.IsNullOrEmpty(assignedTo) 
+                ? $"{BaseUrl}/api/approvals" 
+                : $"{BaseUrl}/api/approvals/pending/{assignedTo}";
+
+            var response = await HttpClient.GetAsync(url, cancellationToken);
             var content = await response.Content.ReadAsStringAsync(cancellationToken);
-            var approvals = JsonSerializer.Deserialize<JsonElement>(content);
+            var allApprovals = JsonSerializer.Deserialize<JsonElement>(content);
+
+            // Filter to only pending approvals if we got all approvals
+            var pendingApprovals = new List<JsonElement>();
+            foreach (var approval in allApprovals.EnumerateArray())
+            {
+                if (approval.TryGetProperty("status", out var statusProp) && 
+                    statusProp.GetString()?.Equals("PENDING", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    pendingApprovals.Add(approval);
+                }
+            }
 
             var result = JsonSerializer.SerializeToElement(new
             {
                 success = true,
-                count = approvals.GetArrayLength(),
-                approvals
+                count = pendingApprovals.Count,
+                approvals = pendingApprovals
             });
 
             return ToolExecutionResult.Ok(result, DateTime.UtcNow - startTime);

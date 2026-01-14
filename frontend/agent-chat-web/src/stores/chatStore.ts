@@ -58,6 +58,13 @@ export const useChatStore = create<ChatState>()(
 
     setRun: (run) =>
       set((state) => {
+        // Ensure arrays are initialized even if backend returns null
+        if (run) {
+          run.messages = run.messages ?? [];
+          run.toolCalls = run.toolCalls ?? [];
+          run.steps = run.steps ?? [];
+          run.approvals = run.approvals ?? [];
+        }
         state.run = run;
         state.currentRunId = run?.runId ?? null;
       }),
@@ -178,6 +185,8 @@ export const useChatStore = create<ChatState>()(
         case 'MessageUserCreated': {
           set((s) => {
             if (s.run && event.messageId && event.content) {
+              // Ensure messages array exists
+              if (!s.run.messages) s.run.messages = [];
               // Check if message already exists
               const exists = s.run.messages.some(m => m.id === event.messageId);
               if (!exists) {
@@ -198,6 +207,8 @@ export const useChatStore = create<ChatState>()(
             s.isStreaming = false;
             s.streamingContent = '';
             if (s.run && event.messageId && event.content) {
+              // Ensure messages array exists
+              if (!s.run.messages) s.run.messages = [];
               // Check if message already exists
               const exists = s.run.messages.some(m => m.id === event.messageId);
               if (!exists) {
@@ -237,6 +248,8 @@ export const useChatStore = create<ChatState>()(
         case 'ToolCallRequested': {
           set((s) => {
             if (s.run && event.toolCallId && event.toolName) {
+              // Ensure toolCalls array exists
+              if (!s.run.toolCalls) s.run.toolCalls = [];
               // Add tool call to run's toolCalls array
               s.run.toolCalls.push({
                 id: event.toolCallId,

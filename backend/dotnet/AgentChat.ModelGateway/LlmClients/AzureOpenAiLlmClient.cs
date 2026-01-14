@@ -52,6 +52,8 @@ public class AzureOpenAiLlmClient : ILlmClient
             throw new InvalidOperationException("Azure OpenAI is not configured");
 
         var deployment = model ?? _options.DefaultDeployment;
+        _logger.LogInformation("Using deployment: {Deployment} (model param: {Model}, default: {Default})", 
+            deployment, model ?? "(null)", _options.DefaultDeployment);
         var chatClient = _client.GetChatClient(deployment);
 
         // Convert messages
@@ -91,11 +93,15 @@ public class AzureOpenAiLlmClient : ILlmClient
         }
 
         // Build options
-        var options = new ChatCompletionOptions
+        var options = new ChatCompletionOptions();
+        
+        // Newer models (gpt-5.x, o1, etc.) only support default temperature (1) and max tokens
+        // When UseMaxCompletionTokens is true, we skip setting both and let the model use defaults
+        if (!_options.UseMaxCompletionTokens)
         {
-            Temperature = temperature,
-            MaxOutputTokenCount = maxTokens
-        };
+            options.Temperature = temperature;
+            options.MaxOutputTokenCount = maxTokens;
+        }
 
         // Add tools
         if (tools != null)

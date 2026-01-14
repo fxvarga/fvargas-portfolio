@@ -17,14 +17,13 @@ import {
   Ban,
   Plus,
   MessageCircle,
-  Briefcase,
-  User
+  Briefcase
 } from 'lucide-react';
 
 export function ChatPage() {
   const { runId } = useParams<{ runId?: string }>();
   const navigate = useNavigate();
-  const [selectedAssistantType, setSelectedAssistantType] = useState<AssistantType>(AssistantType.PortfolioVisitor);
+  const [selectedAssistantType, setSelectedAssistantType] = useState<AssistantType>(AssistantType.FinanceAdvisor);
 
   const {
     run,
@@ -149,7 +148,8 @@ export function ChatPage() {
           /* New chat - show assistant type selector */
           <div className="flex-1 flex flex-col items-center justify-center p-8">
             <h2 className="text-xl font-semibold text-gray-100 mb-6">Choose an Assistant</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl w-full">
+            <div className="grid grid-cols-1 gap-4 max-w-2xl w-full">
+              {/* Portfolio Visitor - temporarily disabled
               <button
                 onClick={() => setSelectedAssistantType(AssistantType.PortfolioVisitor)}
                 className={`p-6 rounded-xl border-2 transition-all text-left ${
@@ -176,6 +176,7 @@ export function ChatPage() {
                   Ask questions about Fernando's portfolio, projects, skills, and experience.
                 </p>
               </button>
+              */}
               
               <button
                 onClick={() => setSelectedAssistantType(AssistantType.FinanceAdvisor)}
@@ -204,8 +205,31 @@ export function ChatPage() {
                 </p>
               </button>
             </div>
+
+            {/* Demo Prompts */}
+            <div className="mt-8 w-full max-w-2xl">
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Try a demo prompt:</h3>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  "What's the status of the December 2024 close for entity US01?",
+                  "Show me all pending journal entries awaiting approval",
+                  "Generate a variance analysis comparing Q4 actuals vs budget",
+                  "What reconciliations are still open for the current period?",
+                  "Walk me through the month-end close procedure for fixed assets"
+                ].map((prompt, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handleSendMessage(prompt)}
+                    className="px-3 py-2 text-sm text-gray-300 bg-gray-800 hover:bg-gray-700 border border-gray-700 hover:border-gray-600 rounded-lg transition-all text-left"
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <p className="text-sm text-gray-500 mt-6">
-              Type a message below to start your conversation
+              Or type a message below to start your conversation
             </p>
           </div>
         ) : (
