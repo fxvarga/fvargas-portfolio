@@ -1,0 +1,372 @@
+.ai-tool-call-card-demo {
+  padding: 2rem;
+  background: linear-gradient(145deg, #1a1a2e 0%, #16213e 100%);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  position: relative;
+}
+
+.ai-tool-call-card-demo .demo-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.ai-tool-call-card-demo .demo-header h4 {
+  color: #fff;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.ai-tool-call-card-demo .demo-header p {
+  color: #888;
+  font-size: 0.95rem;
+}
+
+.ai-tool-call-card-demo .demo-controls {
+  margin-bottom: 2rem;
+}
+
+.ai-tool-call-card-demo .control-row {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.ai-tool-call-card-demo .notification-buttons {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.ai-tool-call-card-demo .notification-btn,
+.ai-tool-call-card-demo .clear-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ai-tool-call-card-demo .notification-btn.info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.ai-tool-call-card-demo .notification-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ai-tool-call-card-demo .clear-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ccc;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.ai-tool-call-card-demo .notification-btn:hover:not(:disabled),
+.ai-tool-call-card-demo .clear-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Tool Calls List */
+.tool-calls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Tool Call Card */
+.tool-call-card {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.tool-call-card.tool-status-running {
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 0 12px rgba(59, 130, 246, 0.1);
+}
+
+.tool-call-card.tool-status-success {
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+.tool-call-card.tool-status-error {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Header */
+.tool-call-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s ease;
+}
+
+.tool-call-header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Status Icon */
+.tool-call-icon {
+  flex-shrink: 0;
+}
+
+.status-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.status-icon.status-pending {
+  background: rgba(255, 255, 255, 0.08);
+  color: #888;
+}
+
+.status-icon.status-running {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  animation: statusPulse 1.5s ease-in-out infinite;
+}
+
+.status-icon.status-success {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.status-icon.status-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 0.7; }
+  50% { opacity: 1; }
+}
+
+/* Info */
+.tool-call-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.tool-call-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #eee;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+
+.tool-call-desc {
+  font-size: 0.8rem;
+  color: #888;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Meta */
+.tool-call-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.tool-status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-pending {
+  background: rgba(255, 255, 255, 0.08);
+  color: #888;
+}
+
+.badge-running {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.badge-success {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.badge-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.tool-duration {
+  font-size: 0.75rem;
+  color: #666;
+  font-variant-numeric: tabular-nums;
+}
+
+.expand-chevron {
+  font-size: 0.8rem;
+  color: #666;
+  transition: transform 0.2s ease;
+}
+
+.expand-chevron.expanded {
+  transform: rotate(180deg);
+}
+
+/* Expandable Body */
+.tool-call-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.tool-call-body.expanded {
+  overflow: visible;
+}
+
+.tool-call-body-inner {
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Panels */
+.tool-panel {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tool-panel-error {
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.tool-panel-header {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.tool-panel-error .tool-panel-header {
+  color: #ef4444;
+}
+
+.tool-panel-code {
+  padding: 0.75rem;
+  margin: 0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  color: #ccc;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.tool-panel-error .tool-panel-code {
+  color: #fca5a5;
+}
+
+/* Demo Info */
+.ai-tool-call-card-demo .demo-info {
+  padding: 1.5rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.ai-tool-call-card-demo .demo-info h5 {
+  color: #fff;
+  font-size: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.ai-tool-call-card-demo .demo-info ul {
+  margin: 0;
+  padding-left: 1.25rem;
+}
+
+.ai-tool-call-card-demo .demo-info li {
+  color: #888;
+  font-size: 0.9rem;
+  margin-bottom: 0.4rem;
+}
+
+.ai-tool-call-card-demo .demo-info li::marker {
+  color: #c26a2d;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ai-tool-call-card-demo {
+    padding: 1rem;
+  }
+
+  .tool-call-header {
+    padding: 0.6rem 0.75rem;
+  }
+
+  .tool-call-desc {
+    display: none;
+  }
+
+  .tool-call-meta {
+    gap: 0.5rem;
+  }
+
+  .tool-duration {
+    display: none;
+  }
+
+  .tool-panel-code {
+    font-size: 0.75rem;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .tool-call-card,
+  .tool-call-header,
+  .expand-chevron,
+  .tool-call-body,
+  .status-icon.status-running,
+  .ai-tool-call-card-demo .notification-btn,
+  .ai-tool-call-card-demo .clear-btn {
+    transition: none !important;
+    animation: none !important;
+  }
+}

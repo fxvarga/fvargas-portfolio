@@ -22,6 +22,11 @@ const AnimatedModalDialogs = lazy(() => import('./animated-modal-dialogs/Animate
 const ProgressBarsCssAnimations = lazy(() => import('./progress-bars-css-animations/ProgressBarsCssAnimations'));
 const AnimatedTabNavigation = lazy(() => import('./animated-tab-navigation/AnimatedTabNavigation'));
 const ToastNotificationSystem = lazy(() => import('./toast-notification-system/ToastNotificationSystem'));
+const AiChatBubble = lazy(() => import('./ai-chat-bubble/AiChatBubble'));
+const AiPromptInput = lazy(() => import('./ai-prompt-input/AiPromptInput'));
+const AiThinkingSkeleton = lazy(() => import('./ai-thinking-skeleton/AiThinkingSkeleton'));
+const AiToolCallCard = lazy(() => import('./ai-tool-call-card/AiToolCallCard'));
+const AiApprovalFlow = lazy(() => import('./ai-approval-flow/AiApprovalFlow'));
 
 // Demo component type
 interface DemoComponentProps {
@@ -43,6 +48,11 @@ const demoRegistry: Record<string, ComponentType<DemoComponentProps>> = {
   'progress-bars-css-animations': ProgressBarsCssAnimations,
   'animated-tab-navigation': AnimatedTabNavigation,
   'toast-notification-system': ToastNotificationSystem,
+  'ai-chat-bubble': AiChatBubble,
+  'ai-prompt-input': AiPromptInput,
+  'ai-thinking-skeleton': AiThinkingSkeleton,
+  'ai-tool-call-card': AiToolCallCard,
+  'ai-approval-flow': AiApprovalFlow,
 };
 
 // Loading fallback component

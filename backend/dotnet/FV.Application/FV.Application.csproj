@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\FV.Domain\FV.Domain.csproj" />
@@ -38,6 +38,6 @@
     <PackageReference Include="Microsoft.KernelMemory.MemoryDb.SQLServer" Version="0.92.241112.1" />
     <PackageReference Include="Microsoft.KernelMemory.Orchestration.AzureQueues" Version="0.92.241112.1" />
     <PackageReference Include="Microsoft.KernelMemory.Orchestration.RabbitMQ" Version="0.92.241112.1" />
-    <PackageReference Include="SharpToken" />
+    <PackageReference Include="SharpToken" Version="2.0.3" />
   </ItemGroup>
 </Project>
