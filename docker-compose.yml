@@ -112,6 +112,22 @@ services:
       retries: 3
       start_period: 5s
 
+  # 1 Stop Wings static site
+  frontend-1stopwings:
+    build:
+      context: ./frontend/portfolio-1stopwings
+      dockerfile: Dockerfile
+    container_name: portfolio-frontend-1stopwings
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
   # Caddy reverse proxy for multi-domain routing (local dev)
   caddy:
     image: caddy:2-alpine
@@ -127,10 +143,12 @@ services:
       - DOMAIN_FERNANDO=${DOMAIN_FERNANDO:-localhost}
       - DOMAIN_JESSICA=${DOMAIN_JESSICA:-jessica.localhost}
       - DOMAIN_BUSYBEE=${DOMAIN_BUSYBEE:-busybee.localhost}
+      - DOMAIN_1STOPWINGS=${DOMAIN_1STOPWINGS:-1stopwings.localhost}
     depends_on:
       - frontend-fernando
       - frontend-jessica
       - frontend-busybee
+      - frontend-1stopwings
       - backend
     networks:
       - portfolio-network

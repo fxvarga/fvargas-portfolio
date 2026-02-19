@@ -108,3 +108,12 @@ https://{$DOMAIN_BUSYBEE:busybee.localhost} {
         reverse_proxy frontend-busybee:80
     }
 }
+
+# 1 Stop Wings (static site)
+https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
+    tls internal
+
+    handle {
+        reverse_proxy frontend-1stopwings:80
+    }
+}

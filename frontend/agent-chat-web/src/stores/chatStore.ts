@@ -266,7 +266,16 @@ export const useChatStore = create<ChatState>()(
         }
 
         case 'ToolCallStarted': {
-          // Tool execution started
+          set((s) => {
+            if (s.run && event.toolCallId) {
+              const toolCall = s.run.toolCalls.find(
+                (tc: ToolCallDto) => tc.id === event.toolCallId,
+              );
+              if (toolCall) {
+                toolCall.status = 'running';
+              }
+            }
+          });
           break;
         }
 

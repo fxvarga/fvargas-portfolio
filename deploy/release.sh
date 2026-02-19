@@ -93,6 +93,7 @@ get_frontend_images() {
     FRONTEND_FERNANDO_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_FERNANDO:-portfolio-frontend-fernando}:${tag}"
     FRONTEND_JESSICA_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_JESSICA:-portfolio-frontend-jessica}:${tag}"
     FRONTEND_BUSYBEE_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BUSYBEE:-portfolio-frontend-busybee}:${tag}"
+    FRONTEND_1STOPWINGS_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_1STOPWINGS:-portfolio-frontend-1stopwings}:${tag}"
 }
 
 # ============================================
@@ -252,6 +253,10 @@ build_and_push() {
     log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
     docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
     
+    # Build frontend - 1 Stop Wings (static site)
+    log_info "Building frontend image (1 Stop Wings): ${FRONTEND_1STOPWINGS_IMAGE}"
+    docker build -t "${FRONTEND_1STOPWINGS_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-1stopwings/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-1stopwings"
+    
     log_success "Images built successfully"
     
     # Push to registry
@@ -261,6 +266,7 @@ build_and_push() {
     docker push "${FRONTEND_FERNANDO_IMAGE}"
     docker push "${FRONTEND_JESSICA_IMAGE}"
     docker push "${FRONTEND_BUSYBEE_IMAGE}"
+    docker push "${FRONTEND_1STOPWINGS_IMAGE}"
     
     log_success "Images pushed to Docker Hub"
     
@@ -280,6 +286,7 @@ deploy() {
     local domain_fernando="${DOMAIN_FERNANDO:-}"
     local domain_jessica="${DOMAIN_JESSICA:-}"
     local domain_busybee="${DOMAIN_BUSYBEE:-}"
+    local domain_1stopwings="${DOMAIN_1STOPWINGS:-}"
     
     log_info "Deploying to $DROPLET_IP..."
     log_info "Using images:"
@@ -287,11 +294,13 @@ deploy() {
     log_info "  Frontend Fernando: $FRONTEND_FERNANDO_IMAGE"
     log_info "  Frontend Jessica:  $FRONTEND_JESSICA_IMAGE"
     log_info "  Frontend BusyBee:  $FRONTEND_BUSYBEE_IMAGE"
+    log_info "  Frontend 1StopWings: $FRONTEND_1STOPWINGS_IMAGE"
     
     log_info "Domains:"
     log_info "  Fernando: ${domain_fernando:-localhost}"
     log_info "  Jessica:  ${domain_jessica:-jessica.localhost}"
     log_info "  BusyBee:  ${domain_busybee:-busybee.localhost}"
+    log_info "  1StopWings: ${domain_1stopwings:-1stopwings.localhost}"
 
     # Create production docker-compose on server
     ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << DEPLOY_SCRIPT
@@ -406,6 +415,19 @@ services:
       retries: 3
       start_period: 5s
 
+  frontend-1stopwings:
+    image: ${FRONTEND_1STOPWINGS_IMAGE}
+    container_name: portfolio-frontend-1stopwings
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
   caddy:
     image: caddy:2-alpine
     container_name: portfolio-caddy
@@ -421,6 +443,7 @@ services:
       - frontend-fernando
       - frontend-jessica
       - frontend-busybee
+      - frontend-1stopwings
       - backend
     networks:
       - portfolio-network
@@ -508,6 +531,13 @@ ${domain_busybee:-busybee.localhost} {
 www.${domain_busybee:-busybee.localhost} {
     redir https://${domain_busybee:-busybee.localhost}{uri} permanent
 }
+
+# 1 Stop Wings (static site)
+${domain_1stopwings:-1stopwings.localhost} {
+    handle {
+        reverse_proxy frontend-1stopwings:80
+    }
+}
 CADDY_EOF
 
         # Pull latest images
@@ -542,6 +572,9 @@ DEPLOY_SCRIPT
     fi
     if [[ -n "$domain_busybee" ]]; then
         echo "  BusyBee: https://$domain_busybee"
+    fi
+    if [[ -n "$domain_1stopwings" ]]; then
+        echo "  1StopWings: https://$domain_1stopwings"
     fi
     echo ""
     log_info "Make sure your DNS is configured for all domains to point to: $DROPLET_IP"

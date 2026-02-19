@@ -1,0 +1,72 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #1a1a1a;
+  font-family: "Arial Black", Gadget, sans-serif;
+  color: white;
+}
+
+.main-container {
+  max-width: 500px;
+  margin: 0 auto;
+  text-align: center;
+  padding: 20px;
+}
+
+.logo {
+  width: 80%;
+  height: auto;
+  margin-bottom: 20px;
+}
+
+.hero-image {
+  width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.button-stack ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 30px 0 0 0;
+}
+
+.btn {
+  display: block;
+  text-decoration: none;
+  padding: 18px 10px;
+  margin-bottom: 12px;
+  font-size: 1.3rem;
+  text-align: center;
+  border-radius: 4px;
+  text-transform: uppercase;
+  transition: transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.doordash {
+  background-color: #ff3008;
+  color: white;
+}
+.ubereats {
+  background-color: #06c167;
+  color: white;
+}
+.grubhub {
+  background-color: #f85a00;
+  color: white;
+}
+.store-menu {
+  background-color: #1d264f;
+  color: white;
+}
+
+.catering-link {
+  background-color: transparent;
+  color: #f0f0f0;
+  border: 2px solid #d4af37;
+  font-size: 1.3rem;
+}
