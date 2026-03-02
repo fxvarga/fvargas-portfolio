@@ -218,6 +218,11 @@ $RECYCLE.BIN/
 # ------------------------
 # Project specific
 # ------------------------
+# External client sites (not managed in this repo)
+momentsbykarina/
+
+# Windows reserved name artifacts
+nul
 # Sensitive or environment-specific data
 *.env
 appsettings.*.json

@@ -1,0 +1,143 @@
+/* ==============================================================
+   PAGE STYLE: Classic Americana Menu (menu.html)
+   DESCRIPTION: High-contrast 4-column layout for a traditional vibe.
+   ============================================================== */
+
+body {
+    background-color: #ffffff;
+    color: #1a1a1a;
+    padding: 40px 20px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.5;
+}
+
+/* HEADER SECTION */
+.menu-header {
+    text-align: center;
+    margin-bottom: 50px;
+    border-bottom: 4px solid var(--wing-red); /* Bold brand red line */
+    padding-bottom: 20px;
+}
+
+.menu-header h1 {
+    font-size: 5rem;
+    color: var(--wing-blue); /* Bold brand navy */
+    margin-bottom: 5px;
+}
+
+/* GRID SYSTEM 
+   4 Columns on Desktop | 2 on Tablet | 1 on Mobile */
+.menu-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 40px;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.menu-column {
+    display: flex;
+    flex-direction: column;
+}
+
+/* TYPOGRAPHY & HEADERS */
+.blue-text { color: var(--wing-blue); } 
+.red-text  { color: var(--wing-red); }
+
+.underline {
+    border-bottom: 3px solid var(--wing-blue);
+    padding-bottom: 5px;
+    margin-bottom: 20px;
+    display: inline-block;
+    width: 100%;
+}
+
+/* ITEM STYLING */
+.menu-item, .menu-group { 
+    margin-bottom: 22px; 
+}
+
+.item-name {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #000000;
+}
+
+.item-desc {
+    font-size: 1rem;
+    color: #333333;
+    margin-top: 4px;
+}
+
+/* FLAVORS BOX (Traditional Border Style) */
+.flavor-list {
+    background: #f9f9f9;
+    padding: 18px;
+    border: 2px solid var(--wing-blue);
+    font-size: 1rem;
+    font-weight: bold;
+    line-height: 1.6;
+    margin: 15px 0;
+    color: #000000;
+}
+
+.warning-text {
+    color: var(--wing-red);
+    text-transform: uppercase;
+    text-decoration: underline;
+}
+
+/* FOOTER BRANDING */
+.menu-footer {
+    margin-top: 80px;
+    text-align: center;
+    border-top: 4px solid var(--wing-red);
+    padding-top: 50px;
+}
+
+.branding-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 40px;
+}
+
+.footer-logo {
+    height: 90px;
+    width: auto;
+    display: block;
+    margin: 0 auto;
+}
+
+.back-link {
+    display: inline-block;
+    background-color: var(--wing-blue);
+    color: #ffffff;
+    text-decoration: none;
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
+    padding: 12px 30px;
+    border-radius: 4px;
+    transition: background 0.2s;
+}
+
+.back-link:hover {
+    background-color: var(--wing-red);
+}
+
+/* MOBILE ADJUSTMENTS */
+@media (max-width: 600px) {
+    .menu-header h1 {
+        font-size: 3rem;
+    }
+    .menu-grid {
+        gap: 30px;
+    }
+    body {
+        padding: 30px 15px;
+    }
+}

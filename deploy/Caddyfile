@@ -109,11 +109,34 @@ https://{$DOMAIN_BUSYBEE:busybee.localhost} {
     }
 }
 
-# 1 Stop Wings (static site)
+# 1 Stop Wings (static site via Executive Catering container)
 https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
     tls internal
 
     handle {
-        reverse_proxy frontend-1stopwings:80
+        reverse_proxy frontend-executive-catering:80
     }
+}
+
+# Executive Catering main site (same container, different domain)
+https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
+    tls internal
+
+    handle {
+        reverse_proxy frontend-executive-catering:80
+    }
+}
+
+# Plausible Analytics dashboard
+https://{$DOMAIN_ANALYTICS:analytics.localhost} {
+    tls internal
+
+    reverse_proxy plausible:8000
+}
+
+# Grafana monitoring dashboard
+https://{$DOMAIN_GRAFANA:grafana.localhost} {
+    tls internal
+
+    reverse_proxy grafana:3000
 }

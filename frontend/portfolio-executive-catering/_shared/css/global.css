@@ -1,0 +1,65 @@
+/* ==============================================================
+   GLOBAL FOUNDATION: Executive Catering CT & 1 Stop Wings
+   DESCRIPTION: Core resets, shared utilities, and layout logic.
+   FILE LOCATION: /_shared/css/global.css
+   ============================================================== */
+
+/* 1. RESET & BOX MODEL 
+   Ensures consistent behavior across Windows browsers (Chrome, Edge). */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* 2. BASE HTML DEFAULTS */
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    width: 100%;
+    /* Default body font - clean and readable for both brands */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* 3. SHARED LAYOUT UTILITIES
+   These classes provide the same structure for every brand. */
+.main-container, .menu-page-wrapper {
+    width: 100%;
+    max-width: 1200px; 
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* 4. THEME-READY TYPOGRAPHY 
+   We define the behavior of headers here, but the 'font-family' 
+   can be overridden by the brand-specific CSS. */
+h1, h2, h3, h4, .brand-heading {
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+}
+
+/* 5. MEDIA DEFAULTS */
+img, picture, video, svg {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+/* 6. ACCESSIBILITY */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}

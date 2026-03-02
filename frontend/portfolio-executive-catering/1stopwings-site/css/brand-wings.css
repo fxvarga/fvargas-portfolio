@@ -1,0 +1,84 @@
+/* ==============================================================
+   BRAND IDENTITY: 1 Stop Wings
+   DESCRIPTION: Classic Americana Style (Light Mode)
+   ============================================================== */
+
+:root {
+    /* YOUR BRAND COLORS */
+    --wing-blue: #1E2D5B; 
+    --wing-red:  #CE2B29; 
+    --white:     #ffffff;
+    --bg-light:  #ffffff; 
+    --text-dark: #1a1a1a;
+
+    /* BRAND TYPOGRAPHY */
+    --font-heading: Impact, "Arial Narrow Bold", sans-serif;
+}
+
+/* Classic white background for the Americana vibe */
+body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+    margin: 0;
+    padding: 0;
+}
+
+/* Apply Brand Font to all Headings */
+h1, h2, h3, h4, .brand-heading {
+    font-family: var(--font-heading);
+    font-weight: normal; /* Prevents "smudging" on Impact font */
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+
+/* Shared Button Styles */
+.btn {
+    display: block;
+    text-decoration: none;
+    padding: 18px 10px;
+    margin-bottom: 12px;
+    text-align: center;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-family: var(--font-heading);
+    font-weight: normal;
+    transition: transform 0.1s;
+}
+
+.btn:active {
+    transform: scale(0.98);
+}
+
+/* Container for the address and hours */
+.header-details {
+    margin-top: 10px;
+    margin-bottom: 40px;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    color: #444444; 
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+/* Specific styling for the address link (phone number) */
+.header-details address {
+    font-style: normal;
+    border-bottom: 1px solid #dddddd;
+    padding-bottom: 5px;
+    display: inline-block;
+}
+
+.header-details a {
+    color: var(--wing-blue); 
+    text-decoration: none;
+    font-weight: bold;
+}
+
+/* Styling the hours line */
+.header-hours {
+    margin-top: 8px;
+    letter-spacing: 0.5px;
+}
+
+.header-hours strong {
+    color: var(--wing-red);
+}

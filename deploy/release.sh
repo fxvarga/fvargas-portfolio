@@ -93,7 +93,7 @@ get_frontend_images() {
     FRONTEND_FERNANDO_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_FERNANDO:-portfolio-frontend-fernando}:${tag}"
     FRONTEND_JESSICA_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_JESSICA:-portfolio-frontend-jessica}:${tag}"
     FRONTEND_BUSYBEE_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BUSYBEE:-portfolio-frontend-busybee}:${tag}"
-    FRONTEND_1STOPWINGS_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_1STOPWINGS:-portfolio-frontend-1stopwings}:${tag}"
+    FRONTEND_EXECUTIVE_CATERING_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_EXECUTIVE_CATERING:-portfolio-frontend-executive-catering}:${tag}"
 }
 
 # ============================================
@@ -253,9 +253,9 @@ build_and_push() {
     log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
     docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
     
-    # Build frontend - 1 Stop Wings (static site)
-    log_info "Building frontend image (1 Stop Wings): ${FRONTEND_1STOPWINGS_IMAGE}"
-    docker build -t "${FRONTEND_1STOPWINGS_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-1stopwings/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-1stopwings"
+    # Build frontend - Executive Catering (1stopwings + future executive catering)
+    log_info "Building frontend image (Executive Catering): ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
+    docker build -t "${FRONTEND_EXECUTIVE_CATERING_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-executive-catering/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-executive-catering"
     
     log_success "Images built successfully"
     
@@ -266,7 +266,7 @@ build_and_push() {
     docker push "${FRONTEND_FERNANDO_IMAGE}"
     docker push "${FRONTEND_JESSICA_IMAGE}"
     docker push "${FRONTEND_BUSYBEE_IMAGE}"
-    docker push "${FRONTEND_1STOPWINGS_IMAGE}"
+    docker push "${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     
     log_success "Images pushed to Docker Hub"
     
@@ -287,6 +287,17 @@ deploy() {
     local domain_jessica="${DOMAIN_JESSICA:-}"
     local domain_busybee="${DOMAIN_BUSYBEE:-}"
     local domain_1stopwings="${DOMAIN_1STOPWINGS:-}"
+    local domain_executive_catering="${DOMAIN_EXECUTIVE_CATERING:-}"
+    local domain_analytics="${DOMAIN_ANALYTICS:-}"
+    local domain_grafana="${DOMAIN_GRAFANA:-}"
+    
+    # Plausible config
+    local plausible_base_url="${PLAUSIBLE_BASE_URL:-}"
+    local plausible_secret_key="${PLAUSIBLE_SECRET_KEY_BASE:-}"
+    local plausible_disable_reg="${PLAUSIBLE_DISABLE_REGISTRATION:-true}"
+    
+    # Grafana config
+    local grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-admin}"
     
     log_info "Deploying to $DROPLET_IP..."
     log_info "Using images:"
@@ -294,21 +305,144 @@ deploy() {
     log_info "  Frontend Fernando: $FRONTEND_FERNANDO_IMAGE"
     log_info "  Frontend Jessica:  $FRONTEND_JESSICA_IMAGE"
     log_info "  Frontend BusyBee:  $FRONTEND_BUSYBEE_IMAGE"
-    log_info "  Frontend 1StopWings: $FRONTEND_1STOPWINGS_IMAGE"
+    log_info "  Frontend Executive Catering: $FRONTEND_EXECUTIVE_CATERING_IMAGE"
     
     log_info "Domains:"
     log_info "  Fernando: ${domain_fernando:-localhost}"
     log_info "  Jessica:  ${domain_jessica:-jessica.localhost}"
     log_info "  BusyBee:  ${domain_busybee:-busybee.localhost}"
     log_info "  1StopWings: ${domain_1stopwings:-1stopwings.localhost}"
+    log_info "  Executive Catering: ${domain_executive_catering:-executivecatering.localhost}"
+    log_info "  Analytics: ${domain_analytics:-analytics.localhost}"
+    log_info "  Grafana:   ${domain_grafana:-grafana.localhost}"
 
     # Create production docker-compose on server
     ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << DEPLOY_SCRIPT
         set -e
         
         mkdir -p /opt/portfolio
+        mkdir -p /opt/portfolio/clickhouse
+        mkdir -p /opt/portfolio/prometheus
+        mkdir -p /opt/portfolio/grafana/provisioning/datasources
+        mkdir -p /opt/portfolio/grafana/provisioning/dashboards
+        mkdir -p /opt/portfolio/grafana/dashboards
         cd /opt/portfolio
         
+        # Create ClickHouse config files for Plausible
+        cat > clickhouse/logs.xml << 'CLICKHOUSE_EOF'
+<clickhouse>
+    <logger>
+        <level>warning</level>
+        <console>true</console>
+    </logger>
+    <query_log replace="1">
+        <database>system</database>
+        <table>query_log</table>
+        <flush_interval_milliseconds>7500</flush_interval_milliseconds>
+        <engine>
+            ENGINE = MergeTree
+            PARTITION BY event_date
+            ORDER BY (event_time)
+            TTL event_date + interval 30 day
+            SETTINGS ttl_only_drop_parts=1
+        </engine>
+    </query_log>
+    <metric_log remove="remove" />
+    <asynchronous_metric_log remove="remove" />
+    <query_thread_log remove="remove" />
+    <text_log remove="remove" />
+    <trace_log remove="remove" />
+    <session_log remove="remove" />
+    <part_log remove="remove" />
+</clickhouse>
+CLICKHOUSE_EOF
+
+        cat > clickhouse/ipv4-only.xml << 'CLICKHOUSE_EOF'
+<clickhouse>
+    <listen_host>0.0.0.0</listen_host>
+</clickhouse>
+CLICKHOUSE_EOF
+
+        cat > clickhouse/low-resources.xml << 'CLICKHOUSE_EOF'
+<clickhouse>
+    <mark_cache_size>524288000</mark_cache_size>
+</clickhouse>
+CLICKHOUSE_EOF
+
+        cat > clickhouse/default-profile-low-resources-overrides.xml << 'CLICKHOUSE_EOF'
+<clickhouse>
+    <profiles>
+        <default>
+            <max_threads>1</max_threads>
+            <max_block_size>8192</max_block_size>
+            <max_download_threads>1</max_download_threads>
+            <input_format_parallel_parsing>0</input_format_parallel_parsing>
+            <output_format_parallel_formatting>0</output_format_parallel_formatting>
+        </default>
+    </profiles>
+</clickhouse>
+CLICKHOUSE_EOF
+
+        # Create Prometheus config
+        cat > prometheus/prometheus.yml << 'PROM_EOF'
+global:
+  scrape_interval: 30s
+  evaluation_interval: 30s
+  scrape_timeout: 10s
+
+scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+
+  - job_name: "cadvisor"
+    static_configs:
+      - targets: ["cadvisor:8080"]
+PROM_EOF
+
+        # Create Grafana provisioning - datasource
+        cat > grafana/provisioning/datasources/prometheus.yml << 'GRAFANA_DS_EOF'
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+GRAFANA_DS_EOF
+
+        # Create Grafana provisioning - dashboard config
+        cat > grafana/provisioning/dashboards/dashboard.yml << 'GRAFANA_DASH_EOF'
+apiVersion: 1
+
+providers:
+  - name: "default"
+    orgId: 1
+    folder: ""
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
+GRAFANA_DASH_EOF
+
+        # Create Grafana dashboard - Host Monitoring (Node Exporter)
+        cat > grafana/dashboards/host-monitoring.json << 'HOST_DASH_EOF'
+{"annotations":{"list":[]},"editable":true,"fiscalYearStartMonth":0,"graphTooltip":1,"links":[],"panels":[{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":100,"title":"Overview","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":70},{"color":"red","value":90}]},"unit":"percent","min":0,"max":100},"overrides":[]},"gridPos":{"h":6,"w":6,"x":0,"y":1},"id":1,"options":{"orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showThresholdLabels":false,"showThresholdMarkers":true},"title":"CPU Usage","type":"gauge","targets":[{"expr":"100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)","legendFormat":"CPU","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":70},{"color":"red","value":85}]},"unit":"percent","min":0,"max":100},"overrides":[]},"gridPos":{"h":6,"w":6,"x":6,"y":1},"id":2,"options":{"orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showThresholdLabels":false,"showThresholdMarkers":true},"title":"Memory Usage","type":"gauge","targets":[{"expr":"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100","legendFormat":"RAM","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":70},{"color":"red","value":85}]},"unit":"percent","min":0,"max":100},"overrides":[]},"gridPos":{"h":6,"w":6,"x":12,"y":1},"id":3,"options":{"orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showThresholdLabels":false,"showThresholdMarkers":true},"title":"Disk Usage","type":"gauge","targets":[{"expr":"(1 - (node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} / node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"})) * 100","legendFormat":"Disk","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null}]},"unit":"s"},"overrides":[]},"gridPos":{"h":6,"w":6,"x":18,"y":1},"id":4,"options":{"colorMode":"value","graphMode":"none","justifyMode":"auto","orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"textMode":"auto"},"title":"System Uptime","type":"stat","targets":[{"expr":"node_time_seconds - node_boot_time_seconds","legendFormat":"Uptime","refId":"A"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":7},"id":101,"title":"CPU","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"axisCenteredZero":false,"axisLabel":"","drawStyle":"line","fillOpacity":20,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"percent","min":0,"max":100},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":8},"id":5,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"CPU Usage Over Time","type":"timeseries","targets":[{"expr":"100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)","legendFormat":"Total CPU %","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"normal"}},"unit":"percent","min":0,"max":100},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":8},"id":6,"options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"CPU Usage by Mode","type":"timeseries","targets":[{"expr":"avg(irate(node_cpu_seconds_total{mode=\"user\"}[5m])) * 100","legendFormat":"user","refId":"A"},{"expr":"avg(irate(node_cpu_seconds_total{mode=\"system\"}[5m])) * 100","legendFormat":"system","refId":"B"},{"expr":"avg(irate(node_cpu_seconds_total{mode=\"iowait\"}[5m])) * 100","legendFormat":"iowait","refId":"C"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":16},"id":102,"title":"Memory","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":20,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"bytes"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":17},"id":7,"options":{"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Memory Usage","type":"timeseries","targets":[{"expr":"node_memory_MemTotal_bytes","legendFormat":"Total","refId":"A"},{"expr":"node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes","legendFormat":"Used","refId":"B"},{"expr":"node_memory_MemAvailable_bytes","legendFormat":"Available","refId":"C"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":20,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"bytes"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":17},"id":8,"options":{"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Swap Usage","type":"timeseries","targets":[{"expr":"node_memory_SwapTotal_bytes","legendFormat":"Swap Total","refId":"A"},{"expr":"node_memory_SwapTotal_bytes - node_memory_SwapFree_bytes","legendFormat":"Swap Used","refId":"B"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":25},"id":103,"title":"Disk","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":20,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"bytes"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":26},"id":9,"options":{"legend":{"calcs":["lastNotNull"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Disk Space (Root /)","type":"timeseries","targets":[{"expr":"node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}","legendFormat":"Total","refId":"A"},{"expr":"node_filesystem_size_bytes{mountpoint=\"/\",fstype!=\"rootfs\"} - node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}","legendFormat":"Used","refId":"B"},{"expr":"node_filesystem_avail_bytes{mountpoint=\"/\",fstype!=\"rootfs\"}","legendFormat":"Available","refId":"C"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"Bps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":26},"id":10,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Disk I/O","type":"timeseries","targets":[{"expr":"irate(node_disk_read_bytes_total[5m])","legendFormat":"Read {{device}}","refId":"A"},{"expr":"irate(node_disk_written_bytes_total[5m])","legendFormat":"Write {{device}}","refId":"B"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":34},"id":104,"title":"Network","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"Bps"},"overrides":[]},"gridPos":{"h":8,"w":24,"x":0,"y":35},"id":11,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom"},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Network Traffic","type":"timeseries","targets":[{"expr":"irate(node_network_receive_bytes_total{device!~\"lo|veth.*|docker.*|br-.*\"}[5m])","legendFormat":"Recv {{device}}","refId":"A"},{"expr":"irate(node_network_transmit_bytes_total{device!~\"lo|veth.*|docker.*|br-.*\"}[5m])","legendFormat":"Send {{device}}","refId":"B"}]}],"schemaVersion":39,"tags":["node-exporter","host"],"templating":{"list":[]},"time":{"from":"now-1h","to":"now"},"timepicker":{},"timezone":"browser","title":"Host Monitoring (Node Exporter)","uid":"host-monitoring","version":1}
+HOST_DASH_EOF
+
+        # Create Grafana dashboard - Docker Container Monitoring (cAdvisor)
+        cat > grafana/dashboards/docker-monitoring.json << 'DOCKER_DASH_EOF'
+{"annotations":{"list":[]},"editable":true,"fiscalYearStartMonth":0,"graphTooltip":1,"links":[],"panels":[{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":100,"title":"Container Overview","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null}]}},"overrides":[]},"gridPos":{"h":4,"w":6,"x":0,"y":1},"id":1,"options":{"colorMode":"value","graphMode":"none","justifyMode":"auto","orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"textMode":"auto"},"title":"Running Containers","type":"stat","targets":[{"expr":"count(container_last_seen{name=~\".+\"}) - count(container_last_seen{name=\"/\"})","legendFormat":"Containers","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":70},{"color":"red","value":85}]},"unit":"percent","min":0,"max":100},"overrides":[]},"gridPos":{"h":4,"w":6,"x":6,"y":1},"id":2,"options":{"orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showThresholdLabels":false,"showThresholdMarkers":true},"title":"Total Container CPU %","type":"gauge","targets":[{"expr":"sum(rate(container_cpu_usage_seconds_total{name=~\".+\",name!=\"/\"}[5m])) * 100","legendFormat":"CPU","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"yellow","value":2684354560},{"color":"red","value":3489660928}]},"unit":"bytes"},"overrides":[]},"gridPos":{"h":4,"w":6,"x":12,"y":1},"id":3,"options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"textMode":"auto"},"title":"Total Container Memory","type":"stat","targets":[{"expr":"sum(container_memory_usage_bytes{name=~\".+\",name!=\"/\"})","legendFormat":"Memory","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"thresholds":{"mode":"absolute","steps":[{"color":"green","value":null}]},"unit":"Bps"},"overrides":[]},"gridPos":{"h":4,"w":6,"x":18,"y":1},"id":4,"options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"textMode":"auto"},"title":"Total Network RX","type":"stat","targets":[{"expr":"sum(rate(container_network_receive_bytes_total{name=~\".+\",name!=\"/\"}[5m]))","legendFormat":"RX","refId":"A"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":5},"id":101,"title":"CPU by Container","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":20,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"percent"},"overrides":[]},"gridPos":{"h":8,"w":24,"x":0,"y":6},"id":5,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"right","sortBy":"Mean","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"CPU Usage by Container","type":"timeseries","targets":[{"expr":"rate(container_cpu_usage_seconds_total{name=~\".+\",name!=\"/\"}[5m]) * 100","legendFormat":"{{name}}","refId":"A"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":14},"id":102,"title":"Memory by Container","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":20,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"bytes"},"overrides":[]},"gridPos":{"h":8,"w":24,"x":0,"y":15},"id":6,"options":{"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"right","sortBy":"Last *","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Memory Usage by Container","type":"timeseries","targets":[{"expr":"container_memory_usage_bytes{name=~\".+\",name!=\"/\"}","legendFormat":"{{name}}","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"bars","fillOpacity":80,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"bytes"},"overrides":[]},"gridPos":{"h":8,"w":24,"x":0,"y":23},"id":7,"options":{"legend":{"calcs":["lastNotNull"],"displayMode":"table","placement":"right","sortBy":"Last *","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Memory RSS by Container","type":"timeseries","targets":[{"expr":"container_memory_rss{name=~\".+\",name!=\"/\"}","legendFormat":"{{name}}","refId":"A"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":31},"id":103,"title":"Network by Container","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"Bps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":32},"id":8,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","sortBy":"Mean","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Network RX by Container","type":"timeseries","targets":[{"expr":"rate(container_network_receive_bytes_total{name=~\".+\",name!=\"/\"}[5m])","legendFormat":"{{name}}","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"Bps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":32},"id":9,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","sortBy":"Mean","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Network TX by Container","type":"timeseries","targets":[{"expr":"rate(container_network_transmit_bytes_total{name=~\".+\",name!=\"/\"}[5m])","legendFormat":"{{name}}","refId":"A"}]},{"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":40},"id":104,"title":"Disk I/O by Container","type":"row"},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"Bps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":0,"y":41},"id":10,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","sortBy":"Mean","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Disk Read by Container","type":"timeseries","targets":[{"expr":"rate(container_fs_reads_bytes_total{name=~\".+\",name!=\"/\"}[5m])","legendFormat":"{{name}}","refId":"A"}]},{"datasource":{"type":"prometheus","uid":""},"fieldConfig":{"defaults":{"color":{"mode":"palette-classic"},"custom":{"axisBorderShow":false,"drawStyle":"line","fillOpacity":10,"lineWidth":1,"pointSize":5,"showPoints":"never","spanNulls":false,"stacking":{"group":"A","mode":"none"}},"unit":"Bps"},"overrides":[]},"gridPos":{"h":8,"w":12,"x":12,"y":41},"id":11,"options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","sortBy":"Mean","sortDesc":true},"tooltip":{"mode":"multi","sort":"desc"}},"title":"Disk Write by Container","type":"timeseries","targets":[{"expr":"rate(container_fs_writes_bytes_total{name=~\".+\",name!=\"/\"}[5m])","legendFormat":"{{name}}","refId":"A"}]}],"schemaVersion":39,"tags":["cadvisor","docker","containers"],"templating":{"list":[]},"time":{"from":"now-1h","to":"now"},"timepicker":{},"timezone":"browser","title":"Docker Container Monitoring (cAdvisor)","uid":"docker-monitoring","version":1}
+DOCKER_DASH_EOF
+
         # Create docker-compose.yml for production
         cat > docker-compose.yml << 'COMPOSE_EOF'
 services:
@@ -377,7 +511,7 @@ services:
       - portfolio-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -393,7 +527,7 @@ services:
       - portfolio-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -409,24 +543,174 @@ services:
       - portfolio-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
 
-  frontend-1stopwings:
-    image: ${FRONTEND_1STOPWINGS_IMAGE}
-    container_name: portfolio-frontend-1stopwings
+  frontend-executive-catering:
+    image: ${FRONTEND_EXECUTIVE_CATERING_IMAGE}
+    container_name: portfolio-frontend-executive-catering
     networks:
       - portfolio-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/1stopwings-site/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
+
+  # Plausible Analytics
+  plausible_db:
+    image: postgres:16-alpine
+    container_name: portfolio-plausible-db
+    restart: unless-stopped
+    volumes:
+      - plausible-db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  plausible_events_db:
+    image: clickhouse/clickhouse-server:24.12-alpine
+    container_name: portfolio-plausible-events-db
+    restart: unless-stopped
+    volumes:
+      - plausible-events-data:/var/lib/clickhouse
+      - plausible-events-logs:/var/log/clickhouse-server
+      - ./clickhouse/logs.xml:/etc/clickhouse-server/config.d/logs.xml:ro
+      - ./clickhouse/ipv4-only.xml:/etc/clickhouse-server/config.d/ipv4-only.xml:ro
+      - ./clickhouse/low-resources.xml:/etc/clickhouse-server/config.d/low-resources.xml:ro
+      - ./clickhouse/default-profile-low-resources-overrides.xml:/etc/clickhouse-server/users.d/default-profile-low-resources-overrides.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    environment:
+      - CLICKHOUSE_SKIP_USER_SETUP=1
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8123/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  plausible:
+    image: ghcr.io/plausible/community-edition:v3.2.0
+    container_name: portfolio-plausible
+    restart: unless-stopped
+    command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+    depends_on:
+      plausible_db:
+        condition: service_healthy
+      plausible_events_db:
+        condition: service_healthy
+    volumes:
+      - plausible-data:/var/lib/plausible
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    environment:
+      - TMPDIR=/var/lib/plausible/tmp
+      - BASE_URL=${plausible_base_url}
+      - SECRET_KEY_BASE=${plausible_secret_key}
+      - HTTP_PORT=8000
+      - DISABLE_REGISTRATION=${plausible_disable_reg}
+    networks:
+      - portfolio-network
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: portfolio-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=1GB"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: portfolio-node-exporter
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - portfolio-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: portfolio-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
+    networks:
+      - portfolio-network
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: portfolio-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${grafana_admin_password}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://${domain_grafana:-grafana.localhost}
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   caddy:
     image: caddy:2-alpine
@@ -443,8 +727,10 @@ services:
       - frontend-fernando
       - frontend-jessica
       - frontend-busybee
-      - frontend-1stopwings
+      - frontend-executive-catering
       - backend
+      - plausible
+      - grafana
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -461,6 +747,18 @@ volumes:
   caddy-data:
     driver: local
   caddy-config:
+    driver: local
+  plausible-db-data:
+    driver: local
+  plausible-events-data:
+    driver: local
+  plausible-events-logs:
+    driver: local
+  plausible-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
     driver: local
 COMPOSE_EOF
 
@@ -532,11 +830,36 @@ www.${domain_busybee:-busybee.localhost} {
     redir https://${domain_busybee:-busybee.localhost}{uri} permanent
 }
 
-# 1 Stop Wings (static site)
+# 1 Stop Wings (via Executive Catering container)
 ${domain_1stopwings:-1stopwings.localhost} {
     handle {
-        reverse_proxy frontend-1stopwings:80
+        reverse_proxy frontend-executive-catering:80
     }
+}
+
+www.${domain_1stopwings:-1stopwings.localhost} {
+    redir https://${domain_1stopwings:-1stopwings.localhost}{uri} permanent
+}
+
+# Executive Catering main site (same container, different domain)
+${domain_executive_catering:-executivecatering.localhost} {
+    handle {
+        reverse_proxy frontend-executive-catering:80
+    }
+}
+
+www.${domain_executive_catering:-executivecatering.localhost} {
+    redir https://${domain_executive_catering:-executivecatering.localhost}{uri} permanent
+}
+
+# Plausible Analytics
+${domain_analytics:-analytics.localhost} {
+    reverse_proxy plausible:8000
+}
+
+# Grafana Monitoring
+${domain_grafana:-grafana.localhost} {
+    reverse_proxy grafana:3000
 }
 CADDY_EOF
 
@@ -575,6 +898,15 @@ DEPLOY_SCRIPT
     fi
     if [[ -n "$domain_1stopwings" ]]; then
         echo "  1StopWings: https://$domain_1stopwings"
+    fi
+    if [[ -n "$domain_executive_catering" ]]; then
+        echo "  Executive Catering: https://$domain_executive_catering"
+    fi
+    if [[ -n "$domain_analytics" ]]; then
+        echo "  Analytics: https://$domain_analytics"
+    fi
+    if [[ -n "$domain_grafana" ]]; then
+        echo "  Grafana: https://$domain_grafana"
     fi
     echo ""
     log_info "Make sure your DNS is configured for all domains to point to: $DROPLET_IP"
@@ -696,6 +1028,10 @@ build_only() {
     log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
     docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
     
+    # Build frontend - Executive Catering (1stopwings + future executive catering)
+    log_info "Building frontend image (Executive Catering): ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
+    docker build -t "${FRONTEND_EXECUTIVE_CATERING_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-executive-catering/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-executive-catering"
+    
     log_success "Images built successfully"
     echo ""
     log_info "Images:"
@@ -703,6 +1039,7 @@ build_only() {
     echo "  ${FRONTEND_FERNANDO_IMAGE}"
     echo "  ${FRONTEND_JESSICA_IMAGE}"
     echo "  ${FRONTEND_BUSYBEE_IMAGE}"
+    echo "  ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
 }
 
 # ============================================
@@ -743,6 +1080,11 @@ usage() {
     echo "  DOMAIN_FERNANDO           Domain for Fernando's portfolio (e.g., fernando-vargas.com)"
     echo "  DOMAIN_JESSICA            Domain for Jessica's portfolio (e.g., jessicasutherland.me)"
     echo "  DOMAIN_BUSYBEE            Domain for BusyBee's portfolio (e.g., thebusybeeweb.com)"
+    echo "  DOMAIN_1STOPWINGS         Domain for 1 Stop Wings (e.g., 1stopwings.executivecateringct.com)"
+    echo "  DOMAIN_EXECUTIVE_CATERING Domain for Executive Catering (e.g., executivecateringct.com)"
+    echo "  DOMAIN_ANALYTICS          Domain for Plausible Analytics (e.g., analytics.fernando-vargas.com)"
+    echo "  DOMAIN_GRAFANA            Domain for Grafana Monitoring (e.g., grafana.fernando-vargas.com)"
+    echo "  GRAFANA_ADMIN_PASSWORD    Grafana admin password"
     echo ""
 }
 

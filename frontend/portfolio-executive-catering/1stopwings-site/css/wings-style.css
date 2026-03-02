@@ -1,0 +1,61 @@
+/* ==============================================================
+   PAGE STYLE: 1 Stop Wings Portal (index.html)
+   DESCRIPTION: Handles layout for the traffic hub.
+   ============================================================== */
+
+/* This fixes the background color to match the hero photo */
+body {
+    background-color: #1a1a1a;
+    color: #ffffff;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.main-container {
+    max-width: 500px; /* Specific narrow width for the mobile portal */
+    text-align: center;
+    padding: 20px;
+}
+
+/* LOGO & HERO */
+.logo {
+    margin: 0 auto 20px;
+    width: 80%;
+    max-width: 320px;
+}
+
+.hero-image {
+    margin: 0 auto;
+    width: 100%;
+    border-radius: 4px;
+    display: block;
+}
+
+/* NAVIGATION STACK */
+.button-stack ul {
+    list-style-type: none; /* KILLS THE BULLETS */
+    padding: 0;
+    margin: 30px 0 0 0;
+}
+
+/* 3RD PARTY BRANDING (Specific only to this portal) */
+.doordash { background-color: #ff3008; color: white; }
+.ubereats { background-color: #06c167; color: white; }
+.grubhub  { background-color: #f85a00; color: white; }
+
+/* BRAND BUTTONS (Using variables from brand-wings.css) */
+.store-menu {
+    background-color: var(--wing-red);
+    color: var(--white);
+}
+
+.catering-link {
+    background-color: transparent;
+    color: var(--white);
+    border: 2px solid var(--wing-blue);
+    font-size: 1.1rem;
+}
