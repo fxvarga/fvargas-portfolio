@@ -790,6 +790,15 @@ www.$domainBusybeeDisplay {
 
 # 1 Stop Wings (via Executive Catering container)
 $domain1stopwingsDisplay {
+    # API and GraphQL routes to backend (CMS-powered content)
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
     handle {
         reverse_proxy frontend-executive-catering:80
     }
@@ -801,6 +810,15 @@ www.$domain1stopwingsDisplay {
 
 # Executive Catering main site (same container, different domain)
 $domainExecutiveCateringDisplay {
+    # API and GraphQL routes to backend (CMS-powered content)
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
     handle {
         reverse_proxy frontend-executive-catering:80
     }

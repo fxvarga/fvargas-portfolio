@@ -128,6 +128,7 @@ public class ContentMigrationRunner : IContentMigrationRunner
 
             var migrations = DiscoverMigrations().ToList();
             var appliedIds = await _db.ContentMigrationHistory
+                .Where(h => h.Success)
                 .Select(h => h.MigrationId)
                 .ToListAsync(cancellationToken);
 
@@ -190,6 +191,11 @@ public class ContentMigrationRunner : IContentMigrationRunner
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to apply migration: {MigrationId}", migration.MigrationId);
+
+                    // Clear the change tracker to remove any entities that caused the failure
+                    // (e.g., entities with FK violations still tracked from the failed SaveChangesAsync).
+                    // Without this, the SaveChangesAsync below would fail with the same error.
+                    _db.ChangeTracker.Clear();
 
                     // Record failed migration
                     var history = new ContentMigrationHistory

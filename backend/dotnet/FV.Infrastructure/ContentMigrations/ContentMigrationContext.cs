@@ -33,6 +33,9 @@ public class ContentMigrationContext
     /// <summary>Busy Bee Web portfolio ID</summary>
     public static readonly Guid BusybeePortfolioId = Guid.Parse("33333333-3333-3333-3333-333333333333");
 
+    /// <summary>1 Stop Wings portfolio ID</summary>
+    public static readonly Guid OneStopWingsPortfolioId = Guid.Parse("44444444-4444-4444-4444-444444444444");
+
     #endregion
 
     #region Deterministic ID Generation (Flyway-inspired)

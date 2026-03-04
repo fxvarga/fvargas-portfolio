@@ -29,10 +29,11 @@
           src="assets/img/hero-wings.png"
           alt="Delicious 1 Stop Wings"
           class="hero-image"
+          data-cms="hero-image"
         />
 
         <nav class="button-stack">
-          <ul>
+          <ul data-cms="ordering-platforms">
             <li>
               <a
                 href="https://www.doordash.com/store/1-stop-wings-wallingford-863625/1770854/"
@@ -70,3 +71,14 @@
                 >Executive Catering CT</a
               >
             </li>
+          </ul>
+        </nav>
+
+      </section>
+    </div>
+
+    <!-- CMS Hydration (enhances hardcoded HTML; fails gracefully) -->
+    <script src="js/cms-client.js"></script>
+    <script src="js/landing.js"></script>
+</body>
+</html>

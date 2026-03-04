@@ -26,6 +26,122 @@ https://{$DOMAIN_FERNANDO:localhost} {
     }
 }
 
+# ============================================
+# LAN access via homehost (HTTP only - no certs needed)
+# Add to remote machine's hosts file:
+#   192.168.1.226  homehost jessica.homehost busybee.homehost
+#   192.168.1.226  1stopwings.homehost executivecatering.homehost
+#   192.168.1.226  analytics.homehost grafana.homehost blog.homehost
+# ============================================
+
+# Fernando Vargas Portfolio (LAN)
+http://homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-fernando:80
+    }
+}
+
+# Blog / Learning Lab (LAN)
+http://blog.homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-fernando:80
+    }
+    @root path /
+    redir @root /blog permanent
+}
+
+# Jessica Sutherland Portfolio (LAN)
+http://jessica.homehost {
+    handle /admin* {
+        redir http://homehost{uri} permanent
+    }
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-jessica:80
+    }
+}
+
+# Busy Bee Marketing Agency (LAN)
+http://busybee.homehost {
+    handle /admin* {
+        redir http://homehost{uri} permanent
+    }
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-busybee:80
+    }
+}
+
+# 1 Stop Wings (LAN)
+http://1stopwings.homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-executive-catering:80
+    }
+}
+
+# Executive Catering (LAN)
+http://executivecatering.homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-executive-catering:80
+    }
+}
+
+# Plausible Analytics (LAN)
+http://analytics.homehost {
+    reverse_proxy plausible:8000
+}
+
+# Grafana Monitoring (LAN)
+http://grafana.homehost {
+    reverse_proxy grafana:3000
+}
+
 # Blog / Learning Lab subdomain (routes to same frontend with /blog path)
 https://{$DOMAIN_BLOG:blog.localhost} {
     tls internal
@@ -113,6 +229,16 @@ https://{$DOMAIN_BUSYBEE:busybee.localhost} {
 https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
     tls internal
 
+    # API and GraphQL routes to backend (CMS-powered content)
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    # Everything else to frontend
     handle {
         reverse_proxy frontend-executive-catering:80
     }
@@ -121,6 +247,15 @@ https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
 # Executive Catering main site (same container, different domain)
 https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
     tls internal
+
+    # API and GraphQL routes to backend (CMS-powered content)
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
 
     handle {
         reverse_proxy frontend-executive-catering:80

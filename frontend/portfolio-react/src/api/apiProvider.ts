@@ -25,21 +25,29 @@ const errorLink = onError(({ graphQLErrors, networkError }) => {
 const AUTH_TOKEN_KEY = 'cms_auth_token';
 const SELECTED_PORTFOLIO_KEY = 'cms_selected_portfolio';
 
+// Check if the current page is an admin route
+const isAdminRoute = (): boolean => {
+  return window.location.pathname.startsWith('/admin');
+};
+
 // Create auth link (assuming you have authentication)
 const createAuthLink = () => {
   return setContext((_, { headers }) => {
     // Get the authentication token from local storage if it exists
     const token = localStorage.getItem(AUTH_TOKEN_KEY);
     
-    // Get the selected portfolio ID
+    // Only send X-Portfolio-ID header on admin routes to avoid overriding
+    // host-based tenant resolution on public portfolio pages
     let portfolioId: string | null = null;
-    const portfolioStr = localStorage.getItem(SELECTED_PORTFOLIO_KEY);
-    if (portfolioStr) {
-      try {
-        const portfolio = JSON.parse(portfolioStr);
-        portfolioId = portfolio.id;
-      } catch {
-        // Invalid stored data
+    if (isAdminRoute()) {
+      const portfolioStr = localStorage.getItem(SELECTED_PORTFOLIO_KEY);
+      if (portfolioStr) {
+        try {
+          const portfolio = JSON.parse(portfolioStr);
+          portfolioId = portfolio.id;
+        } catch {
+          // Invalid stored data
+        }
       }
     }
 

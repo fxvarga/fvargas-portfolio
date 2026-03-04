@@ -91,10 +91,11 @@ export function createDefaultFromSchema(attributes?: AttributeDefinition[]): Rec
 export function createDefaultArrayItem(children?: AttributeDefinition[]): unknown {
   if (!children || children.length === 0) return '';
   
-  // If single child with primitive type, it's a simple array
+  // If single child with a "value placeholder" name and primitive type, it's a simple array
   if (children.length === 1) {
     const child = children[0];
-    if (['string', 'text', 'number', 'boolean'].includes(child.type)) {
+    const isValuePlaceholder = !child.name || child.name === 'value' || child.name === 'item';
+    if (isValuePlaceholder && ['string', 'text', 'number', 'boolean'].includes(child.type)) {
       switch (child.type) {
         case 'string':
         case 'text':
@@ -123,14 +124,18 @@ export function getAttributeLabel(attr: AttributeDefinition): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Check if an array represents a simple string array vs array of objects
+// Check if an array represents a simple string array vs array of objects.
+// A "simple" array is one with no named children (e.g., a flat list of strings).
+// An array with named children (even just one) represents an array of objects.
 export function isSimpleArray(children?: AttributeDefinition[]): boolean {
   if (!children || children.length === 0) return true;
-  if (children.length === 1) {
-    const child = children[0];
-    return ['string', 'text', 'number', 'boolean'].includes(child.type);
-  }
-  return false;
+  // Multiple children always means array of objects
+  if (children.length > 1) return false;
+  // Single child: only "simple" if it has no meaningful name (just "value" or "item")
+  // and is a primitive type. Named children like "categorySlug" indicate objects.
+  const child = children[0];
+  const isValuePlaceholder = !child.name || child.name === 'value' || child.name === 'item';
+  return isValuePlaceholder && ['string', 'text', 'number', 'boolean'].includes(child.type);
 }
 
 // Validation error from API

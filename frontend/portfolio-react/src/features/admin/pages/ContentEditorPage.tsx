@@ -511,6 +511,7 @@ const ContentEditorPage: React.FC = () => {
     if (data.slug && typeof data.slug === 'string') return data.slug;
     if (data.name && typeof data.name === 'string') return data.name;
     if (data.headerTitle && typeof data.headerTitle === 'string') return data.headerTitle;
+    if (data.storeName && typeof data.storeName === 'string') return data.storeName;
     return rec.id.substring(0, 8) + '...';
   };
 

@@ -117,15 +117,25 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         </div>
       );
 
-    case 'image':
+    case 'image': {
+      // Handle both string values (legacy/simple) and object values { url, alt }
+      let imageValue: { url: string; alt: string };
+      if (!value) {
+        imageValue = { url: '', alt: '' };
+      } else if (typeof value === 'string') {
+        imageValue = { url: value, alt: '' };
+      } else {
+        imageValue = value as { url: string; alt: string };
+      }
       return wrapWithError(
         <ImagePicker
           label={label}
-          value={(value as { url: string; alt: string }) || { url: '', alt: '' }}
+          value={imageValue}
           onChange={onChange}
           helpText={attribute.helpText}
         />
       );
+    }
 
     case 'select':
       return (

@@ -2,8 +2,8 @@
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm v9 (v10 blocks build scripts by default, breaking esbuild/react-scripts)
+RUN npm install -g pnpm@9
 
 # Copy package files first for better layer caching
 COPY package.json pnpm-lock.yaml ./

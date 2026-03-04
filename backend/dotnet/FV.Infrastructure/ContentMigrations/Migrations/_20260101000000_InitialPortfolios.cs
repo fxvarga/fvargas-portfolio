@@ -44,6 +44,16 @@ public class _20260101000000_InitialPortfolios : ContentMigration
                 .Description("The Busy Bee Web portfolio")
                 .IsActive(true));
 
+        // Create 1 Stop Wings portfolio
+        await ctx.UpsertPortfolioAsync(
+            ContentMigrationContext.OneStopWingsPortfolioId,
+            "1stopwings",
+            p => p
+                .Name("1 Stop Wings")
+                .Domain("1stopwings.executivecateringct.com")
+                .Description("1 Stop Wings - Powered by Executive Catering CT")
+                .IsActive(true));
+
         await ctx.SaveChangesAsync();
 
         // Create admin user and assign to all portfolios
@@ -69,6 +79,7 @@ public class _20260101000000_InitialPortfolios : ContentMigration
     public override async Task DownAsync(ContentMigrationContext ctx)
     {
         // Cascade delete will handle related entities
+        await ctx.DeletePortfolioAsync(ContentMigrationContext.OneStopWingsPortfolioId);
         await ctx.DeletePortfolioAsync(ContentMigrationContext.BusybeePortfolioId);
         await ctx.DeletePortfolioAsync(ContentMigrationContext.JessicaPortfolioId);
         await ctx.DeletePortfolioAsync(ContentMigrationContext.FernandoPortfolioId);

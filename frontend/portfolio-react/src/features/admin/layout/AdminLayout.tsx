@@ -19,7 +19,7 @@ interface EntityDefinitionNav {
 interface ContentRecordNav {
   id: string;
   entityType: string;
-  data: Record<string, unknown>;
+  data: Record<string, unknown> | string;
 }
 
 interface AdminLayoutProps {
@@ -142,12 +142,25 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     });
   };
 
+  const parseRecordData = (data: unknown): Record<string, unknown> => {
+    if (!data) return {};
+    if (typeof data === 'string') {
+      try {
+        return JSON.parse(data);
+      } catch {
+        return {};
+      }
+    }
+    return data as Record<string, unknown>;
+  };
+
   const getRecordTitle = (record: ContentRecordNav): string => {
-    const data = record.data;
+    const data = parseRecordData(record.data);
     if (data.title && typeof data.title === 'string') return data.title;
     if (data.slug && typeof data.slug === 'string') return data.slug;
     if (data.name && typeof data.name === 'string') return data.name;
     if (data.headerTitle && typeof data.headerTitle === 'string') return data.headerTitle;
+    if (data.storeName && typeof data.storeName === 'string') return data.storeName;
     return record.id.substring(0, 8) + '...';
   };
 

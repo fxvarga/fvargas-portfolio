@@ -17,18 +17,18 @@
             <h1>1 STOP WINGS</h1>
             
             <div class="header-details">
-                <address>
+                <address data-cms="store-address">
                     68 North Turnpike Rd; Wallingford, CT 06492 | 
                     <a href="tel:2033031915">203.303.1915</a>
                 </address>
-                <p class="header-hours">
+                <p class="header-hours" data-cms="store-hours">
                     <strong>Mon - Fri:</strong> 7:30am - 8:00pm &nbsp; | &nbsp; 
                     <strong>Sat - Sun:</strong> 8:00am - 7:30pm
                 </p>
             </div>
         </header>
 
-        <main class="menu-grid">
+        <main class="menu-grid" data-cms="menu-grid">
             <section class="menu-column">
                 <h2 class="blue-text underline">WINGS & TENDERS</h2>
                 
@@ -157,11 +157,15 @@
 
         <footer class="menu-footer">
             <div class="branding-group">
-                <img src="../_shared/img/ecct-logo-final.png" alt="Executive Catering CT Logo" class="footer-logo">
-                <p>1 Stop Wings is powered by the culinary team at <strong>Executive Catering CT</strong></p>
+                <img src="../_shared/img/ecct-logo-final.png" alt="Executive Catering CT Logo" class="footer-logo" data-cms="footer-logo">
+                <p data-cms="footer-text">1 Stop Wings is powered by the culinary team at <strong>Executive Catering CT</strong></p>
             </div>
-            <a href="index.html" class="back-link">← Back to Ordering</a>
+            <a href="index.html" class="back-link" data-cms="back-link">&larr; Back to Ordering</a>
         </footer>
     </div>
+
+    <!-- CMS Hydration (enhances hardcoded HTML; fails gracefully) -->
+    <script src="js/cms-client.js"></script>
+    <script src="js/menu.js"></script>
 </body>
 </html>
