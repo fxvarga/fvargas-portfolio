@@ -233,6 +233,25 @@ html, body {
     border-bottom-color: #86A329;
 }
 
+/* Textarea styling */
+.tf-input--textarea {
+    resize: vertical;
+    min-height: 80px;
+    max-height: 200px;
+    line-height: 1.6;
+    border-bottom: none;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    padding: 14px;
+    font-size: 1.1rem;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.tf-input--textarea:focus {
+    border-color: #86A329;
+    border-bottom-color: #86A329;
+}
+
 /* Date input styling */
 .tf-input--date {
     font-size: 1.1rem;

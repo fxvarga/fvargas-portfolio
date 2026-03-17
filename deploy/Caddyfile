@@ -142,6 +142,14 @@ http://grafana.homehost {
     reverse_proxy grafana:3000
 }
 
+# n8n Workflow Automation (LAN)
+http://n8n.homehost {
+    reverse_proxy n8n:5678 {
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
+}
+
 # Blog / Learning Lab subdomain (routes to same frontend with /blog path)
 https://{$DOMAIN_BLOG:blog.localhost} {
     tls internal
@@ -274,4 +282,15 @@ https://{$DOMAIN_GRAFANA:grafana.localhost} {
     tls internal
 
     reverse_proxy grafana:3000
+}
+
+# n8n Workflow Automation (UI + webhooks)
+https://{$DOMAIN_N8N:n8n.localhost} {
+    tls internal
+
+    reverse_proxy n8n:5678 {
+        # WebSocket support for n8n editor UI
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
 }

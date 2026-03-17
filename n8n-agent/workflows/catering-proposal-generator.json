@@ -1,0 +1,223 @@
+{
+  "id": "catering-proposal-gen",
+  "name": "Catering: Proposal/Quote Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-proposal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook: Generate Proposal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "generate-proposal"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Setup: read env vars + merge with webhook input\nconst body = $input.first().json.body || $input.first().json;\n\nconst tenantId = $env.MS_GRAPH_TENANT_ID;\nconst clientId = $env.MS_GRAPH_CLIENT_ID;\nconst clientSecret = $env.MS_GRAPH_CLIENT_SECRET;\nconst driveId = $env.SHAREPOINT_DRIVE_ID;\nconst proposalsFolderId = $env.SHAREPOINT_PROPOSALS_FOLDER_ID;\nconst leadsTrackerFileId = $env.LEADS_TRACKER_FILE_ID;\nconst kbFileId = $env.SHAREPOINT_KB_FILE_ID;\nconst aoaiEndpoint = $env.AZURE_OPENAI_ENDPOINT;\nconst aoaiDeployment = $env.AZURE_OPENAI_CHAT_DEPLOYMENT;\nconst aoaiApiVersion = $env.AZURE_OPENAI_API_VERSION;\nconst mailUserUpn = $env.MAIL_USER_UPN;\n\nreturn [{\n  json: {\n    tenantId, clientId, clientSecret, driveId,\n    proposalsFolderId, leadsTrackerFileId, kbFileId,\n    aoaiEndpoint, aoaiDeployment, aoaiApiVersion,\n    mailUserUpn,\n    lead: {\n      leadId: body.leadId || `LEAD-${Date.now()}`,\n      firstName: body.firstName || '',\n      lastName: body.lastName || '',\n      email: body.email || '',\n      phone: body.phone || '',\n      company: body.company || '',\n      eventDate: body.eventDate || 'TBD',\n      guestCount: body.guestCount || '',\n      budget: body.budget || '',\n      hasVenue: body.hasVenue || '',\n      venueName: body.venueName || '',\n      menuTier: body.menuTier || body.suggestedMenuTier || 'Standard',\n      qualificationNotes: body.qualificationNotes || '',\n      isNonProfit: body.isNonProfit || body.nonprofit || 'No'\n    }\n  }\n}];"
+      },
+      "id": "node-setup",
+      "name": "Setup Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $json.tenantId }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "grant_type", "value": "client_credentials" },
+            { "name": "client_id", "value": "={{ $json.clientId }}" },
+            { "name": "client_secret", "value": "={{ $json.clientSecret }}" },
+            { "name": "scope", "value": "https://graph.microsoft.com/.default" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Get Graph Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Save the access token and pass through setup vars, then prepare KB download URL\nconst setup = $('Setup Variables').first().json;\nconst tokenResp = $input.first().json;\nconst accessToken = tokenResp.access_token;\nconst driveId = setup.driveId;\nconst kbFileId = setup.kbFileId;\n\n// Build the Graph API URL to download KB file content\nconst kbDownloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${kbFileId}/content`;\n\nreturn [{\n  json: {\n    ...setup,\n    accessToken,\n    kbDownloadUrl\n  }\n}];"
+      },
+      "id": "node-prepare-kb-download",
+      "name": "Prepare KB Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.kbDownloadUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.accessToken }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "node-download-kb",
+      "name": "Download Knowledge Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build AI proposal generation prompt — grounded in Knowledge Base\nconst setup = $('Prepare KB Download').first().json;\nconst kbContent = $input.first().json.data || $input.first().json;\nconst lead = setup.lead;\n\n// The KB download returns the raw markdown text\nlet knowledgeBase = '';\nif (typeof kbContent === 'string') {\n  knowledgeBase = kbContent;\n} else if (kbContent.data && typeof kbContent.data === 'string') {\n  knowledgeBase = kbContent.data;\n} else {\n  // Fallback: stringify whatever we got\n  knowledgeBase = JSON.stringify(kbContent);\n}\n\nconst systemPrompt = `You are a professional proposal writer for Executive Catering CT. You write formal, detailed catering proposals that are STRICTLY grounded in the company's official knowledge base.\n\n=== KNOWLEDGE BASE (AUTHORITATIVE SOURCE) ===\n${knowledgeBase}\n=== END KNOWLEDGE BASE ===\n\nCRITICAL RULES:\n1. You must ONLY include menu items, flavors, sides, beverages, and services that appear in the Knowledge Base above.\n2. Do NOT invent, fabricate, or hallucinate any food items, flavors, pricing, or services not listed in the Knowledge Base.\n3. Use the exact item names, descriptions, and catering sizes from the Knowledge Base.\n4. Pricing tiers and per-person ranges must match the Knowledge Base exactly.\n5. Staffing levels, equipment, terms, and policies must come directly from the Knowledge Base.\n6. If the client requests something not in the Knowledge Base, note it as a \\\"custom request requiring consultation\\\" — do not make up items to fill the gap.\n7. The 10% non-profit discount applies only to verified 501(c)(3) organizations as stated in the Knowledge Base.\n8. Proposal validity, deposit, cancellation, and headcount policies must match the Knowledge Base exactly.\n\nGenerate a complete catering proposal based on the lead information provided. The proposal should be professional, warm, and detailed.\n\nReturn a JSON object with this exact structure:\n{\n  \"companyIntro\": \"<2-3 paragraph company introduction highlighting Executive Catering CT's experience and commitment to excellence, referencing Wallingford CT location and 1 Stop Wings heritage>\",\n  \"eventSummary\": \"<paragraph summarizing the client's event needs as we understand them>\",\n  \"menuOptions\": [\n    {\n      \"tierName\": \"<tier name from Knowledge Base: Budget, Standard, Premium, or Luxury>\",\n      \"description\": \"<brief tier description matching the Knowledge Base>\",\n      \"items\": [\n        {\n          \"category\": \"<category from KB: Wings & Tenders, Sandwich Platters, Soup, Slow-Roasted Ribs, Salads, Sides & Extras, Beverages, Breakfast Catering>\",\n          \"name\": \"<exact item name from KB>\",\n          \"quantity\": \"<catering size from KB, e.g. 'Tray of 100', 'Full Tray (serves 20)'>\",\n          \"flavor\": \"<if applicable, exact flavor from KB list>\",\n          \"notes\": \"<any relevant detail>\"\n        }\n      ],\n      \"pricePerPerson\": \"<dollar range from the KB tier>\"\n    }\n  ],\n  \"staffingPlan\": \"<staffing description using exact service levels and ratios from the Knowledge Base>\",\n  \"equipmentAndRentals\": \"<equipment details from the Knowledge Base, matching what's included at the proposed tier>\",\n  \"timeline\": [\n    { \"time\": \"<time from KB Event Timeline>\", \"activity\": \"<activity from KB>\" }\n  ],\n  \"pricingSummary\": {\n    \"foodAndBeverage\": \"<estimate based on KB tier pricing x guest count>\",\n    \"staffing\": \"<estimate based on KB staffing ratios>\",\n    \"equipmentRentals\": \"<from KB: included or additional cost>\",\n    \"deliveryAndSetup\": \"<from KB: included within 30mi or $2/mi beyond>\",\n    \"serviceCharge\": \"<20% for Full Service/Luxury per KB, or N/A>\",\n    \"nonProfitDiscount\": \"<10% if applicable per KB, otherwise 'N/A'>\",\n    \"estimatedTotal\": \"<calculated total range>\",\n    \"depositRequired\": \"<50% per KB terms>\"\n  },\n  \"terms\": \"<use the exact terms from the Knowledge Base: 50% deposit, final payment 5 business days before, 7-day headcount lock, cancellation tiers (14+ days/7-13 days/<7 days), 30-day proposal validity>\"\n}\n\nProvide 2-3 menu options appropriate for the indicated tier. Every item must exist in the Knowledge Base.`;\n\nconst userPrompt = `Generate a catering proposal for this event:\n\nClient: ${lead.firstName} ${lead.lastName}\nCompany: ${lead.company || 'Private Event'}\nNon-Profit: ${lead.isNonProfit}\nEvent Date: ${lead.eventDate}\nGuest Count: ${lead.guestCount}\nBudget Range: ${lead.budget}\nVenue: ${lead.venueName || (lead.hasVenue === 'Yes' ? 'Client venue (name TBD)' : 'Venue not yet secured')}\nSuggested Menu Tier: ${lead.menuTier}\nAdditional Context: ${lead.qualificationNotes || 'None'}`;\n\nreturn [{\n  json: {\n    ...setup,\n    lead,\n    aoaiBody: {\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ],\n      max_completion_tokens: 4000,\n      response_format: { type: 'json_object' }\n    }\n  }\n}];"
+      },
+      "id": "node-build-ai",
+      "name": "Build AI Proposal Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.aoaiEndpoint }}/openai/deployments/{{ $json.aoaiDeployment }}/chat/completions?api-version={{ $json.aoaiApiVersion }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.aoaiBody) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "node-ai-generate",
+      "name": "AI Generate Proposal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0sfAlhodWZDgWdu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and prepare data for DOCX generation\nconst prev = $('Build AI Proposal Prompt').first().json;\nconst aiResp = $input.first().json;\nconst lead = prev.lead;\n\nlet proposal;\ntry {\n  proposal = JSON.parse(aiResp.choices[0].message.content);\n} catch (e) {\n  throw new Error(`Failed to parse AI proposal: ${e.message}`);\n}\n\nconst safeDate = (lead.eventDate || 'TBD').replace(/[^a-zA-Z0-9-]/g, '_');\nconst safeName = (lead.lastName || 'Client').replace(/[^a-zA-Z0-9]/g, '_');\nconst filename = `Proposal_${safeName}_${safeDate}.docx`;\n\nreturn [{\n  json: {\n    accessToken: prev.accessToken,\n    driveId: prev.driveId,\n    proposalsFolderId: prev.proposalsFolderId,\n    leadsTrackerFileId: prev.leadsTrackerFileId,\n    lead,\n    proposal,\n    filename,\n    leadId: lead.leadId\n  }\n}];"
+      },
+      "id": "node-prepare-data",
+      "name": "Prepare Proposal Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n-python-helper:8000/generate-docx-and-upload",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ proposal: $json.proposal, lead: $json.lead, filename: $json.filename, accessToken: $json.accessToken, driveId: $json.driveId, folderId: $json.proposalsFolderId }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "node-generate-and-upload",
+      "name": "Generate DOCX & Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1960, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Finalize: build webhook response from upload result\nconst uploadResp = $input.first().json;\nconst prev = $('Prepare Proposal Data').first().json;\n\nreturn [{\n  json: {\n    status: 'proposal_generated',\n    leadId: prev.leadId,\n    filename: uploadResp.filename || prev.filename,\n    sharePointUrl: uploadResp.sharePointUrl || '',\n    docxSizeBytes: uploadResp.sizeBytes || 0,\n    generatedAt: new Date().toISOString(),\n    message: 'Proposal generated and saved to SharePoint Proposals folder (grounded in Knowledge Base)'\n  }\n}];"
+      },
+      "id": "node-finalize",
+      "name": "Finalize Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2180, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2400, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Generate Proposal": {
+      "main": [[{ "node": "Setup Variables", "type": "main", "index": 0 }]]
+    },
+    "Setup Variables": {
+      "main": [[{ "node": "Get Graph Token", "type": "main", "index": 0 }]]
+    },
+    "Get Graph Token": {
+      "main": [[{ "node": "Prepare KB Download", "type": "main", "index": 0 }]]
+    },
+    "Prepare KB Download": {
+      "main": [[{ "node": "Download Knowledge Base", "type": "main", "index": 0 }]]
+    },
+    "Download Knowledge Base": {
+      "main": [[{ "node": "Build AI Proposal Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build AI Proposal Prompt": {
+      "main": [[{ "node": "AI Generate Proposal", "type": "main", "index": 0 }]]
+    },
+    "AI Generate Proposal": {
+      "main": [[{ "node": "Prepare Proposal Data", "type": "main", "index": 0 }]]
+    },
+    "Prepare Proposal Data": {
+      "main": [[{ "node": "Generate DOCX & Upload", "type": "main", "index": 0 }]]
+    },
+    "Generate DOCX & Upload": {
+      "main": [[{ "node": "Finalize Response", "type": "main", "index": 0 }]]
+    },
+    "Finalize Response": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "portfolio-n8n"
+  },
+  "tags": [
+    { "name": "catering" },
+    { "name": "proposals" },
+    { "name": "knowledge-base" }
+  ]
+}

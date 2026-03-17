@@ -233,6 +233,36 @@ app.MapPost("/api/inquiries", async (
         "Inquiry received from {FirstName} {LastName} ({Email}) for portfolio {PortfolioId}. Source: {Source}",
         inquiry.FirstName, inquiry.LastName, inquiry.Email, inquiry.PortfolioId, inquiry.Source);
 
+    // Fire-and-forget: notify n8n workflow of new inquiry
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            await http.PostAsJsonAsync("http://n8n:5678/webhook/catering-lead", new
+            {
+                inquiryId = inquiry.Id,
+                firstName = inquiry.FirstName,
+                lastName = inquiry.LastName,
+                email = inquiry.Email,
+                phone = inquiry.Phone,
+                company = inquiry.Company,
+                nonprofit = inquiry.Nonprofit,
+                eventDate = inquiry.EventDate,
+                hasVenue = inquiry.HasVenue,
+                venueName = inquiry.VenueName,
+                budget = inquiry.Budget,
+                guestCount = inquiry.GuestCount,
+                source = inquiry.Source,
+                createdAt = inquiry.CreatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to notify n8n of new inquiry {InquiryId}", inquiry.Id);
+        }
+    });
+
     return Results.Created($"/api/inquiries/{inquiry.Id}", new
     {
         id = inquiry.Id,

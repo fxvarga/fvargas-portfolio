@@ -1,0 +1,781 @@
+{
+  "id": "catering-email-triage",
+  "name": "Catering: Email Triage",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const upn = $env.MAIL_USER_UPN;\nconst driveId = $env.SHAREPOINT_DRIVE_ID;\nconst categoriesFileId = $env.EMAIL_CATEGORIES_FILE_ID;\nconst categoriesTableName = $env.EMAIL_CATEGORIES_TABLE_NAME || 'CateringCategories';\nconst tenantId = $env.MS_GRAPH_TENANT_ID;\nconst clientId = $env.MS_GRAPH_CLIENT_ID;\nconst clientSecret = $env.MS_GRAPH_CLIENT_SECRET;\nconst aoaiEndpoint = $env.AZURE_OPENAI_ENDPOINT;\nconst aoaiDeployment = $env.AZURE_OPENAI_CHAT_DEPLOYMENT;\nconst aoaiApiVersion = $env.AZURE_OPENAI_API_VERSION;\n\nreturn [{\n  json: {\n    upn, driveId, categoriesFileId, categoriesTableName,\n    tenantId, clientId, clientSecret,\n    aoaiEndpoint, aoaiDeployment, aoaiApiVersion\n  }\n}];"
+      },
+      "id": "node-setup",
+      "name": "Setup Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $json.tenantId }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "grant_type", "value": "client_credentials" },
+            { "name": "client_id", "value": "={{ $json.clientId }}" },
+            { "name": "client_secret", "value": "={{ $json.clientSecret }}" },
+            { "name": "scope", "value": "https://graph.microsoft.com/.default" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Get Graph Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{ $('Setup Variables').first().json.driveId }}/items/{{ $('Setup Variables').first().json.categoriesFileId }}/workbook/tables/{{ $('Setup Variables').first().json.categoriesTableName }}/rows",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-read-categories",
+      "name": "Read Email Categories",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = $input.first().json.value || [];\nconst categories = rows.map(function(r) {\n  const vals = r.values[0] || r.values;\n  return { name: vals[0], description: vals[1], folderName: vals[2] };\n});\n\n// Build prompt fragment listing all categories for AI\nlet promptFragment = categories.map(function(c) {\n  return '- ' + c.name + ': ' + c.description;\n}).join('\\n');\npromptFragment += '\\n- Uncategorized: Default for emails that do not clearly fit other categories';\n\nreturn [{ json: { categories: categories, promptFragment: promptFragment } }];"
+      },
+      "id": "node-parse-categories",
+      "name": "Parse Categories",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/mailFolders?$top=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-list-folders",
+      "name": "List Mail Folders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const folders = $input.first().json.value || [];\nconst folderMap = {};\nfolders.forEach(function(f) {\n  folderMap[f.displayName] = f.id;\n});\nconst categories = $('Parse Categories').first().json.categories;\nconst promptFragment = $('Parse Categories').first().json.promptFragment;\nreturn [{ json: { folderMap: folderMap, categories: categories, promptFragment: promptFragment } }];"
+      },
+      "id": "node-build-folder-map",
+      "name": "Build Folder Map",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/mailFolders/Inbox/messages?$filter=isRead eq false&$top=25&$select=id,subject,from,bodyPreview,hasAttachments,receivedDateTime",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-list-unread",
+      "name": "List Unread Emails",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1820, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-has-emails",
+              "leftValue": "={{ $json.value ? $json.value.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-has-emails",
+      "name": "If: Has Emails?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2080, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "no-emails-outcome",
+              "name": "outcome",
+              "value": "no-unread-emails",
+              "type": "string"
+            },
+            {
+              "id": "no-emails-summary",
+              "name": "summary",
+              "value": "No unread emails found in inbox. Nothing to process.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-no-emails",
+      "name": "No Emails",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2340, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emails = $input.first().json.value;\nconst folderMap = $('Build Folder Map').first().json.folderMap;\nconst categories = $('Build Folder Map').first().json.categories;\nconst promptFragment = $('Build Folder Map').first().json.promptFragment;\n\nreturn emails.map(function(e) {\n  return { json: {\n    emailId: e.id,\n    subject: e.subject || '(no subject)',\n    senderEmail: e.from && e.from.emailAddress ? e.from.emailAddress.address : 'unknown',\n    senderName: e.from && e.from.emailAddress ? e.from.emailAddress.name : 'unknown',\n    bodyPreview: e.bodyPreview || '',\n    hasAttachments: e.hasAttachments || false,\n    receivedDateTime: e.receivedDateTime || '',\n    folderMap: folderMap,\n    categories: categories,\n    promptFragment: promptFragment\n  }};\n});"
+      },
+      "id": "node-select-emails",
+      "name": "Select All Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2340, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "node-loop",
+      "name": "Loop Over Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [2600, 300]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "all-done-outcome",
+              "name": "outcome",
+              "value": "all-emails-triaged",
+              "type": "string"
+            },
+            {
+              "id": "all-done-summary",
+              "name": "summary",
+              "value": "All unread emails have been triaged and moved to appropriate folders.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-all-done",
+      "name": "All Done",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [2860, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-has-attachments",
+              "leftValue": "={{ $json.hasAttachments }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-attachments",
+      "name": "If: Has Attachments?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2860, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/messages/{{ $json.emailId }}/attachments",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-attachments",
+      "name": "Get Attachments",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const attachmentsResp = $input.first().json;\nconst emailData = $('Loop Over Emails').first().json;\nconst attachments = (attachmentsResp.value || []).filter(function(a) {\n  if (!a.name) return false;\n  const ext = a.name.split('.').pop().toLowerCase();\n  return ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv', 'txt'].indexOf(ext) >= 0;\n}).map(function(a) {\n  return { name: a.name, contentType: a.contentType || '', contentBytes: a.contentBytes || '' };\n});\n\nif (attachments.length === 0) {\n  return [{ json: { ...emailData, attachmentSummary: '' } }];\n}\nreturn [{ json: { ...emailData, attachmentsForExtraction: attachments } }];"
+      },
+      "id": "node-filter-attachments",
+      "name": "Filter Analyzable Attachments",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3380, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-has-extractable",
+              "leftValue": "={{ $json.attachmentsForExtraction ? $json.attachmentsForExtraction.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-extractable",
+      "name": "If: Has Extractable?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3640, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n-python-helper:8000/extract-attachments-summary",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ attachments: $json.attachmentsForExtraction }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-extract-text",
+      "name": "Extract Attachments Text",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3900, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const extractResult = $input.first().json;\nconst emailData = $('Loop Over Emails').first().json;\nconst summaries = extractResult.summary || '';\nreturn [{ json: { ...emailData, attachmentSummary: summaries } }];"
+      },
+      "id": "node-merge-attachment",
+      "name": "Merge Attachment Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4160, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailData = $('Loop Over Emails').first().json;\nreturn [{ json: { ...emailData, attachmentSummary: '' } }];"
+      },
+      "id": "node-no-attachments",
+      "name": "No Attachments Skip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3120, 450]
+    },
+    {
+      "parameters": {
+        "jsCode": "const emailData = $('Loop Over Emails').first().json;\nreturn [{ json: { ...emailData, attachmentSummary: '' } }];"
+      },
+      "id": "node-no-extractable",
+      "name": "No Extractable Skip",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3900, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const d = $input.first().json;\nconst bodyText = (d.bodyPreview || '').substring(0, 2000);\nconst attachText = d.attachmentSummary || 'No attachments';\nconst promptFrag = d.promptFragment || '';\n\nconst systemPrompt = `You are an email classification assistant for Executive Catering CT, a corporate and event catering company in Connecticut.\n\nClassify the following email into exactly ONE of the provided categories. These categories are specific to a catering business.\n\nRespond with JSON only:\n{\"category\": \"<exact category name>\", \"confidence\": <0.0-1.0>, \"reason\": \"<brief explanation>\"}\n\nIf your confidence is below 0.7, use \"Uncategorized\" as the category.\n\nCATEGORIES:\n${promptFrag}`;\n\nconst userPrompt = `EMAIL:\nFrom: ${d.senderName} <${d.senderEmail}>\nSubject: ${d.subject}\nReceived: ${d.receivedDateTime}\nBody:\n${bodyText}\n\nATTACHMENT SUMMARIES:\n${attachText}`;\n\nconst body = {\n  messages: [\n    { role: 'system', content: systemPrompt },\n    { role: 'user', content: userPrompt }\n  ],\n  max_completion_tokens: 500,\n  response_format: { type: 'json_object' }\n};\n\nreturn [{ json: { ...d, aiRequestBody: JSON.stringify(body) } }];"
+      },
+      "id": "node-build-ai",
+      "name": "Build AI Classification Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Setup Variables').first().json.aoaiEndpoint }}/openai/deployments/{{ $('Setup Variables').first().json.aoaiDeployment }}/chat/completions?api-version={{ $('Setup Variables').first().json.aoaiApiVersion }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.aiRequestBody }}",
+        "options": {}
+      },
+      "id": "node-ai-classify",
+      "name": "AI Classify Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [4680, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0sfAlhodWZDgWdu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const aiResp = $input.first().json;\nconst emailData = $('Build AI Classification Body').first().json;\n\nlet category = 'Uncategorized';\nlet confidence = 0;\nlet reason = 'AI parsing failed';\n\ntry {\n  const content = aiResp.choices[0].message.content;\n  const parsed = JSON.parse(content);\n  category = parsed.category || 'Uncategorized';\n  confidence = parsed.confidence || 0;\n  reason = parsed.reason || '';\n} catch (e) {\n  // Keep defaults\n}\n\nif (confidence < 0.7) {\n  category = 'Uncategorized';\n}\n\n// Resolve folder name from categories table\nlet folderName = category;\nconst cats = emailData.categories || [];\nfor (let i = 0; i < cats.length; i++) {\n  if (cats[i].name === category) {\n    folderName = cats[i].folderName || category;\n    break;\n  }\n}\n\nconst folderMap = emailData.folderMap || {};\nconst folderId = folderMap[folderName] || null;\n\nreturn [{ json: {\n  emailId: emailData.emailId,\n  subject: emailData.subject,\n  senderEmail: emailData.senderEmail,\n  category: category,\n  confidence: confidence,\n  reason: reason,\n  folderName: folderName,\n  folderId: folderId,\n  needsNewFolder: !folderId,\n  folderMap: folderMap\n} }];"
+      },
+      "id": "node-parse-classification",
+      "name": "Parse Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4940, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-needs-folder",
+              "leftValue": "={{ $json.needsNewFolder }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-needs-folder",
+      "name": "If: Needs New Folder?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [5200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/mailFolders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ displayName: $json.folderName }) }}",
+        "options": {}
+      },
+      "id": "node-create-folder",
+      "name": "Create Mail Folder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [5460, 200],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\nconst prev = $('Parse Classification').first().json;\n\n// If folder was created successfully, use its ID\nif (resp.id && resp.displayName) {\n  return [{ json: { ...prev, folderId: resp.id, needsNewFolder: false, folderLookupNeeded: false } }];\n}\n// If creation failed (e.g. folder already exists), we need to look it up\nreturn [{ json: { ...prev, folderId: null, needsNewFolder: false, folderLookupNeeded: true } }];"
+      },
+      "id": "node-update-folder-map",
+      "name": "Update Folder Map",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [5720, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-folder-lookup",
+              "leftValue": "={{ $json.folderLookupNeeded }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-folder-lookup",
+      "name": "If: Folder Lookup?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [5980, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/mailFolders?$top=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-relist-folders",
+      "name": "Re-list Folders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [6240, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const foldersResp = $input.first().json;\nconst prev = $('Parse Classification').first().json;\nconst folders = foldersResp.value || [];\n\nlet folderId = null;\nfor (let i = 0; i < folders.length; i++) {\n  if (folders[i].displayName === prev.folderName) {\n    folderId = folders[i].id;\n    break;\n  }\n}\n\nreturn [{ json: { ...prev, folderId: folderId } }];"
+      },
+      "id": "node-resolve-folder",
+      "name": "Resolve Folder ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6500, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/messages/{{ $json.emailId }}/move",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ destinationId: $json.folderId }) }}",
+        "options": {}
+      },
+      "id": "node-move-email",
+      "name": "Move Email to Folder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [6240, 350]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Setup Variables').first().json.upn }}/messages/{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Get Graph Token').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"isRead\": false}",
+        "options": {}
+      },
+      "id": "node-mark-unread",
+      "name": "Mark Unread",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [6500, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "const moveResult = $('Move Email to Folder').first().json;\nconst classification = $('Parse Classification').first().json;\n\nreturn [{ json: {\n  emailId: moveResult.id,\n  subject: classification.subject,\n  senderEmail: classification.senderEmail,\n  category: classification.category,\n  confidence: classification.confidence,\n  reason: classification.reason,\n  folderName: classification.folderName,\n  status: 'triaged'\n} }];"
+      },
+      "id": "node-finalize",
+      "name": "Finalize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [6760, 300]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [{ "node": "Setup Variables", "type": "main", "index": 0 }]
+      ]
+    },
+    "Setup Variables": {
+      "main": [
+        [{ "node": "Get Graph Token", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Graph Token": {
+      "main": [
+        [{ "node": "Read Email Categories", "type": "main", "index": 0 }]
+      ]
+    },
+    "Read Email Categories": {
+      "main": [
+        [{ "node": "Parse Categories", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Categories": {
+      "main": [
+        [{ "node": "List Mail Folders", "type": "main", "index": 0 }]
+      ]
+    },
+    "List Mail Folders": {
+      "main": [
+        [{ "node": "Build Folder Map", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Folder Map": {
+      "main": [
+        [{ "node": "List Unread Emails", "type": "main", "index": 0 }]
+      ]
+    },
+    "List Unread Emails": {
+      "main": [
+        [{ "node": "If: Has Emails?", "type": "main", "index": 0 }]
+      ]
+    },
+    "If: Has Emails?": {
+      "main": [
+        [{ "node": "Select All Emails", "type": "main", "index": 0 }],
+        [{ "node": "No Emails", "type": "main", "index": 0 }]
+      ]
+    },
+    "Select All Emails": {
+      "main": [
+        [{ "node": "Loop Over Emails", "type": "main", "index": 0 }]
+      ]
+    },
+    "Loop Over Emails": {
+      "main": [
+        [{ "node": "All Done", "type": "main", "index": 0 }],
+        [{ "node": "If: Has Attachments?", "type": "main", "index": 0 }]
+      ]
+    },
+    "If: Has Attachments?": {
+      "main": [
+        [{ "node": "Get Attachments", "type": "main", "index": 0 }],
+        [{ "node": "No Attachments Skip", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Attachments": {
+      "main": [
+        [{ "node": "Filter Analyzable Attachments", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Analyzable Attachments": {
+      "main": [
+        [{ "node": "If: Has Extractable?", "type": "main", "index": 0 }]
+      ]
+    },
+    "If: Has Extractable?": {
+      "main": [
+        [{ "node": "Extract Attachments Text", "type": "main", "index": 0 }],
+        [{ "node": "No Extractable Skip", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Attachments Text": {
+      "main": [
+        [{ "node": "Merge Attachment Text", "type": "main", "index": 0 }]
+      ]
+    },
+    "Merge Attachment Text": {
+      "main": [
+        [{ "node": "Build AI Classification Body", "type": "main", "index": 0 }]
+      ]
+    },
+    "No Attachments Skip": {
+      "main": [
+        [{ "node": "Build AI Classification Body", "type": "main", "index": 0 }]
+      ]
+    },
+    "No Extractable Skip": {
+      "main": [
+        [{ "node": "Build AI Classification Body", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build AI Classification Body": {
+      "main": [
+        [{ "node": "AI Classify Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "AI Classify Email": {
+      "main": [
+        [{ "node": "Parse Classification", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Classification": {
+      "main": [
+        [{ "node": "If: Needs New Folder?", "type": "main", "index": 0 }]
+      ]
+    },
+    "If: Needs New Folder?": {
+      "main": [
+        [{ "node": "Create Mail Folder", "type": "main", "index": 0 }],
+        [{ "node": "Move Email to Folder", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Mail Folder": {
+      "main": [
+        [{ "node": "Update Folder Map", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Folder Map": {
+      "main": [
+        [{ "node": "If: Folder Lookup?", "type": "main", "index": 0 }]
+      ]
+    },
+    "If: Folder Lookup?": {
+      "main": [
+        [{ "node": "Re-list Folders", "type": "main", "index": 0 }],
+        [{ "node": "Move Email to Folder", "type": "main", "index": 0 }]
+      ]
+    },
+    "Re-list Folders": {
+      "main": [
+        [{ "node": "Resolve Folder ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Resolve Folder ID": {
+      "main": [
+        [{ "node": "Move Email to Folder", "type": "main", "index": 0 }]
+      ]
+    },
+    "Move Email to Folder": {
+      "main": [
+        [{ "node": "Mark Unread", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mark Unread": {
+      "main": [
+        [{ "node": "Finalize", "type": "main", "index": 0 }]
+      ]
+    },
+    "Finalize": {
+      "main": [
+        [{ "node": "Loop Over Emails", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "portfolio-n8n"
+  },
+  "tags": [
+    { "name": "catering" },
+    { "name": "email-triage" }
+  ]
+}

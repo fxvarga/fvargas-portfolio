@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Social Inquiry - Executive Catering CT</title>
+    <meta name="description" content="Planning a wedding, birthday, or celebration? Tell us about your event. Executive Catering CT provides full-service catering across Connecticut." />
+
+    <!-- Google Fonts (Montserrat to match Typeform original) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+    <link rel="stylesheet" href="css/inquiry-form.css" />
+
+    <!-- Plausible Analytics -->
+    <script defer data-domain="executivecateringct.com" src="https://analytics.fernando-vargas.com/js/script.js"></script>
+</head>
+<body>
+
+    <!-- Background -->
+    <div class="tf-background" style="background-image: url('assets/img/hero-bg.jpg');"></div>
+    <div class="tf-overlay"></div>
+
+    <!-- Progress bar -->
+    <div class="tf-progress">
+        <div class="tf-progress-bar" id="progressBar"></div>
+    </div>
+
+    <!-- Logo -->
+    <a href="index.html" class="tf-logo">
+        <img src="../_shared/img/ecct-logo-final.png" alt="Executive Catering CT" />
+    </a>
+
+    <!-- Form container -->
+    <div class="tf-form" id="inquiryForm">
+
+        <!-- ============================================================
+             STEP 0: WELCOME SCREEN
+             ============================================================ -->
+        <div class="tf-step tf-step--welcome active" data-step="welcome">
+            <div class="tf-step-content tf-step-content--center">
+                <img src="../_shared/img/ecct-logo-final.png" alt="Executive Catering CT" class="tf-welcome-logo" />
+                <h1>Let's Celebrate! Tell us about your special day.</h1>
+                <p class="tf-welcome-desc">Weddings, birthdays, graduations &mdash; we'll make it unforgettable.</p>
+                <button type="button" class="tf-btn tf-btn--start" data-next="firstName">Start</button>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 1: FIRST NAME
+             ============================================================ -->
+        <div class="tf-step" data-step="firstName">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">1 &rarr;</span>
+                    Your first name?
+                </label>
+                <input
+                    type="text"
+                    class="tf-input"
+                    id="fieldFirstName"
+                    placeholder="Type your answer here..."
+                    required
+                    autofocus
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="lastName">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valFirstName"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 2: LAST NAME
+             ============================================================ -->
+        <div class="tf-step" data-step="lastName">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">2 &rarr;</span>
+                    Hi <span class="tf-dynamic" data-field="firstName"></span>! What's your last name?
+                </label>
+                <input
+                    type="text"
+                    class="tf-input"
+                    id="fieldLastName"
+                    placeholder="Type your answer here..."
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="email">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valLastName"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 3: EMAIL
+             ============================================================ -->
+        <div class="tf-step" data-step="email">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">3 &rarr;</span>
+                    Thanks <span class="tf-dynamic" data-field="firstName"></span>! What's your email?
+                </label>
+                <input
+                    type="email"
+                    class="tf-input"
+                    id="fieldEmail"
+                    placeholder="name@example.com"
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="phone">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valEmail"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 4: PHONE
+             ============================================================ -->
+        <div class="tf-step" data-step="phone">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">4 &rarr;</span>
+                    And a good phone number to reach you?
+                </label>
+                <input
+                    type="tel"
+                    class="tf-input"
+                    id="fieldPhone"
+                    placeholder="(203) 555-1234"
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="eventType">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valPhone"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 5: EVENT TYPE (Social-specific)
+             ============================================================ -->
+        <div class="tf-step" data-step="eventType">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">5 &rarr;</span>
+                    <span class="tf-dynamic" data-field="firstName"></span>, what type of event are you celebrating?
+                </label>
+                <div class="tf-choices" id="fieldEventType">
+                    <button type="button" class="tf-choice" data-value="Wedding">
+                        <span class="tf-choice-key">A</span>
+                        <span class="tf-choice-label">Wedding / Reception</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="Birthday">
+                        <span class="tf-choice-key">B</span>
+                        <span class="tf-choice-label">Birthday Party</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="Graduation">
+                        <span class="tf-choice-key">C</span>
+                        <span class="tf-choice-label">Graduation</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="Anniversary">
+                        <span class="tf-choice-key">D</span>
+                        <span class="tf-choice-label">Anniversary</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="Baby Shower">
+                        <span class="tf-choice-key">E</span>
+                        <span class="tf-choice-label">Baby / Bridal Shower</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="Other">
+                        <span class="tf-choice-key">F</span>
+                        <span class="tf-choice-label">Other Celebration</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 6: EVENT DATE
+             ============================================================ -->
+        <div class="tf-step" data-step="eventDate">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">6 &rarr;</span>
+                    When is the big day?
+                </label>
+                <p class="tf-description">If you haven't settled on a date yet, your best guess works!</p>
+                <input
+                    type="date"
+                    class="tf-input tf-input--date"
+                    id="fieldEventDate"
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="guestCount">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valEventDate"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 7: GUEST COUNT
+             ============================================================ -->
+        <div class="tf-step" data-step="guestCount">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">7 &rarr;</span>
+                    How many guests are you expecting?
+                </label>
+                <div class="tf-choices" id="fieldGuestCount">
+                    <button type="button" class="tf-choice" data-value="Under 25">
+                        <span class="tf-choice-key">A</span>
+                        <span class="tf-choice-label">Under 25</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="25-50">
+                        <span class="tf-choice-key">B</span>
+                        <span class="tf-choice-label">25 &ndash; 50</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="50-100">
+                        <span class="tf-choice-key">C</span>
+                        <span class="tf-choice-label">50 &ndash; 100</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="100-200">
+                        <span class="tf-choice-key">D</span>
+                        <span class="tf-choice-label">100 &ndash; 200</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="200+">
+                        <span class="tf-choice-key">E</span>
+                        <span class="tf-choice-label">200+</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 8: HAS VENUE? (Yes/No)
+             ============================================================ -->
+        <div class="tf-step" data-step="hasVenue">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">8 &rarr;</span>
+                    Do you already have a venue picked out?
+                </label>
+                <div class="tf-choices tf-choices--yesno" id="fieldHasVenue">
+                    <button type="button" class="tf-choice" data-value="Yes">
+                        <span class="tf-choice-key">Y</span>
+                        <span class="tf-choice-label">Yes</span>
+                    </button>
+                    <button type="button" class="tf-choice" data-value="No">
+                        <span class="tf-choice-key">N</span>
+                        <span class="tf-choice-label">Not yet</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 9: VENUE NAME (if yes)
+             ============================================================ -->
+        <div class="tf-step" data-step="venueName">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">9 &rarr;</span>
+                    Love it &mdash; where will the celebration be?
+                </label>
+                <input
+                    type="text"
+                    class="tf-input"
+                    id="fieldVenueName"
+                    placeholder="Venue name or address..."
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="budget">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valVenueName"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 9a: BUDGET (no venue)
+             ============================================================ -->
+        <div class="tf-step" data-step="budgetNoVenue">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">9 &rarr;</span>
+                    No problem! What's your estimated catering budget?
+                </label>
+                <p class="tf-description">Don't worry if you're unsure &mdash; we can help you figure it out.</p>
+                <input
+                    type="text"
+                    class="tf-input"
+                    id="fieldBudgetNoVenue"
+                    placeholder="e.g. $2,000 or 'not sure yet'"
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="specialRequests">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valBudgetNoVenue"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 10: BUDGET (has venue)
+             ============================================================ -->
+        <div class="tf-step" data-step="budgetWithVenue">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num">10 &rarr;</span>
+                    What's your estimated catering budget?
+                </label>
+                <p class="tf-description">A rough range is perfectly fine &mdash; we'll work with you.</p>
+                <input
+                    type="text"
+                    class="tf-input"
+                    id="fieldBudgetWithVenue"
+                    placeholder="e.g. $3,000 or 'flexible'"
+                    required
+                />
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="specialRequests">OK
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+                <p class="tf-validation-msg" id="valBudgetWithVenue"></p>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             STEP 11: SPECIAL REQUESTS / VISION (Social-specific)
+             ============================================================ -->
+        <div class="tf-step" data-step="specialRequests">
+            <div class="tf-step-content">
+                <label class="tf-label">
+                    <span class="tf-question-num"><span class="tf-dynamic-num" data-step="specialRequests"></span> &rarr;</span>
+                    Last one! Anything else you'd like us to know?
+                </label>
+                <p class="tf-description">Dietary needs, themes, must-have dishes, your dream vision &mdash; we love details!</p>
+                <textarea
+                    class="tf-input tf-input--textarea"
+                    id="fieldSpecialRequests"
+                    placeholder="Tell us your vision..."
+                    rows="3"
+                ></textarea>
+                <div class="tf-actions">
+                    <button type="button" class="tf-btn" data-next="thankyou">Submit
+                        <span class="tf-btn-hint">press <strong>Enter &crarr;</strong></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================
+             THANK YOU SCREEN
+             ============================================================ -->
+        <div class="tf-step tf-step--thankyou" data-step="thankyou">
+            <div class="tf-step-content tf-step-content--center">
+                <div class="tf-check-icon">&#10003;</div>
+                <h2>Thanks <span class="tf-dynamic" data-field="firstName"></span>!</h2>
+                <p>We're excited to help you celebrate. One of our team members will be in touch shortly.</p>
+                <p class="tf-urgent">Need to talk sooner? Call us at <a href="tel:+12035551234">(203) 555-1234</a></p>
+                <a href="index.html" class="tf-btn tf-btn--outline">Back to Home</a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Navigation arrows -->
+    <div class="tf-nav">
+        <button type="button" class="tf-nav-btn" id="navPrev" aria-label="Previous" disabled>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button type="button" class="tf-nav-btn" id="navNext" aria-label="Next">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+    </div>
+
+    <script src="js/social-inquiry-form.js"></script>
+</body>
+</html>

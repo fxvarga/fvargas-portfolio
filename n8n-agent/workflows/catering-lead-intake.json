@@ -1,0 +1,216 @@
+{
+  "id": "catering-lead-intake",
+  "name": "Catering: Lead Intake & Qualification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "catering-lead",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook: Catering Lead",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "catering-lead"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"tenantId\": \"{{ $env.MS_GRAPH_TENANT_ID }}\",\n  \"clientId\": \"{{ $env.MS_GRAPH_CLIENT_ID }}\",\n  \"clientSecret\": \"{{ $env.MS_GRAPH_CLIENT_SECRET }}\",\n  \"driveId\": \"{{ $env.SHAREPOINT_DRIVE_ID }}\",\n  \"leadsFolderId\": \"{{ $env.SHAREPOINT_LEADS_FOLDER_ID }}\",\n  \"leadsTrackerFileId\": \"{{ $env.LEADS_TRACKER_FILE_ID }}\",\n  \"mailUserUpn\": \"{{ $env.MAIL_USER_UPN }}\",\n  \"aoaiEndpoint\": \"{{ $env.AZURE_OPENAI_ENDPOINT }}\",\n  \"aoaiDeployment\": \"{{ $env.AZURE_OPENAI_CHAT_DEPLOYMENT }}\",\n  \"aoaiApiVersion\": \"{{ $env.AZURE_OPENAI_API_VERSION }}\"\n}",
+        "options": {}
+      },
+      "id": "node-setup",
+      "name": "Setup Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $json.tenantId }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "grant_type", "value": "client_credentials" },
+            { "name": "client_id", "value": "={{ $json.clientId }}" },
+            { "name": "client_secret", "value": "={{ $json.clientSecret }}" },
+            { "name": "scope", "value": "https://graph.microsoft.com/.default" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Get Graph Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge all context: webhook body + setup vars + Graph token\nconst webhook = $('Webhook: Catering Lead').first().json;\nconst setup = $('Setup Variables').first().json;\nconst tokenResp = $input.first().json;\n\nconst body = webhook.body || webhook;\nconst leadId = body.inquiryId || `LEAD-${Date.now()}`;\n\n// Build Azure OpenAI request for lead qualification\nconst systemPrompt = `You are a lead qualification assistant for Executive Catering CT, a corporate and event catering company in Connecticut.\n\nScore this lead from 1-10 based on these factors:\n- Budget vs guest count ratio (higher per-head budget = more serious)\n- Event date proximity (within 30 days = urgent/serious, 30-90 days = good, 90+ = early stage)\n- Corporate events score higher than personal events\n- Having a venue secured indicates a more serious/advanced lead\n- Non-profit events may have lower budgets but are valuable for community presence\n\nRespond with JSON only:\n{\n  \"qualificationScore\": <1-10>,\n  \"qualificationNotes\": \"<2-3 sentence explanation of the score>\",\n  \"suggestedMenuTier\": \"<Budget|Standard|Premium|Luxury>\",\n  \"estimatedRevenue\": \"<dollar estimate based on guest count and budget range>\",\n  \"urgency\": \"<high|medium|low>\",\n  \"followUpRecommendation\": \"<specific next step for the sales team>\"\n}`;\n\nconst userPrompt = `Qualify this catering lead:\n\nName: ${body.firstName} ${body.lastName}\nEmail: ${body.email}\nPhone: ${body.phone || 'Not provided'}\nCompany: ${body.company || 'Not provided'}\nNon-Profit: ${body.isNonProfit || body.nonprofit || 'Unknown'}\nEvent Date: ${body.eventDate || 'Not specified'}\nHas Venue: ${body.hasVenue || 'Unknown'}\nVenue Name: ${body.venueName || 'N/A'}\nBudget Range: ${body.budget || 'Not specified'}\nGuest Count: ${body.guestCount || 'Not specified'}\nSource: ${body.source || 'Website'}`;\n\nreturn [{\n  json: {\n    ...setup,\n    accessToken: tokenResp.access_token,\n    lead: body,\n    leadId,\n    aoaiBody: {\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ],\n      max_completion_tokens: 1000,\n      response_format: { type: 'json_object' }\n    }\n  }\n}];"
+      },
+      "id": "node-build-ai-body",
+      "name": "Build AI Qualification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.aoaiEndpoint }}/openai/deployments/{{ $json.aoaiDeployment }}/chat/completions?api-version={{ $json.aoaiApiVersion }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.aoaiBody) }}",
+        "options": {}
+      },
+      "id": "node-ai-qualify",
+      "name": "AI Qualify Lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0sfAlhodWZDgWdu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI qualification result and prepare for Excel + Email\nconst prev = $('Build AI Qualification').first().json;\nconst aiResp = $input.first().json;\n\nlet qualification;\ntry {\n  const content = aiResp.choices[0].message.content;\n  qualification = JSON.parse(content);\n} catch (e) {\n  qualification = {\n    qualificationScore: 5,\n    qualificationNotes: 'AI parsing failed — manual review needed',\n    suggestedMenuTier: 'Standard',\n    estimatedRevenue: 'Unknown',\n    urgency: 'medium',\n    followUpRecommendation: 'Contact lead directly for more details'\n  };\n}\n\nconst lead = prev.lead;\nconst now = new Date().toISOString();\n\n// Excel row values (must match LeadsTable column order exactly)\nconst excelRow = [\n  prev.leadId,\n  lead.firstName || '',\n  lead.lastName || '',\n  lead.email || '',\n  lead.phone || '',\n  lead.company || '',\n  lead.isNonProfit || lead.nonprofit || '',\n  lead.eventDate || '',\n  lead.hasVenue || '',\n  lead.venueName || '',\n  lead.budget || '',\n  lead.guestCount || '',\n  lead.source || '',\n  String(qualification.qualificationScore),\n  qualification.qualificationNotes,\n  qualification.suggestedMenuTier,\n  qualification.estimatedRevenue,\n  'New',\n  '',\n  now\n];\n\n// Confirmation email HTML\nconst emailHtml = `\n<div style=\"font-family: 'Montserrat', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">\n  <div style=\"background: #635e59; padding: 30px; text-align: center;\">\n    <h1 style=\"color: #9AB23B; margin: 0; font-size: 24px;\">Executive Catering CT</h1>\n    <p style=\"color: #fff; margin: 5px 0 0;\">Corporate &amp; Event Catering</p>\n  </div>\n  <div style=\"padding: 30px; background: #f9f9f9;\">\n    <h2 style=\"color: #635e59;\">Thank you, ${lead.firstName}!</h2>\n    <p>We've received your catering inquiry and are excited to help make your event exceptional.</p>\n    <div style=\"background: #fff; border-left: 4px solid #9AB23B; padding: 15px; margin: 20px 0;\">\n      <p style=\"margin: 5px 0;\"><strong>Event Date:</strong> ${lead.eventDate || 'To be determined'}</p>\n      <p style=\"margin: 5px 0;\"><strong>Guest Count:</strong> ${lead.guestCount || 'To be discussed'}</p>\n      <p style=\"margin: 5px 0;\"><strong>Venue:</strong> ${lead.venueName || (lead.hasVenue === 'Yes' ? 'Venue secured' : 'We can help with venue selection')}</p>\n    </div>\n    <p><strong>What happens next:</strong></p>\n    <ol>\n      <li>Our team will review your event details within 24 hours</li>\n      <li>We'll reach out to discuss menu options tailored to your needs</li>\n      <li>You'll receive a customized proposal with pricing</li>\n    </ol>\n    <p>If you have any questions in the meantime, don't hesitate to reach out.</p>\n    <p style=\"margin-top: 20px;\">Warm regards,<br><strong>The Executive Catering CT Team</strong></p>\n  </div>\n  <div style=\"background: #635e59; padding: 15px; text-align: center;\">\n    <p style=\"color: #ccc; font-size: 12px; margin: 0;\">Executive Catering CT | Connecticut's Premier Catering Service</p>\n  </div>\n</div>`;\n\nreturn [{\n  json: {\n    accessToken: prev.accessToken,\n    driveId: prev.driveId,\n    leadsTrackerFileId: prev.leadsTrackerFileId,\n    mailUserUpn: prev.mailUserUpn,\n    leadId: prev.leadId,\n    lead,\n    qualification,\n    excelRow,\n    emailHtml,\n    emailSubject: `Thank you for your inquiry, ${lead.firstName}! — Executive Catering CT`\n  }\n}];"
+      },
+      "id": "node-parse-ai",
+      "name": "Parse & Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/drives/{{ $json.driveId }}/items/{{ $json.leadsTrackerFileId }}/workbook/tables/LeadsTable/rows/add",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.accessToken }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: [$json.excelRow] }) }}",
+        "options": {}
+      },
+      "id": "node-add-excel-row",
+      "name": "Add to Leads Tracker",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Parse & Prepare').first().json.mailUserUpn }}/sendMail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $('Parse & Prepare').first().json.accessToken }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { subject: $('Parse & Prepare').first().json.emailSubject, body: { contentType: 'HTML', content: $('Parse & Prepare').first().json.emailHtml }, toRecipients: [{ emailAddress: { address: $('Parse & Prepare').first().json.lead.email } }], from: { emailAddress: { address: $('Parse & Prepare').first().json.mailUserUpn, name: 'Executive Catering CT' } } }, saveToSentItems: true }) }}",
+        "options": {}
+      },
+      "id": "node-send-email",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 400]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"status\": \"qualified\",\n  \"leadId\": \"{{ $('Parse & Prepare').first().json.leadId }}\",\n  \"qualificationScore\": {{ $('Parse & Prepare').first().json.qualification.qualificationScore }},\n  \"suggestedMenuTier\": \"{{ $('Parse & Prepare').first().json.qualification.suggestedMenuTier }}\",\n  \"estimatedRevenue\": \"{{ $('Parse & Prepare').first().json.qualification.estimatedRevenue }}\",\n  \"urgency\": \"{{ $('Parse & Prepare').first().json.qualification.urgency }}\",\n  \"emailSent\": true,\n  \"excelUpdated\": true,\n  \"processedAt\": \"{{ new Date().toISOString() }}\"\n}",
+        "options": {}
+      },
+      "id": "node-merge-results",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1740, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1960, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Catering Lead": {
+      "main": [[{ "node": "Setup Variables", "type": "main", "index": 0 }]]
+    },
+    "Setup Variables": {
+      "main": [[{ "node": "Get Graph Token", "type": "main", "index": 0 }]]
+    },
+    "Get Graph Token": {
+      "main": [[{ "node": "Build AI Qualification", "type": "main", "index": 0 }]]
+    },
+    "Build AI Qualification": {
+      "main": [[{ "node": "AI Qualify Lead", "type": "main", "index": 0 }]]
+    },
+    "AI Qualify Lead": {
+      "main": [[{ "node": "Parse & Prepare", "type": "main", "index": 0 }]]
+    },
+    "Parse & Prepare": {
+      "main": [[
+        { "node": "Add to Leads Tracker", "type": "main", "index": 0 },
+        { "node": "Send Confirmation Email", "type": "main", "index": 0 }
+      ]]
+    },
+    "Add to Leads Tracker": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    },
+    "Send Confirmation Email": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    },
+    "Build Response": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "portfolio-n8n"
+  },
+  "tags": [
+    { "name": "catering" },
+    { "name": "leads" }
+  ]
+}

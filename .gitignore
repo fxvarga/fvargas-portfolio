@@ -221,6 +221,9 @@ $RECYCLE.BIN/
 # External client sites (not managed in this repo)
 momentsbykarina/
 
+# Removed from repo - Next.js workflow automation app
+frontend/workflowautomation/
+
 # Windows reserved name artifacts
 nul
 # Sensitive or environment-specific data

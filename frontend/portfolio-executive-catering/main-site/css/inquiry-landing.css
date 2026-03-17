@@ -1,0 +1,232 @@
+/* ==============================================================
+   INQUIRY LANDING PAGE: Corporate / Social selection
+   DESCRIPTION: Full-screen card selection page modeled after
+   QC Catering's /qcinquiry pattern. Two cards, dark overlay bg.
+   ============================================================== */
+
+/* ---------------------------------------------------------------
+   1. BACKGROUND & OVERLAY
+   --------------------------------------------------------------- */
+.inq-landing-bg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #3a3a3a;
+    z-index: 1;
+}
+
+.inq-landing-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(43, 43, 43, 0.75);
+    z-index: 2;
+}
+
+/* ---------------------------------------------------------------
+   2. LOGO
+   --------------------------------------------------------------- */
+.inq-landing-logo {
+    position: fixed;
+    top: 24px;
+    left: 28px;
+    z-index: 100;
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.inq-landing-logo:hover {
+    opacity: 1;
+}
+
+.inq-landing-logo img {
+    height: 44px;
+    width: auto;
+}
+
+/* ---------------------------------------------------------------
+   3. MAIN CONTENT
+   --------------------------------------------------------------- */
+.inq-landing-content {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 100px 30px 60px;
+    text-align: center;
+}
+
+.inq-landing-title {
+    font-family: var(--font-heading, 'Josefin Sans', sans-serif);
+    font-size: 2.4rem;
+    font-weight: 300;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+}
+
+.inq-landing-subtitle {
+    font-family: var(--font-body, 'PT Serif', serif);
+    font-style: italic;
+    font-size: 1.05rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 500px;
+    line-height: 1.6;
+}
+
+.inq-landing-divider {
+    width: 60px;
+    height: 2px;
+    background: var(--ecct-taupe, #8e7b76);
+    margin: 2rem auto 2.5rem;
+}
+
+/* ---------------------------------------------------------------
+   4. CARDS
+   --------------------------------------------------------------- */
+.inq-landing-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    max-width: 780px;
+    width: 100%;
+}
+
+.inq-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 48px 36px 40px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 8px;
+    text-decoration: none;
+    color: #ffffff;
+    transition: background 0.3s ease, border-color 0.3s ease, transform 0.2s ease;
+    cursor: pointer;
+}
+
+.inq-card:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: var(--ecct-taupe, #8e7b76);
+    transform: translateY(-4px);
+    color: #ffffff;
+}
+
+.inq-card-icon {
+    margin-bottom: 1.5rem;
+    color: var(--ecct-taupe, #8e7b76);
+    opacity: 0.9;
+}
+
+.inq-card:hover .inq-card-icon {
+    opacity: 1;
+}
+
+.inq-card-title {
+    font-family: var(--font-heading, 'Josefin Sans', sans-serif);
+    font-size: 1.15rem;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+    color: #ffffff;
+}
+
+.inq-card-desc {
+    font-family: var(--font-body, 'PT Serif', serif);
+    font-size: 0.92rem;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.65;
+    margin-bottom: 1.5rem;
+}
+
+.inq-card-cta {
+    font-family: var(--font-heading, 'Josefin Sans', sans-serif);
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ecct-taupe, #8e7b76);
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.3s, color 0.3s;
+    padding-bottom: 2px;
+}
+
+.inq-card:hover .inq-card-cta {
+    border-bottom-color: var(--ecct-gold, #c9a96e);
+    color: var(--ecct-gold, #c9a96e);
+}
+
+/* ---------------------------------------------------------------
+   5. FOOTER TEXT
+   --------------------------------------------------------------- */
+.inq-landing-footer-text {
+    margin-top: 2.5rem;
+    font-family: var(--font-body, 'PT Serif', serif);
+    font-size: 0.88rem;
+    color: rgba(255, 255, 255, 0.45);
+    font-style: italic;
+}
+
+.inq-landing-footer-text a {
+    color: var(--ecct-taupe, #8e7b76);
+    text-decoration: none;
+    font-weight: 700;
+    font-style: normal;
+}
+
+.inq-landing-footer-text a:hover {
+    color: var(--ecct-gold, #c9a96e);
+    text-decoration: underline;
+}
+
+/* ---------------------------------------------------------------
+   6. RESPONSIVE
+   --------------------------------------------------------------- */
+@media (max-width: 700px) {
+    .inq-landing-cards {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        max-width: 400px;
+    }
+
+    .inq-landing-title {
+        font-size: 1.6rem;
+        letter-spacing: 3px;
+    }
+
+    .inq-landing-subtitle {
+        font-size: 0.95rem;
+    }
+
+    .inq-card {
+        padding: 36px 28px 32px;
+    }
+
+    .inq-landing-logo img {
+        height: 34px;
+    }
+}
+
+@media (max-width: 400px) {
+    .inq-landing-title {
+        font-size: 1.3rem;
+    }
+
+    .inq-card-title {
+        font-size: 1rem;
+    }
+}
