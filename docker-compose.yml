@@ -198,6 +198,12 @@ services:
       - DISABLE_REGISTRATION=${PLAUSIBLE_DISABLE_REGISTRATION:-true}
     networks:
       - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
 
   # ============================================
   # Monitoring Stack (Prometheus + Grafana)
@@ -234,9 +240,12 @@ services:
       - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     pid: host
     volumes:
-      - /:/host:ro,rslave
+      - /:/host:ro
     networks:
       - portfolio-network
+    profiles:
+      - linux
+      - monitoring
 
   cadvisor:
     image: gcr.io/cadvisor/cadvisor:v0.55.1
@@ -244,11 +253,9 @@ services:
     restart: unless-stopped
     privileged: true
     volumes:
-      - /:/rootfs:ro
       - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
-      - /dev/disk/:/dev/disk:ro
     command:
       - "--housekeeping_interval=30s"
       - "--docker_only=true"
@@ -295,6 +302,7 @@ services:
       - caddy-config:/config
     environment:
       - DOMAIN_FERNANDO=${DOMAIN_FERNANDO:-localhost}
+      - DOMAIN_BLOG=${DOMAIN_BLOG:-blog.localhost}
       - DOMAIN_JESSICA=${DOMAIN_JESSICA:-jessica.localhost}
       - DOMAIN_BUSYBEE=${DOMAIN_BUSYBEE:-busybee.localhost}
       - DOMAIN_1STOPWINGS=${DOMAIN_1STOPWINGS:-1stopwings.localhost}
@@ -302,13 +310,18 @@ services:
       - DOMAIN_ANALYTICS=${DOMAIN_ANALYTICS:-analytics.localhost}
       - DOMAIN_GRAFANA=${DOMAIN_GRAFANA:-grafana.localhost}
     depends_on:
-      - frontend-fernando
-      - frontend-jessica
-      - frontend-busybee
-      - frontend-executive-catering
-      - backend
-      - plausible
-      - grafana
+      frontend-fernando:
+        condition: service_healthy
+      frontend-jessica:
+        condition: service_healthy
+      frontend-busybee:
+        condition: service_healthy
+      frontend-executive-catering:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      grafana:
+        condition: service_healthy
     networks:
       - portfolio-network
     restart: unless-stopped

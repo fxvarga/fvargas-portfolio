@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.FeatureManagement;
 using FV.Api.Configurations;
 using FV.Application;
+using FV.Domain.Entities;
+using FV.Domain.Interfaces;
 using FV.Infrastructure;
 using FV.Infrastructure.ContentMigrations;
 using FV.Infrastructure.Middleware;
@@ -143,4 +145,119 @@ app.MapHealthChecks("/healthcheck", new HealthCheckOptions() { Predicate = (chec
 app.UseWebSockets();
 app.MapGraphQL();
 
+// ---------------------------------------------------------------
+// REST API: Inquiry submissions from portfolio site forms
+// ---------------------------------------------------------------
+app.MapPost("/api/inquiries", async (
+    HttpContext httpContext,
+    CmsDbContext dbContext,
+    ITenantContext tenantContext,
+    ILogger<Program> logger) =>
+{
+    InquiryRequest? request;
+    try
+    {
+        request = await httpContext.Request.ReadFromJsonAsync<InquiryRequest>();
+    }
+    catch
+    {
+        return Results.BadRequest(new { error = "Invalid JSON payload" });
+    }
+
+    if (request is null || string.IsNullOrWhiteSpace(request.FirstName) || string.IsNullOrWhiteSpace(request.Email))
+    {
+        return Results.BadRequest(new { error = "firstName and email are required" });
+    }
+
+    // Resolve portfolio from tenant context (set by TenantResolutionMiddleware)
+    // Fall back to looking up by source domain if tenant wasn't resolved
+    Guid portfolioId;
+    if (tenantContext.IsResolved && tenantContext.PortfolioId.HasValue)
+    {
+        portfolioId = tenantContext.PortfolioId.Value;
+    }
+    else if (!string.IsNullOrWhiteSpace(request.Source))
+    {
+        var portfolio = await dbContext.Portfolios
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Domain.ToLower() == request.Source.ToLower() && p.IsActive);
+        portfolioId = portfolio?.Id ?? Guid.Empty;
+    }
+    else
+    {
+        portfolioId = Guid.Empty;
+    }
+
+    // If we still don't have a portfolio, use the first active one as fallback
+    if (portfolioId == Guid.Empty)
+    {
+        var first = await dbContext.Portfolios
+            .AsNoTracking()
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.CreatedAt)
+            .FirstOrDefaultAsync();
+        portfolioId = first?.Id ?? Guid.Empty;
+    }
+
+    if (portfolioId == Guid.Empty)
+    {
+        logger.LogWarning("Inquiry submission could not resolve a portfolio. Source: {Source}", request.Source);
+        return Results.StatusCode(500);
+    }
+
+    var inquiry = new Inquiry
+    {
+        Id = Guid.NewGuid(),
+        PortfolioId = portfolioId,
+        FirstName = request.FirstName.Trim(),
+        LastName = request.LastName?.Trim() ?? "",
+        Email = request.Email.Trim(),
+        Phone = request.Phone?.Trim(),
+        Company = request.Company?.Trim(),
+        Nonprofit = request.Nonprofit?.Trim(),
+        EventDate = request.EventDate?.Trim(),
+        HasVenue = request.HasVenue?.Trim(),
+        VenueName = request.VenueName?.Trim(),
+        Budget = request.Budget?.Trim(),
+        GuestCount = request.GuestCount?.Trim(),
+        Source = request.Source?.Trim(),
+        SubmittedAt = request.SubmittedAt,
+        CreatedAt = DateTime.UtcNow,
+        IsRead = false
+    };
+
+    dbContext.Inquiries.Add(inquiry);
+    await dbContext.SaveChangesAsync();
+
+    logger.LogInformation(
+        "Inquiry received from {FirstName} {LastName} ({Email}) for portfolio {PortfolioId}. Source: {Source}",
+        inquiry.FirstName, inquiry.LastName, inquiry.Email, inquiry.PortfolioId, inquiry.Source);
+
+    return Results.Created($"/api/inquiries/{inquiry.Id}", new
+    {
+        id = inquiry.Id,
+        message = "Inquiry received successfully"
+    });
+})
+.AllowAnonymous();
+
 await app.RunAsync();
+
+// ---------------------------------------------------------------
+// DTO for inquiry form submissions
+// ---------------------------------------------------------------
+public record InquiryRequest(
+    string FirstName,
+    string? LastName,
+    string Email,
+    string? Phone,
+    string? Company,
+    string? Nonprofit,
+    string? EventDate,
+    string? HasVenue,
+    string? VenueName,
+    string? Budget,
+    string? GuestCount,
+    DateTime? SubmittedAt,
+    string? Source
+);

@@ -36,6 +36,9 @@ public class ContentMigrationContext
     /// <summary>1 Stop Wings portfolio ID</summary>
     public static readonly Guid OneStopWingsPortfolioId = Guid.Parse("44444444-4444-4444-4444-444444444444");
 
+    /// <summary>Executive Catering CT portfolio ID</summary>
+    public static readonly Guid ExecutiveCateringPortfolioId = Guid.Parse("55555555-5555-5555-5555-555555555555");
+
     #endregion
 
     #region Deterministic ID Generation (Flyway-inspired)

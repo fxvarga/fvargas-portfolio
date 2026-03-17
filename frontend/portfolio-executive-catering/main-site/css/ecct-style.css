@@ -1,0 +1,672 @@
+/* ==============================================================
+   LAYOUT: Executive Catering CT Landing Page
+   DESCRIPTION: Full single-page layout with parallax sections,
+   gallery, services grid, and footer CTA.
+   Modeled after qccatering.com structure.
+   ============================================================== */
+
+/* ---------------------------------------------------------------
+   1. NAVIGATION
+   --------------------------------------------------------------- */
+.site-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+    padding: 20px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.4s ease, padding 0.3s ease;
+}
+
+.site-nav.scrolled {
+    background: rgba(43, 43, 43, 0.95);
+    padding: 12px 40px;
+    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+}
+
+.nav-logo img {
+    height: 50px;
+    transition: height 0.3s ease;
+}
+
+.site-nav.scrolled .nav-logo img {
+    height: 38px;
+}
+
+.nav-links {
+    display: flex;
+    list-style: none;
+    gap: 30px;
+}
+
+.nav-links a {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--ecct-white);
+    text-decoration: none;
+    transition: color 0.3s ease;
+    padding: 5px 0;
+    position: relative;
+}
+
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background: var(--ecct-gold);
+    transition: width 0.3s ease;
+}
+
+.nav-links a:hover::after {
+    width: 100%;
+}
+
+.nav-links a:hover {
+    color: var(--ecct-gold);
+}
+
+/* Nav CTA button */
+.nav-links .nav-cta {
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    border-radius: 4px;
+    padding: 8px 16px;
+}
+
+.nav-links .nav-cta:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--ecct-gold);
+}
+
+.nav-links .nav-cta::after {
+    display: none;
+}
+
+/* Mobile hamburger */
+.nav-toggle {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+}
+
+.nav-toggle span {
+    display: block;
+    width: 25px;
+    height: 2px;
+    background: var(--ecct-white);
+    margin: 5px 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+/* ---------------------------------------------------------------
+   2. HERO SECTION
+   --------------------------------------------------------------- */
+.hero {
+    position: relative;
+    height: 100vh;
+    min-height: 600px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+}
+
+.hero-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    /* Fallback gradient if image fails to load */
+    background-color: #3a3a3a;
+    z-index: 1;
+}
+
+.hero-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--ecct-overlay);
+    z-index: 2;
+}
+
+.hero-content {
+    position: relative;
+    z-index: 3;
+    max-width: 700px;
+    padding: 0 20px;
+}
+
+.hero-tagline {
+    font-family: var(--font-heading);
+    font-size: 3.5rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--ecct-white);
+    margin-bottom: 1rem;
+    line-height: 1.2;
+}
+
+.hero-subtitle {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 1.15rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 2.5rem;
+    line-height: 1.6;
+}
+
+.hero .btn-ecct {
+    margin-top: 0.5rem;
+}
+
+/* Scroll indicator */
+.scroll-indicator {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    text-align: center;
+}
+
+.scroll-indicator span {
+    display: block;
+    font-family: var(--font-heading);
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 10px;
+}
+
+.scroll-indicator .arrow {
+    display: block;
+    width: 20px;
+    height: 20px;
+    margin: 0 auto;
+    border-right: 1px solid rgba(255, 255, 255, 0.6);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.6);
+    transform: rotate(45deg);
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: rotate(45deg) translateY(0); }
+    40% { transform: rotate(45deg) translateY(-8px); }
+    60% { transform: rotate(45deg) translateY(-4px); }
+}
+
+/* ---------------------------------------------------------------
+   3. CONTENT SECTIONS (shared)
+   --------------------------------------------------------------- */
+.section {
+    padding: var(--section-padding);
+}
+
+.section-inner {
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 30px;
+}
+
+/* ---------------------------------------------------------------
+   4. HELLO / ABOUT SECTION (#hello)
+   --------------------------------------------------------------- */
+.hello-section {
+    background: var(--ecct-white);
+}
+
+.hello-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 60px;
+    align-items: start;
+}
+
+.hello-text h2 {
+    font-size: 2.2rem;
+    letter-spacing: 5px;
+    margin-bottom: 0.5rem;
+}
+
+.hello-text p {
+    margin-bottom: 1.2rem;
+    color: #555;
+    font-size: 1.02rem;
+}
+
+.hello-sidebar {
+    background: var(--ecct-cream);
+    padding: 35px;
+    border-left: 3px solid var(--ecct-taupe);
+}
+
+.hello-sidebar h3 {
+    font-size: 1rem;
+    letter-spacing: 3px;
+    margin-bottom: 1.5rem;
+    color: var(--ecct-taupe-dark);
+}
+
+.contact-item {
+    margin-bottom: 1.2rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.contact-item strong {
+    display: block;
+    font-family: var(--font-heading);
+    font-weight: 400;
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ecct-taupe);
+    margin-bottom: 2px;
+}
+
+/* ---------------------------------------------------------------
+   5. PARALLAX IMAGE BREAK
+   --------------------------------------------------------------- */
+.parallax-break {
+    position: relative;
+    height: 400px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.parallax-break .parallax-bg {
+    position: absolute;
+    top: -50%;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    will-change: transform;
+}
+
+.parallax-break .parallax-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--ecct-overlay);
+    z-index: 1;
+}
+
+.parallax-break .parallax-text {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: var(--ecct-white);
+}
+
+.parallax-break .parallax-text h2 {
+    font-size: 2.5rem;
+    letter-spacing: 6px;
+    color: var(--ecct-white);
+}
+
+.parallax-break .parallax-text p {
+    font-style: italic;
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-top: 0.5rem;
+}
+
+/* Parallax images are set via inline style on .parallax-bg elements */
+
+/* ---------------------------------------------------------------
+   6. SERVICES / WHAT WE DO (#eat-together equivalent)
+   --------------------------------------------------------------- */
+.services-section {
+    background: var(--ecct-cream);
+}
+
+.services-intro {
+    text-align: center;
+    max-width: 650px;
+    margin: 0 auto 3rem;
+}
+
+.services-intro p {
+    color: #666;
+}
+
+/* Image gallery row */
+.gallery-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 3rem;
+}
+
+.gallery-item {
+    overflow: hidden;
+    position: relative;
+    aspect-ratio: 4 / 3;
+    background: var(--ecct-gray);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+}
+
+.gallery-item:hover img {
+    transform: scale(1.05);
+}
+
+/* Placeholder for images not yet added */
+.gallery-placeholder {
+    font-family: var(--font-heading);
+    font-size: 0.8rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--ecct-taupe);
+}
+
+/* Service columns */
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    text-align: center;
+}
+
+.service-card {
+    padding: 20px 10px;
+}
+
+.service-card .counter {
+    font-family: var(--font-heading);
+    font-size: 3rem;
+    font-weight: 300;
+    letter-spacing: 2px;
+    color: var(--ecct-taupe);
+    margin-bottom: 0.5rem;
+}
+
+.service-card h3 {
+    font-size: 0.9rem;
+    letter-spacing: 3px;
+    margin-bottom: 0.8rem;
+}
+
+.service-card p {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* ---------------------------------------------------------------
+   7. CAPABILITIES / OUR SPACE (#our-space equivalent)
+   --------------------------------------------------------------- */
+.capabilities-section {
+    background: var(--ecct-white);
+}
+
+.capabilities-intro {
+    text-align: center;
+    max-width: 650px;
+    margin: 0 auto 3rem;
+}
+
+.capabilities-intro p {
+    color: #666;
+}
+
+.capabilities-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+}
+
+.capability-card {
+    text-align: center;
+    padding: 30px 20px;
+}
+
+.capability-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: var(--ecct-taupe);
+}
+
+.capability-card h3 {
+    font-size: 0.9rem;
+    letter-spacing: 3px;
+    margin-bottom: 0.8rem;
+}
+
+.capability-card p {
+    font-size: 0.95rem;
+    color: #666;
+    line-height: 1.6;
+}
+
+/* Text rotator */
+.text-rotator-wrap {
+    text-align: center;
+    margin-top: 3rem;
+    min-height: 2.5rem;
+}
+
+.text-rotator {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 1.2rem;
+    color: var(--ecct-taupe);
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+.text-rotator.fade-out {
+    opacity: 0;
+}
+
+/* ---------------------------------------------------------------
+   8. FOOTER
+   --------------------------------------------------------------- */
+.site-footer {
+    background: var(--ecct-dark);
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    padding: 80px 30px 40px;
+}
+
+.footer-cta h2 {
+    font-size: 2rem;
+    letter-spacing: 5px;
+    color: var(--ecct-white);
+    margin-bottom: 0.5rem;
+}
+
+.footer-cta p {
+    font-style: italic;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 25px;
+    margin-top: 25px;
+}
+
+.footer-bottom p {
+    font-family: var(--font-heading);
+    font-size: 0.75rem;
+    letter-spacing: 1.5px;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.footer-bottom a {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.footer-bottom a:hover {
+    color: var(--ecct-gold);
+}
+
+/* ---------------------------------------------------------------
+   9. ANIMATIONS (scroll reveal)
+   --------------------------------------------------------------- */
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ---------------------------------------------------------------
+   10. RESPONSIVE
+   --------------------------------------------------------------- */
+@media (max-width: 900px) {
+    .hello-grid {
+        grid-template-columns: 1fr;
+        gap: 40px;
+    }
+
+    .hello-sidebar {
+        border-left: none;
+        border-top: 3px solid var(--ecct-taupe);
+    }
+
+    .services-grid,
+    .capabilities-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+
+    .gallery-row {
+        grid-template-columns: 1fr;
+    }
+
+    .hero-tagline {
+        font-size: 2.2rem;
+        letter-spacing: 5px;
+    }
+
+    .section-title {
+        font-size: 1.6rem;
+    }
+
+    .parallax-break {
+        height: 300px;
+    }
+
+    .parallax-break .parallax-text h2 {
+        font-size: 1.8rem;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --section-padding: 60px 0;
+    }
+
+    .site-nav {
+        padding: 15px 20px;
+    }
+
+    .nav-links {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: rgba(43, 43, 43, 0.97);
+        flex-direction: column;
+        gap: 0;
+        padding: 10px 0;
+    }
+
+    .nav-links.open {
+        display: flex;
+    }
+
+    .nav-links li {
+        text-align: center;
+    }
+
+    .nav-links a {
+        display: block;
+        padding: 14px 20px;
+    }
+
+    .nav-toggle {
+        display: block;
+    }
+
+    /* Hamburger active state */
+    .nav-toggle.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+    }
+
+    .nav-toggle.active span:nth-child(2) {
+        opacity: 0;
+    }
+
+    .nav-toggle.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
+    }
+
+    .hero-tagline {
+        font-size: 1.8rem;
+        letter-spacing: 4px;
+    }
+
+    .hero-subtitle {
+        font-size: 1rem;
+    }
+
+    .footer-cta h2 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .hero-tagline {
+        font-size: 1.4rem;
+        letter-spacing: 3px;
+    }
+
+    .btn-ecct {
+        padding: 12px 28px;
+        font-size: 0.8rem;
+    }
+}

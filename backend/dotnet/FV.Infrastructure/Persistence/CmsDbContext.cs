@@ -21,6 +21,9 @@ public class CmsDbContext : DbContext
     public DbSet<EntityRecordVersion> EntityRecordVersions { get; set; } = null!;
     public DbSet<MediaAsset> MediaAssets { get; set; } = null!;
 
+    // Inquiry submissions from portfolio site forms
+    public DbSet<Inquiry> Inquiries { get; set; } = null!;
+
     // Content migration tracking (Rails-style migrations for content)
     public DbSet<ContentMigrationHistory> ContentMigrationHistory { get; set; } = null!;
 
@@ -160,6 +163,33 @@ public class CmsDbContext : DbContext
             entity.Property(e => e.Checksum).IsRequired().HasMaxLength(64);
             entity.Property(e => e.Description).HasMaxLength(500);
             entity.Property(e => e.ErrorMessage).HasMaxLength(2000);
+        });
+
+        // Inquiry configuration
+        modelBuilder.Entity<Inquiry>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.PortfolioId);
+            entity.HasIndex(e => new { e.PortfolioId, e.CreatedAt });
+            entity.Property(e => e.FirstName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.LastName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(320);
+            entity.Property(e => e.Phone).HasMaxLength(50);
+            entity.Property(e => e.Company).HasMaxLength(300);
+            entity.Property(e => e.Nonprofit).HasMaxLength(10);
+            entity.Property(e => e.EventDate).HasMaxLength(50);
+            entity.Property(e => e.HasVenue).HasMaxLength(10);
+            entity.Property(e => e.VenueName).HasMaxLength(300);
+            entity.Property(e => e.Budget).HasMaxLength(200);
+            entity.Property(e => e.GuestCount).HasMaxLength(50);
+            entity.Property(e => e.Source).HasMaxLength(255);
+            entity.Property(e => e.PortfolioId).IsRequired();
+
+            // Foreign key to Portfolio
+            entity.HasOne(e => e.Portfolio)
+                .WithMany()
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

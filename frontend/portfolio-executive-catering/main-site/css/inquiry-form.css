@@ -1,0 +1,547 @@
+/* ==============================================================
+   INQUIRY FORM: Typeform-style multi-step fullscreen form
+   DESCRIPTION: Matches QC Catering Typeform look & feel,
+   adapted for Executive Catering CT branding.
+   ============================================================== */
+
+/* ---------------------------------------------------------------
+   1. RESET & BASE
+   --------------------------------------------------------------- */
+*, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html, body {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    font-family: 'Montserrat', 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------
+   2. BACKGROUND
+   --------------------------------------------------------------- */
+.tf-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-color: #635e59;
+    z-index: 1;
+}
+
+.tf-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 2;
+}
+
+/* ---------------------------------------------------------------
+   3. PROGRESS BAR
+   --------------------------------------------------------------- */
+.tf-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    z-index: 100;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.tf-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #ffffff;
+    border-radius: 4px;
+    transition: width 0.4s ease;
+}
+
+/* ---------------------------------------------------------------
+   4. LOGO
+   --------------------------------------------------------------- */
+.tf-logo {
+    position: fixed;
+    top: 20px;
+    left: 24px;
+    z-index: 100;
+    opacity: 0.9;
+    transition: opacity 0.3s;
+}
+
+.tf-logo:hover {
+    opacity: 1;
+}
+
+.tf-logo img {
+    height: 40px;
+    width: auto;
+}
+
+/* ---------------------------------------------------------------
+   5. FORM CONTAINER
+   --------------------------------------------------------------- */
+.tf-form {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    height: 100%;
+}
+
+/* ---------------------------------------------------------------
+   6. STEPS
+   --------------------------------------------------------------- */
+.tf-step {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding-left: 15%;
+    padding-right: 15%;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(40px);
+    transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s 0.5s;
+}
+
+.tf-step.active {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    transition: opacity 0.5s ease 0.1s, transform 0.5s ease 0.1s, visibility 0s;
+}
+
+.tf-step.exit-up {
+    opacity: 0;
+    transform: translateY(-40px);
+    visibility: hidden;
+}
+
+.tf-step-content {
+    max-width: 720px;
+    width: 100%;
+}
+
+.tf-step-content--center {
+    text-align: center;
+    margin: 0 auto;
+}
+
+/* ---------------------------------------------------------------
+   7. WELCOME SCREEN
+   --------------------------------------------------------------- */
+.tf-step--welcome {
+    justify-content: center;
+    padding-left: 5%;
+    padding-right: 5%;
+}
+
+.tf-welcome-logo {
+    height: 80px;
+    width: auto;
+    margin-bottom: 2rem;
+    display: inline-block;
+}
+
+.tf-step--welcome h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+    margin-bottom: 0.75rem;
+    font-style: italic;
+}
+
+.tf-welcome-desc {
+    font-size: 1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 2rem;
+}
+
+/* ---------------------------------------------------------------
+   8. LABELS & QUESTIONS
+   --------------------------------------------------------------- */
+.tf-label {
+    display: block;
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: #ffffff;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.tf-question-num {
+    font-size: 0.85rem;
+    color: #86A329;
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+.tf-description {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: -1rem;
+    margin-bottom: 1.5rem;
+    font-style: italic;
+}
+
+.tf-dynamic {
+    /* Filled dynamically via JS */
+}
+
+/* ---------------------------------------------------------------
+   9. TEXT INPUTS
+   --------------------------------------------------------------- */
+.tf-input {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.4);
+    padding: 12px 0;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.3rem;
+    color: #86A329;
+    outline: none;
+    transition: border-color 0.3s ease;
+    caret-color: #86A329;
+}
+
+.tf-input::placeholder {
+    color: rgba(255, 255, 255, 0.35);
+    font-style: italic;
+}
+
+.tf-input:focus {
+    border-bottom-color: #86A329;
+}
+
+/* Date input styling */
+.tf-input--date {
+    font-size: 1.1rem;
+    color-scheme: dark;
+    max-width: 280px;
+}
+
+.tf-input--date::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* ---------------------------------------------------------------
+   10. MULTIPLE CHOICE
+   --------------------------------------------------------------- */
+.tf-choices {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 0.5rem;
+}
+
+.tf-choice {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 6px;
+    padding: 14px 18px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    color: #ffffff;
+    text-align: left;
+}
+
+.tf-choice:hover {
+    background: rgba(134, 163, 41, 0.15);
+    border-color: #86A329;
+}
+
+.tf-choice:active {
+    transform: scale(0.98);
+}
+
+.tf-choice.selected {
+    background: rgba(134, 163, 41, 0.25);
+    border-color: #86A329;
+}
+
+.tf-choice-key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    color: #ffffff;
+    transition: border-color 0.2s, background 0.2s;
+}
+
+.tf-choice.selected .tf-choice-key {
+    background: #86A329;
+    border-color: #86A329;
+    color: #ffffff;
+}
+
+.tf-choice-label {
+    flex: 1;
+}
+
+/* ---------------------------------------------------------------
+   11. BUTTONS
+   --------------------------------------------------------------- */
+.tf-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 28px;
+    background: #9AB23B;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: background 0.2s ease, transform 0.1s ease;
+}
+
+.tf-btn:hover {
+    background: #86A329;
+}
+
+.tf-btn:active {
+    transform: scale(0.97);
+}
+
+.tf-btn--start {
+    font-size: 1rem;
+    padding: 14px 40px;
+}
+
+.tf-btn--outline {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    color: #ffffff;
+    text-decoration: none;
+    margin-top: 1.5rem;
+}
+
+.tf-btn--outline:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #ffffff;
+}
+
+.tf-btn-hint {
+    font-size: 0.7rem;
+    font-weight: 400;
+    opacity: 0.6;
+    letter-spacing: 0;
+}
+
+.tf-actions {
+    margin-top: 1.5rem;
+}
+
+/* ---------------------------------------------------------------
+   12. VALIDATION
+   --------------------------------------------------------------- */
+.tf-validation-msg {
+    font-size: 0.85rem;
+    color: #ff6b6b;
+    margin-top: 0.75rem;
+    min-height: 1.2rem;
+    transition: opacity 0.3s;
+}
+
+.tf-validation-msg:empty {
+    opacity: 0;
+}
+
+/* ---------------------------------------------------------------
+   13. NAVIGATION ARROWS
+   --------------------------------------------------------------- */
+.tf-nav {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.tf-nav-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 36px;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.tf-nav-btn:first-child {
+    border-radius: 6px 6px 0 0;
+}
+
+.tf-nav-btn:last-child {
+    border-radius: 0 0 6px 6px;
+}
+
+.tf-nav-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.tf-nav-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* ---------------------------------------------------------------
+   14. THANK YOU SCREEN
+   --------------------------------------------------------------- */
+.tf-step--thankyou h2 {
+    font-size: 2rem;
+    color: #ffffff;
+    margin-bottom: 0.75rem;
+    font-weight: 700;
+}
+
+.tf-step--thankyou p {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin-bottom: 0.5rem;
+}
+
+.tf-urgent {
+    margin-top: 1.5rem;
+    font-size: 0.9rem !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+.tf-urgent a {
+    color: #86A329;
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.tf-urgent a:hover {
+    text-decoration: underline;
+}
+
+.tf-check-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: #9AB23B;
+    color: #ffffff;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    animation: scaleIn 0.4s ease;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* ---------------------------------------------------------------
+   15. RESPONSIVE
+   --------------------------------------------------------------- */
+@media (max-width: 768px) {
+    .tf-step {
+        padding-left: 7%;
+        padding-right: 7%;
+    }
+
+    .tf-step--welcome {
+        padding-left: 5%;
+        padding-right: 5%;
+    }
+
+    .tf-label {
+        font-size: 1.15rem;
+    }
+
+    .tf-input {
+        font-size: 1.1rem;
+    }
+
+    .tf-step--welcome h1 {
+        font-size: 1.4rem;
+    }
+
+    .tf-welcome-logo {
+        height: 60px;
+    }
+
+    .tf-logo img {
+        height: 30px;
+    }
+
+    .tf-nav {
+        bottom: 20px;
+        right: 20px;
+    }
+
+    .tf-btn-hint {
+        display: none;
+    }
+
+    .tf-step--thankyou h2 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .tf-label {
+        font-size: 1rem;
+    }
+
+    .tf-input {
+        font-size: 1rem;
+    }
+
+    .tf-choice {
+        padding: 12px 14px;
+        font-size: 0.9rem;
+    }
+}

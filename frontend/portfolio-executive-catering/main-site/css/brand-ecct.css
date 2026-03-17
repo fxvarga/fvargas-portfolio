@@ -1,0 +1,113 @@
+/* ==============================================================
+   BRAND IDENTITY: Executive Catering CT
+   DESCRIPTION: Warm, elegant earth tones inspired by QC Catering.
+   Geometric sans headings + serif body for upscale feel.
+   ============================================================== */
+
+/* Google Fonts loaded in HTML:
+   - Josefin Sans (headings)
+   - PT Serif (body text) */
+
+:root {
+    /* BRAND COLORS - warm earth palette */
+    --ecct-taupe:      #8e7b76;
+    --ecct-taupe-dark: #6b5c57;
+    --ecct-cream:      #f7f8f2;
+    --ecct-gray:       #dfe0e4;
+    --ecct-charcoal:   #3a3a3a;
+    --ecct-dark:       #2b2b2b;
+    --ecct-white:      #ffffff;
+    --ecct-gold:       #c9a96e;
+    --ecct-overlay:    rgba(43, 43, 43, 0.65);
+
+    /* TYPOGRAPHY */
+    --font-heading: 'Josefin Sans', 'Segoe UI', sans-serif;
+    --font-body:    'PT Serif', Georgia, 'Times New Roman', serif;
+
+    /* SPACING */
+    --section-padding: 100px 0;
+    --container-width: 1100px;
+}
+
+body {
+    background-color: var(--ecct-white);
+    color: var(--ecct-charcoal);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.7;
+}
+
+/* Override global.css heading defaults with brand font */
+h1, h2, h3, h4, .brand-heading {
+    font-family: var(--font-heading);
+    font-weight: 300;
+    letter-spacing: 3px;
+    color: var(--ecct-charcoal);
+}
+
+/* Links */
+a {
+    color: var(--ecct-taupe);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--ecct-taupe-dark);
+}
+
+/* Brand button style */
+.btn-ecct {
+    display: inline-block;
+    padding: 14px 40px;
+    font-family: var(--font-heading);
+    font-size: 0.85rem;
+    font-weight: 400;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: 2px solid var(--ecct-white);
+    color: var(--ecct-white);
+    background: transparent;
+    transition: background 0.3s ease, color 0.3s ease;
+    cursor: pointer;
+}
+
+.btn-ecct:hover {
+    background: var(--ecct-white);
+    color: var(--ecct-charcoal);
+}
+
+.btn-ecct--dark {
+    border-color: var(--ecct-charcoal);
+    color: var(--ecct-charcoal);
+}
+
+.btn-ecct--dark:hover {
+    background: var(--ecct-charcoal);
+    color: var(--ecct-white);
+}
+
+/* Section headings */
+.section-title {
+    font-size: 2rem;
+    letter-spacing: 4px;
+    margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+    font-family: var(--font-body);
+    font-style: italic;
+    font-size: 1rem;
+    color: var(--ecct-taupe);
+    margin-bottom: 2rem;
+    font-weight: 400;
+}
+
+/* Divider accent */
+.divider {
+    width: 60px;
+    height: 2px;
+    background: var(--ecct-taupe);
+    margin: 1.5rem auto;
+}
