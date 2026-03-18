@@ -16,7 +16,7 @@ public class _20260316000000_ExecutiveCateringPortfolio : ContentMigration
             "executivecatering",
             p => p
                 .Name("Executive Catering CT")
-                .Domain("executivecateringct.com")
+                .Domain("executivecateringct.fernando-vargas.com")
                 .Description("Executive Catering CT - Full-service corporate catering in Connecticut")
                 .IsActive(true));
 

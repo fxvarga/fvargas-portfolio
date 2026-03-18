@@ -94,6 +94,7 @@ get_frontend_images() {
     FRONTEND_JESSICA_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_JESSICA:-portfolio-frontend-jessica}:${tag}"
     FRONTEND_BUSYBEE_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BUSYBEE:-portfolio-frontend-busybee}:${tag}"
     FRONTEND_EXECUTIVE_CATERING_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_EXECUTIVE_CATERING:-portfolio-frontend-executive-catering}:${tag}"
+    N8N_PYTHON_HELPER_IMAGE="${DOCKER_USERNAME}/${IMAGE_N8N_PYTHON_HELPER:-portfolio-n8n-python-helper}:${tag}"
 }
 
 # ============================================
@@ -257,6 +258,10 @@ build_and_push() {
     log_info "Building frontend image (Executive Catering): ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     docker build -t "${FRONTEND_EXECUTIVE_CATERING_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-executive-catering/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-executive-catering"
     
+    # Build n8n Python Helper
+    log_info "Building n8n Python Helper image: ${N8N_PYTHON_HELPER_IMAGE}"
+    docker build -t "${N8N_PYTHON_HELPER_IMAGE}" -f "$PROJECT_ROOT/n8n-agent/python-helper/Dockerfile" "$PROJECT_ROOT/n8n-agent/python-helper"
+    
     log_success "Images built successfully"
     
     # Push to registry
@@ -267,6 +272,7 @@ build_and_push() {
     docker push "${FRONTEND_JESSICA_IMAGE}"
     docker push "${FRONTEND_BUSYBEE_IMAGE}"
     docker push "${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
+    docker push "${N8N_PYTHON_HELPER_IMAGE}"
     
     log_success "Images pushed to Docker Hub"
     
@@ -290,6 +296,7 @@ deploy() {
     local domain_executive_catering="${DOMAIN_EXECUTIVE_CATERING:-}"
     local domain_analytics="${DOMAIN_ANALYTICS:-}"
     local domain_grafana="${DOMAIN_GRAFANA:-}"
+    local domain_n8n="${DOMAIN_N8N:-}"
     
     # Plausible config
     local plausible_base_url="${PLAUSIBLE_BASE_URL:-}"
@@ -299,6 +306,31 @@ deploy() {
     # Grafana config
     local grafana_admin_password="${GRAFANA_ADMIN_PASSWORD:-admin}"
     
+    # n8n config
+    local n8n_encryption_key="${N8N_ENCRYPTION_KEY:-}"
+    local n8n_postgres_user="${N8N_POSTGRES_USER:-n8n}"
+    local n8n_postgres_password="${N8N_POSTGRES_PASSWORD:-n8n}"
+    local n8n_postgres_db="${N8N_POSTGRES_DB:-n8n}"
+    
+    # n8n workflow env vars (MS Graph, SharePoint, Azure OpenAI)
+    local ms_graph_tenant_id="${MS_GRAPH_TENANT_ID:-}"
+    local ms_graph_client_id="${MS_GRAPH_CLIENT_ID:-}"
+    local ms_graph_client_secret="${MS_GRAPH_CLIENT_SECRET:-}"
+    local sharepoint_site_id="${SHAREPOINT_SITE_ID:-}"
+    local sharepoint_drive_id="${SHAREPOINT_DRIVE_ID:-}"
+    local sharepoint_leads_folder_id="${SHAREPOINT_LEADS_FOLDER_ID:-}"
+    local sharepoint_proposals_folder_id="${SHAREPOINT_PROPOSALS_FOLDER_ID:-}"
+    local leads_tracker_file_id="${LEADS_TRACKER_FILE_ID:-}"
+    local sharepoint_kb_folder_id="${SHAREPOINT_KB_FOLDER_ID:-}"
+    local sharepoint_kb_file_id="${SHAREPOINT_KB_FILE_ID:-}"
+    local mail_user_upn="${MAIL_USER_UPN:-}"
+    local azure_openai_endpoint="${AZURE_OPENAI_ENDPOINT:-}"
+    local azure_openai_api_key="${AZURE_OPENAI_API_KEY:-}"
+    local azure_openai_chat_deployment="${AZURE_OPENAI_CHAT_DEPLOYMENT:-}"
+    local azure_openai_api_version="${AZURE_OPENAI_API_VERSION:-}"
+    local email_categories_file_id="${EMAIL_CATEGORIES_FILE_ID:-}"
+    local email_categories_table_name="${EMAIL_CATEGORIES_TABLE_NAME:-Categories}"
+    
     log_info "Deploying to $DROPLET_IP..."
     log_info "Using images:"
     log_info "  Backend:          $backend_image"
@@ -306,6 +338,7 @@ deploy() {
     log_info "  Frontend Jessica:  $FRONTEND_JESSICA_IMAGE"
     log_info "  Frontend BusyBee:  $FRONTEND_BUSYBEE_IMAGE"
     log_info "  Frontend Executive Catering: $FRONTEND_EXECUTIVE_CATERING_IMAGE"
+    log_info "  n8n Python Helper: $N8N_PYTHON_HELPER_IMAGE"
     
     log_info "Domains:"
     log_info "  Fernando: ${domain_fernando:-localhost}"
@@ -315,6 +348,7 @@ deploy() {
     log_info "  Executive Catering: ${domain_executive_catering:-executivecatering.localhost}"
     log_info "  Analytics: ${domain_analytics:-analytics.localhost}"
     log_info "  Grafana:   ${domain_grafana:-grafana.localhost}"
+    log_info "  n8n:       ${domain_n8n:-n8n.localhost}"
 
     # Create production docker-compose on server
     ssh -o StrictHostKeyChecking=no root@$DROPLET_IP << DEPLOY_SCRIPT
@@ -712,6 +746,97 @@ services:
       retries: 3
       start_period: 15s
 
+  # n8n Workflow Automation
+  n8n-postgres:
+    image: postgres:16-alpine
+    container_name: portfolio-n8n-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${n8n_postgres_user}
+      - POSTGRES_PASSWORD=${n8n_postgres_password}
+      - POSTGRES_DB=${n8n_postgres_db}
+    volumes:
+      - n8n-db-data:/var/lib/postgresql/data
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${n8n_postgres_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: portfolio-n8n
+    restart: unless-stopped
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${n8n_postgres_db}
+      - DB_POSTGRESDB_USER=${n8n_postgres_user}
+      - DB_POSTGRESDB_PASSWORD=${n8n_postgres_password}
+      - N8N_ENCRYPTION_KEY=${n8n_encryption_key}
+      - EXECUTIONS_MODE=regular
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_SECURE_COOKIE=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - WEBHOOK_URL=https://${domain_n8n:-n8n.localhost}/
+      - N8N_EDITOR_BASE_URL=https://${domain_n8n:-n8n.localhost}/
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_INSIGHTS_ENABLED=false
+      - N8N_LOG_LEVEL=info
+      - GENERIC_TIMEZONE=America/New_York
+      # Workflow env vars (MS Graph, SharePoint, Azure OpenAI)
+      - MS_GRAPH_TENANT_ID=${ms_graph_tenant_id}
+      - MS_GRAPH_CLIENT_ID=${ms_graph_client_id}
+      - MS_GRAPH_CLIENT_SECRET=${ms_graph_client_secret}
+      - SHAREPOINT_SITE_ID=${sharepoint_site_id}
+      - SHAREPOINT_DRIVE_ID=${sharepoint_drive_id}
+      - SHAREPOINT_LEADS_FOLDER_ID=${sharepoint_leads_folder_id}
+      - SHAREPOINT_PROPOSALS_FOLDER_ID=${sharepoint_proposals_folder_id}
+      - LEADS_TRACKER_FILE_ID=${leads_tracker_file_id}
+      - SHAREPOINT_KB_FOLDER_ID=${sharepoint_kb_folder_id}
+      - SHAREPOINT_KB_FILE_ID=${sharepoint_kb_file_id}
+      - MAIL_USER_UPN=${mail_user_upn}
+      - AZURE_OPENAI_ENDPOINT=${azure_openai_endpoint}
+      - AZURE_OPENAI_API_KEY=${azure_openai_api_key}
+      - AZURE_OPENAI_CHAT_DEPLOYMENT=${azure_openai_chat_deployment}
+      - AZURE_OPENAI_API_VERSION=${azure_openai_api_version}
+      - EMAIL_CATEGORIES_FILE_ID=${email_categories_file_id}
+      - EMAIL_CATEGORIES_TABLE_NAME=${email_categories_table_name}
+    volumes:
+      - n8n-data:/home/node/.n8n
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  n8n-python-helper:
+    image: ${N8N_PYTHON_HELPER_IMAGE}
+    container_name: portfolio-n8n-python-helper
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   caddy:
     image: caddy:2-alpine
     container_name: portfolio-caddy
@@ -731,6 +856,7 @@ services:
       - backend
       - plausible
       - grafana
+      - n8n
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -759,6 +885,10 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
+    driver: local
+  n8n-db-data:
+    driver: local
+  n8n-data:
     driver: local
 COMPOSE_EOF
 
@@ -846,10 +976,6 @@ ${domain_1stopwings:-1stopwings.localhost} {
     }
 }
 
-www.${domain_1stopwings:-1stopwings.localhost} {
-    redir https://${domain_1stopwings:-1stopwings.localhost}{uri} permanent
-}
-
 # Executive Catering main site (same container, different domain)
 ${domain_executive_catering:-executivecatering.localhost} {
     # API and GraphQL routes to backend (CMS-powered content)
@@ -866,10 +992,6 @@ ${domain_executive_catering:-executivecatering.localhost} {
     }
 }
 
-www.${domain_executive_catering:-executivecatering.localhost} {
-    redir https://${domain_executive_catering:-executivecatering.localhost}{uri} permanent
-}
-
 # Plausible Analytics
 ${domain_analytics:-analytics.localhost} {
     reverse_proxy plausible:8000
@@ -878,6 +1000,16 @@ ${domain_analytics:-analytics.localhost} {
 # Grafana Monitoring
 ${domain_grafana:-grafana.localhost} {
     reverse_proxy grafana:3000
+}
+
+# n8n Workflow Automation
+${domain_n8n:-n8n.localhost} {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+        transport http {
+            keepalive 30s
+        }
+    }
 }
 CADDY_EOF
 
@@ -1050,6 +1182,10 @@ build_only() {
     log_info "Building frontend image (Executive Catering): ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     docker build -t "${FRONTEND_EXECUTIVE_CATERING_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-executive-catering/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-executive-catering"
     
+    # Build n8n Python Helper
+    log_info "Building n8n Python Helper image: ${N8N_PYTHON_HELPER_IMAGE}"
+    docker build -t "${N8N_PYTHON_HELPER_IMAGE}" -f "$PROJECT_ROOT/n8n-agent/python-helper/Dockerfile" "$PROJECT_ROOT/n8n-agent/python-helper"
+    
     log_success "Images built successfully"
     echo ""
     log_info "Images:"
@@ -1058,6 +1194,7 @@ build_only() {
     echo "  ${FRONTEND_JESSICA_IMAGE}"
     echo "  ${FRONTEND_BUSYBEE_IMAGE}"
     echo "  ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
+    echo "  ${N8N_PYTHON_HELPER_IMAGE}"
 }
 
 # ============================================
@@ -1099,7 +1236,7 @@ usage() {
     echo "  DOMAIN_JESSICA            Domain for Jessica's portfolio (e.g., jessicasutherland.me)"
     echo "  DOMAIN_BUSYBEE            Domain for BusyBee's portfolio (e.g., thebusybeeweb.com)"
     echo "  DOMAIN_1STOPWINGS         Domain for 1 Stop Wings (e.g., 1stopwings.executivecateringct.com)"
-    echo "  DOMAIN_EXECUTIVE_CATERING Domain for Executive Catering (e.g., executivecateringct.com)"
+    echo "  DOMAIN_EXECUTIVE_CATERING Domain for Executive Catering (e.g., executivecateringct.fernando-vargas.com)"
     echo "  DOMAIN_ANALYTICS          Domain for Plausible Analytics (e.g., analytics.fernando-vargas.com)"
     echo "  DOMAIN_GRAFANA            Domain for Grafana Monitoring (e.g., grafana.fernando-vargas.com)"
     echo "  GRAFANA_ADMIN_PASSWORD    Grafana admin password"

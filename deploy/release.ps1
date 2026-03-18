@@ -119,11 +119,13 @@ function Get-FrontendImages {
     $jessicaName  = if ($script:IMAGE_FRONTEND_JESSICA)           { $script:IMAGE_FRONTEND_JESSICA }           else { "portfolio-frontend-jessica" }
     $busybeeName  = if ($script:IMAGE_FRONTEND_BUSYBEE)           { $script:IMAGE_FRONTEND_BUSYBEE }           else { "portfolio-frontend-busybee" }
     $execCatName  = if ($script:IMAGE_FRONTEND_EXECUTIVE_CATERING){ $script:IMAGE_FRONTEND_EXECUTIVE_CATERING }else { "portfolio-frontend-executive-catering" }
+    $n8nHelperName = if ($script:IMAGE_N8N_PYTHON_HELPER)         { $script:IMAGE_N8N_PYTHON_HELPER }          else { "portfolio-n8n-python-helper" }
 
     $script:FRONTEND_FERNANDO_IMAGE          = "$($script:DOCKER_USERNAME)/${fernandoName}:${Tag}"
     $script:FRONTEND_JESSICA_IMAGE           = "$($script:DOCKER_USERNAME)/${jessicaName}:${Tag}"
     $script:FRONTEND_BUSYBEE_IMAGE           = "$($script:DOCKER_USERNAME)/${busybeeName}:${Tag}"
     $script:FRONTEND_EXECUTIVE_CATERING_IMAGE = "$($script:DOCKER_USERNAME)/${execCatName}:${Tag}"
+    $script:N8N_PYTHON_HELPER_IMAGE          = "$($script:DOCKER_USERNAME)/${n8nHelperName}:${Tag}"
 }
 
 # ============================================
@@ -313,6 +315,11 @@ function Build-AndPush {
     docker build -t "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)" -f "$ProjectRoot/frontend/portfolio-executive-catering/Dockerfile" "$ProjectRoot/frontend/portfolio-executive-catering"
     Assert-ExitCode "Frontend Executive Catering build"
 
+    # Build n8n Python Helper
+    Log-Info "Building n8n Python Helper image: $($script:N8N_PYTHON_HELPER_IMAGE)"
+    docker build -t "$($script:N8N_PYTHON_HELPER_IMAGE)" -f "$ProjectRoot/n8n-agent/python-helper/Dockerfile" "$ProjectRoot/n8n-agent/python-helper"
+    Assert-ExitCode "n8n Python Helper build"
+
     Log-Success "Images built successfully"
 
     # Push to registry
@@ -328,6 +335,8 @@ function Build-AndPush {
     Assert-ExitCode "Frontend BusyBee push"
     docker push "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
     Assert-ExitCode "Frontend Executive Catering push"
+    docker push "$($script:N8N_PYTHON_HELPER_IMAGE)"
+    Assert-ExitCode "n8n Python Helper push"
 
     Log-Success "Images pushed to Docker Hub"
 
@@ -353,6 +362,7 @@ function Deploy-ToServer {
     $domainExecutiveCatering = if ($script:DOMAIN_EXECUTIVE_CATERING){ $script:DOMAIN_EXECUTIVE_CATERING }else { "" }
     $domainAnalytics         = if ($script:DOMAIN_ANALYTICS)          { $script:DOMAIN_ANALYTICS }          else { "" }
     $domainGrafana           = if ($script:DOMAIN_GRAFANA)            { $script:DOMAIN_GRAFANA }            else { "" }
+    $domainN8n               = if ($script:DOMAIN_N8N)                { $script:DOMAIN_N8N }                else { "" }
 
     $jwtSecretKey      = $script:JWT_SECRET_KEY
     $cmsAdminPassword  = $script:CMS_ADMIN_PASSWORD
@@ -369,6 +379,32 @@ function Deploy-ToServer {
     # Grafana config
     $grafanaAdminPassword = if ($script:GRAFANA_ADMIN_PASSWORD)         { $script:GRAFANA_ADMIN_PASSWORD }          else { "admin" }
 
+    # n8n config
+    $n8nEncryptionKey    = if ($script:N8N_ENCRYPTION_KEY)              { $script:N8N_ENCRYPTION_KEY }              else { "" }
+    $n8nPostgresUser     = if ($script:N8N_POSTGRES_USER)              { $script:N8N_POSTGRES_USER }              else { "n8n" }
+    $n8nPostgresPassword = if ($script:N8N_POSTGRES_PASSWORD)          { $script:N8N_POSTGRES_PASSWORD }          else { "n8n" }
+    $n8nPostgresDb       = if ($script:N8N_POSTGRES_DB)                { $script:N8N_POSTGRES_DB }                else { "n8n" }
+    $n8nPythonHelperImage = $script:N8N_PYTHON_HELPER_IMAGE
+
+    # n8n workflow env vars (MS Graph, SharePoint, Azure OpenAI)
+    $msGraphTenantId             = if ($script:MS_GRAPH_TENANT_ID)              { $script:MS_GRAPH_TENANT_ID }              else { "" }
+    $msGraphClientId             = if ($script:MS_GRAPH_CLIENT_ID)              { $script:MS_GRAPH_CLIENT_ID }              else { "" }
+    $msGraphClientSecret         = if ($script:MS_GRAPH_CLIENT_SECRET)          { $script:MS_GRAPH_CLIENT_SECRET }          else { "" }
+    $sharepointSiteId            = if ($script:SHAREPOINT_SITE_ID)              { $script:SHAREPOINT_SITE_ID }              else { "" }
+    $sharepointDriveId           = if ($script:SHAREPOINT_DRIVE_ID)             { $script:SHAREPOINT_DRIVE_ID }             else { "" }
+    $sharepointLeadsFolderId     = if ($script:SHAREPOINT_LEADS_FOLDER_ID)      { $script:SHAREPOINT_LEADS_FOLDER_ID }      else { "" }
+    $sharepointProposalsFolderId = if ($script:SHAREPOINT_PROPOSALS_FOLDER_ID)  { $script:SHAREPOINT_PROPOSALS_FOLDER_ID }  else { "" }
+    $leadsTrackerFileId          = if ($script:LEADS_TRACKER_FILE_ID)           { $script:LEADS_TRACKER_FILE_ID }           else { "" }
+    $sharepointKbFolderId        = if ($script:SHAREPOINT_KB_FOLDER_ID)         { $script:SHAREPOINT_KB_FOLDER_ID }         else { "" }
+    $sharepointKbFileId          = if ($script:SHAREPOINT_KB_FILE_ID)           { $script:SHAREPOINT_KB_FILE_ID }           else { "" }
+    $mailUserUpn                 = if ($script:MAIL_USER_UPN)                   { $script:MAIL_USER_UPN }                   else { "" }
+    $azureOpenaiEndpoint         = if ($script:AZURE_OPENAI_ENDPOINT)           { $script:AZURE_OPENAI_ENDPOINT }           else { "" }
+    $azureOpenaiApiKey           = if ($script:AZURE_OPENAI_API_KEY)            { $script:AZURE_OPENAI_API_KEY }            else { "" }
+    $azureOpenaiChatDeployment   = if ($script:AZURE_OPENAI_CHAT_DEPLOYMENT)    { $script:AZURE_OPENAI_CHAT_DEPLOYMENT }    else { "" }
+    $azureOpenaiApiVersion       = if ($script:AZURE_OPENAI_API_VERSION)        { $script:AZURE_OPENAI_API_VERSION }        else { "" }
+    $emailCategoriesFileId       = if ($script:EMAIL_CATEGORIES_FILE_ID)       { $script:EMAIL_CATEGORIES_FILE_ID }       else { "" }
+    $emailCategoriesTableName    = if ($script:EMAIL_CATEGORIES_TABLE_NAME)    { $script:EMAIL_CATEGORIES_TABLE_NAME }    else { "Categories" }
+
     $fernandoImage          = $script:FRONTEND_FERNANDO_IMAGE
     $jessicaImage           = $script:FRONTEND_JESSICA_IMAGE
     $busybeeImage           = $script:FRONTEND_BUSYBEE_IMAGE
@@ -381,6 +417,7 @@ function Deploy-ToServer {
     Log-Info "  Frontend Jessica:  $jessicaImage"
     Log-Info "  Frontend BusyBee:  $busybeeImage"
     Log-Info "  Frontend Executive Catering: $executiveCateringImage"
+    Log-Info "  n8n Python Helper: $n8nPythonHelperImage"
 
     $domainFernandoDisplay          = if ($domainFernando)          { $domainFernando }          else { "localhost" }
     $domainJessicaDisplay           = if ($domainJessica)           { $domainJessica }           else { "jessica.localhost" }
@@ -389,6 +426,7 @@ function Deploy-ToServer {
     $domainExecutiveCateringDisplay = if ($domainExecutiveCatering) { $domainExecutiveCatering } else { "executivecatering.localhost" }
     $domainAnalyticsDisplay         = if ($domainAnalytics)         { $domainAnalytics }         else { "analytics.localhost" }
     $domainGrafanaDisplay           = if ($domainGrafana)           { $domainGrafana }           else { "grafana.localhost" }
+    $domainN8nDisplay               = if ($domainN8n)               { $domainN8n }               else { "n8n.localhost" }
 
     Log-Info "Domains:"
     Log-Info "  Fernando: $domainFernandoDisplay"
@@ -398,6 +436,7 @@ function Deploy-ToServer {
     Log-Info "  Executive Catering: $domainExecutiveCateringDisplay"
     Log-Info "  Analytics: $domainAnalyticsDisplay"
     Log-Info "  Grafana:   $domainGrafanaDisplay"
+    Log-Info "  n8n:       $domainN8nDisplay"
 
     # Build the docker-compose.yml content
     # NOTE: This uses single-quoted YAML inside the heredoc on the remote server.
@@ -670,6 +709,97 @@ services:
       retries: 3
       start_period: 15s
 
+  # n8n Workflow Automation
+  n8n-postgres:
+    image: postgres:16-alpine
+    container_name: portfolio-n8n-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=$n8nPostgresUser
+      - POSTGRES_PASSWORD=$n8nPostgresPassword
+      - POSTGRES_DB=$n8nPostgresDb
+    volumes:
+      - n8n-db-data:/var/lib/postgresql/data
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $n8nPostgresUser"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: portfolio-n8n
+    restart: unless-stopped
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=$n8nPostgresDb
+      - DB_POSTGRESDB_USER=$n8nPostgresUser
+      - DB_POSTGRESDB_PASSWORD=$n8nPostgresPassword
+      - N8N_ENCRYPTION_KEY=$n8nEncryptionKey
+      - EXECUTIONS_MODE=regular
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_SECURE_COOKIE=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - WEBHOOK_URL=https://$domainN8nDisplay/
+      - N8N_EDITOR_BASE_URL=https://$domainN8nDisplay/
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_INSIGHTS_ENABLED=false
+      - N8N_LOG_LEVEL=info
+      - GENERIC_TIMEZONE=America/New_York
+      # Workflow env vars (MS Graph, SharePoint, Azure OpenAI)
+      - MS_GRAPH_TENANT_ID=$msGraphTenantId
+      - MS_GRAPH_CLIENT_ID=$msGraphClientId
+      - MS_GRAPH_CLIENT_SECRET=$msGraphClientSecret
+      - SHAREPOINT_SITE_ID=$sharepointSiteId
+      - SHAREPOINT_DRIVE_ID=$sharepointDriveId
+      - SHAREPOINT_LEADS_FOLDER_ID=$sharepointLeadsFolderId
+      - SHAREPOINT_PROPOSALS_FOLDER_ID=$sharepointProposalsFolderId
+      - LEADS_TRACKER_FILE_ID=$leadsTrackerFileId
+      - SHAREPOINT_KB_FOLDER_ID=$sharepointKbFolderId
+      - SHAREPOINT_KB_FILE_ID=$sharepointKbFileId
+      - MAIL_USER_UPN=$mailUserUpn
+      - AZURE_OPENAI_ENDPOINT=$azureOpenaiEndpoint
+      - AZURE_OPENAI_API_KEY=$azureOpenaiApiKey
+      - AZURE_OPENAI_CHAT_DEPLOYMENT=$azureOpenaiChatDeployment
+      - AZURE_OPENAI_API_VERSION=$azureOpenaiApiVersion
+      - EMAIL_CATEGORIES_FILE_ID=$emailCategoriesFileId
+      - EMAIL_CATEGORIES_TABLE_NAME=$emailCategoriesTableName
+    volumes:
+      - n8n-data:/home/node/.n8n
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  n8n-python-helper:
+    image: $n8nPythonHelperImage
+    container_name: portfolio-n8n-python-helper
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   caddy:
     image: caddy:2-alpine
     container_name: portfolio-caddy
@@ -689,6 +819,7 @@ services:
       - backend
       - plausible
       - grafana
+      - n8n
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -717,6 +848,10 @@ volumes:
   prometheus-data:
     driver: local
   grafana-data:
+    driver: local
+  n8n-db-data:
+    driver: local
+  n8n-data:
     driver: local
 "@
 
@@ -804,10 +939,6 @@ $domain1stopwingsDisplay {
     }
 }
 
-www.$domain1stopwingsDisplay {
-    redir https://$($domain1stopwingsDisplay){uri} permanent
-}
-
 # Executive Catering main site (same container, different domain)
 $domainExecutiveCateringDisplay {
     # API and GraphQL routes to backend (CMS-powered content)
@@ -824,10 +955,6 @@ $domainExecutiveCateringDisplay {
     }
 }
 
-www.$domainExecutiveCateringDisplay {
-    redir https://$($domainExecutiveCateringDisplay){uri} permanent
-}
-
 # Plausible Analytics
 $domainAnalyticsDisplay {
     reverse_proxy plausible:8000
@@ -836,6 +963,16 @@ $domainAnalyticsDisplay {
 # Grafana Monitoring
 $domainGrafanaDisplay {
     reverse_proxy grafana:3000
+}
+
+# n8n Workflow Automation
+$domainN8nDisplay {
+    reverse_proxy n8n:5678 {
+        flush_interval -1
+        transport http {
+            keepalive 30s
+        }
+    }
 }
 "@
 
@@ -1148,6 +1285,11 @@ function Build-Only {
     docker build -t "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)" -f "$ProjectRoot/frontend/portfolio-executive-catering/Dockerfile" "$ProjectRoot/frontend/portfolio-executive-catering"
     Assert-ExitCode "Frontend Executive Catering build"
 
+    # Build n8n Python Helper
+    Log-Info "Building n8n Python Helper image: $($script:N8N_PYTHON_HELPER_IMAGE)"
+    docker build -t "$($script:N8N_PYTHON_HELPER_IMAGE)" -f "$ProjectRoot/n8n-agent/python-helper/Dockerfile" "$ProjectRoot/n8n-agent/python-helper"
+    Assert-ExitCode "n8n Python Helper build"
+
     Log-Success "Images built successfully"
     Write-Host ""
     Log-Info "Images:"
@@ -1156,6 +1298,7 @@ function Build-Only {
     Write-Host "  $($script:FRONTEND_JESSICA_IMAGE)"
     Write-Host "  $($script:FRONTEND_BUSYBEE_IMAGE)"
     Write-Host "  $($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
+    Write-Host "  $($script:N8N_PYTHON_HELPER_IMAGE)"
 }
 
 # ============================================
@@ -1198,7 +1341,7 @@ function Show-Usage {
     Write-Host "  DOMAIN_JESSICA            Domain for Jessica's portfolio (e.g., jessicasutherland.me)"
     Write-Host "  DOMAIN_BUSYBEE            Domain for BusyBee's portfolio (e.g., thebusybeeweb.com)"
     Write-Host "  DOMAIN_1STOPWINGS         Domain for 1 Stop Wings (e.g., 1stopwings.executivecateringct.com)"
-    Write-Host "  DOMAIN_EXECUTIVE_CATERING Domain for Executive Catering (e.g., executivecateringct.com)"
+    Write-Host "  DOMAIN_EXECUTIVE_CATERING Domain for Executive Catering (e.g., executivecateringct.fernando-vargas.com)"
     Write-Host "  DOMAIN_ANALYTICS          Domain for Plausible Analytics (e.g., analytics.fernando-vargas.com)"
     Write-Host "  DOMAIN_GRAFANA            Domain for Grafana Monitoring (e.g., grafana.fernando-vargas.com)"
     Write-Host "  GRAFANA_ADMIN_PASSWORD    Grafana admin password"
