@@ -24,6 +24,9 @@ public class CmsDbContext : DbContext
     // Inquiry submissions from portfolio site forms
     public DbSet<Inquiry> Inquiries { get; set; } = null!;
 
+    // Lead submissions from consulting-style portfolio site forms (e.g. OpsBlueprint)
+    public DbSet<Lead> Leads { get; set; } = null!;
+
     // Content migration tracking (Rails-style migrations for content)
     public DbSet<ContentMigrationHistory> ContentMigrationHistory { get; set; } = null!;
 
@@ -182,6 +185,28 @@ public class CmsDbContext : DbContext
             entity.Property(e => e.VenueName).HasMaxLength(300);
             entity.Property(e => e.Budget).HasMaxLength(200);
             entity.Property(e => e.GuestCount).HasMaxLength(50);
+            entity.Property(e => e.Source).HasMaxLength(255);
+            entity.Property(e => e.PortfolioId).IsRequired();
+
+            // Foreign key to Portfolio
+            entity.HasOne(e => e.Portfolio)
+                .WithMany()
+                .HasForeignKey(e => e.PortfolioId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Lead configuration
+        modelBuilder.Entity<Lead>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.PortfolioId);
+            entity.HasIndex(e => new { e.PortfolioId, e.CreatedAt });
+            entity.Property(e => e.FullName).IsRequired().HasMaxLength(300);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(320);
+            entity.Property(e => e.Company).HasMaxLength(300);
+            entity.Property(e => e.Industry).HasMaxLength(200);
+            entity.Property(e => e.ProblemDescription).HasMaxLength(2000);
+            entity.Property(e => e.ServiceTier).HasMaxLength(100);
             entity.Property(e => e.Source).HasMaxLength(255);
             entity.Property(e => e.PortfolioId).IsRequired();
 

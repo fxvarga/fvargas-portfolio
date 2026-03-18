@@ -128,6 +128,22 @@ services:
       retries: 3
       start_period: 5s
 
+  # OpsBlueprint workflow automation consulting
+  frontend-opsblueprint:
+    build:
+      context: ./frontend/portfolio-opsblueprint
+      dockerfile: Dockerfile
+    container_name: portfolio-frontend-opsblueprint
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
   # ============================================
   # Plausible Analytics (self-hosted)
   # ============================================
@@ -389,6 +405,7 @@ services:
       - DOMAIN_BUSYBEE=${DOMAIN_BUSYBEE:-busybee.localhost}
       - DOMAIN_1STOPWINGS=${DOMAIN_1STOPWINGS:-1stopwings.localhost}
       - DOMAIN_EXECUTIVE_CATERING=${DOMAIN_EXECUTIVE_CATERING:-executivecatering.localhost}
+      - DOMAIN_OPSBLUEPRINT=${DOMAIN_OPSBLUEPRINT:-opsblueprint.localhost}
       - DOMAIN_ANALYTICS=${DOMAIN_ANALYTICS:-analytics.localhost}
       - DOMAIN_GRAFANA=${DOMAIN_GRAFANA:-grafana.localhost}
       - DOMAIN_N8N=${DOMAIN_N8N:-n8n.localhost}
@@ -400,6 +417,8 @@ services:
       frontend-busybee:
         condition: service_healthy
       frontend-executive-catering:
+        condition: service_healthy
+      frontend-opsblueprint:
         condition: service_healthy
       backend:
         condition: service_healthy

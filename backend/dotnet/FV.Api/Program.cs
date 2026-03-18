@@ -271,6 +271,111 @@ app.MapPost("/api/inquiries", async (
 })
 .AllowAnonymous();
 
+// ---------------------------------------------------------------
+// REST API: Lead submissions from consulting-style portfolio sites
+// ---------------------------------------------------------------
+app.MapPost("/api/leads", async (
+    HttpContext httpContext,
+    CmsDbContext dbContext,
+    ITenantContext tenantContext,
+    ILogger<Program> logger) =>
+{
+    LeadRequest? request;
+    try
+    {
+        request = await httpContext.Request.ReadFromJsonAsync<LeadRequest>();
+    }
+    catch
+    {
+        return Results.BadRequest(new { error = "Invalid JSON payload" });
+    }
+
+    if (request is null || string.IsNullOrWhiteSpace(request.FullName) || string.IsNullOrWhiteSpace(request.Email))
+    {
+        return Results.BadRequest(new { error = "fullName and email are required" });
+    }
+
+    // Resolve portfolio from tenant context (set by TenantResolutionMiddleware)
+    // Fall back to looking up by source domain if tenant wasn't resolved
+    Guid portfolioId;
+    if (tenantContext.IsResolved && tenantContext.PortfolioId.HasValue)
+    {
+        portfolioId = tenantContext.PortfolioId.Value;
+    }
+    else if (!string.IsNullOrWhiteSpace(request.Source))
+    {
+        var portfolio = await dbContext.Portfolios
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Domain.ToLower() == request.Source.ToLower() && p.IsActive);
+        portfolioId = portfolio?.Id ?? Guid.Empty;
+    }
+    else
+    {
+        portfolioId = Guid.Empty;
+    }
+
+    if (portfolioId == Guid.Empty)
+    {
+        logger.LogWarning("Lead submission could not resolve a portfolio. Source: {Source}", request.Source);
+        return Results.StatusCode(500);
+    }
+
+    var lead = new Lead
+    {
+        Id = Guid.NewGuid(),
+        PortfolioId = portfolioId,
+        FullName = request.FullName.Trim(),
+        Email = request.Email.Trim(),
+        Company = request.Company?.Trim(),
+        Industry = request.Industry?.Trim(),
+        ProblemDescription = request.ProblemDescription?.Trim(),
+        ServiceTier = request.ServiceTier?.Trim(),
+        Source = request.Source?.Trim(),
+        SubmittedAt = request.SubmittedAt,
+        CreatedAt = DateTime.UtcNow,
+        IsRead = false
+    };
+
+    dbContext.Leads.Add(lead);
+    await dbContext.SaveChangesAsync();
+
+    logger.LogInformation(
+        "Lead received from {FullName} ({Email}) for portfolio {PortfolioId}. Industry: {Industry}, Source: {Source}",
+        lead.FullName, lead.Email, lead.PortfolioId, lead.Industry, lead.Source);
+
+    // Fire-and-forget: notify n8n workflow of new lead
+    _ = Task.Run(async () =>
+    {
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+            await http.PostAsJsonAsync("http://n8n:5678/webhook/opsblueprint-lead", new
+            {
+                leadId = lead.Id,
+                fullName = lead.FullName,
+                email = lead.Email,
+                company = lead.Company,
+                industry = lead.Industry,
+                problemDescription = lead.ProblemDescription,
+                serviceTier = lead.ServiceTier,
+                source = lead.Source,
+                createdAt = lead.CreatedAt
+            });
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to notify n8n of new lead {LeadId}", lead.Id);
+        }
+    });
+
+    return Results.Created($"/api/leads/{lead.Id}", new
+    {
+        id = lead.Id,
+        message = "Lead received successfully"
+    });
+})
+.AllowAnonymous();
+
 await app.RunAsync();
 
 // ---------------------------------------------------------------
@@ -288,6 +393,20 @@ public record InquiryRequest(
     string? VenueName,
     string? Budget,
     string? GuestCount,
+    DateTime? SubmittedAt,
+    string? Source
+);
+
+// ---------------------------------------------------------------
+// DTO for lead form submissions (OpsBlueprint and similar sites)
+// ---------------------------------------------------------------
+public record LeadRequest(
+    string FullName,
+    string Email,
+    string? Company,
+    string? Industry,
+    string? ProblemDescription,
+    string? ServiceTier,
     DateTime? SubmittedAt,
     string? Source
 );

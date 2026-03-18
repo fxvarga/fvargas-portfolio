@@ -119,12 +119,14 @@ function Get-FrontendImages {
     $jessicaName  = if ($script:IMAGE_FRONTEND_JESSICA)           { $script:IMAGE_FRONTEND_JESSICA }           else { "portfolio-frontend-jessica" }
     $busybeeName  = if ($script:IMAGE_FRONTEND_BUSYBEE)           { $script:IMAGE_FRONTEND_BUSYBEE }           else { "portfolio-frontend-busybee" }
     $execCatName  = if ($script:IMAGE_FRONTEND_EXECUTIVE_CATERING){ $script:IMAGE_FRONTEND_EXECUTIVE_CATERING }else { "portfolio-frontend-executive-catering" }
+    $opsblueprintName = if ($script:IMAGE_FRONTEND_OPSBLUEPRINT) { $script:IMAGE_FRONTEND_OPSBLUEPRINT } else { "portfolio-frontend-opsblueprint" }
     $n8nHelperName = if ($script:IMAGE_N8N_PYTHON_HELPER)         { $script:IMAGE_N8N_PYTHON_HELPER }          else { "portfolio-n8n-python-helper" }
 
     $script:FRONTEND_FERNANDO_IMAGE          = "$($script:DOCKER_USERNAME)/${fernandoName}:${Tag}"
     $script:FRONTEND_JESSICA_IMAGE           = "$($script:DOCKER_USERNAME)/${jessicaName}:${Tag}"
     $script:FRONTEND_BUSYBEE_IMAGE           = "$($script:DOCKER_USERNAME)/${busybeeName}:${Tag}"
     $script:FRONTEND_EXECUTIVE_CATERING_IMAGE = "$($script:DOCKER_USERNAME)/${execCatName}:${Tag}"
+    $script:FRONTEND_OPSBLUEPRINT_IMAGE      = "$($script:DOCKER_USERNAME)/${opsblueprintName}:${Tag}"
     $script:N8N_PYTHON_HELPER_IMAGE          = "$($script:DOCKER_USERNAME)/${n8nHelperName}:${Tag}"
 }
 
@@ -315,6 +317,11 @@ function Build-AndPush {
     docker build -t "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)" -f "$ProjectRoot/frontend/portfolio-executive-catering/Dockerfile" "$ProjectRoot/frontend/portfolio-executive-catering"
     Assert-ExitCode "Frontend Executive Catering build"
 
+    # Build frontend - OpsBlueprint (workflow automation consulting)
+    Log-Info "Building frontend image (OpsBlueprint): $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
+    docker build -t "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)" -f "$ProjectRoot/frontend/portfolio-opsblueprint/Dockerfile" "$ProjectRoot/frontend/portfolio-opsblueprint"
+    Assert-ExitCode "Frontend OpsBlueprint build"
+
     # Build n8n Python Helper
     Log-Info "Building n8n Python Helper image: $($script:N8N_PYTHON_HELPER_IMAGE)"
     docker build -t "$($script:N8N_PYTHON_HELPER_IMAGE)" -f "$ProjectRoot/n8n-agent/python-helper/Dockerfile" "$ProjectRoot/n8n-agent/python-helper"
@@ -335,6 +342,8 @@ function Build-AndPush {
     Assert-ExitCode "Frontend BusyBee push"
     docker push "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
     Assert-ExitCode "Frontend Executive Catering push"
+    docker push "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
+    Assert-ExitCode "Frontend OpsBlueprint push"
     docker push "$($script:N8N_PYTHON_HELPER_IMAGE)"
     Assert-ExitCode "n8n Python Helper push"
 
@@ -360,6 +369,7 @@ function Deploy-ToServer {
     $domainBusybee           = if ($script:DOMAIN_BUSYBEE)           { $script:DOMAIN_BUSYBEE }           else { "" }
     $domain1stopwings        = if ($script:DOMAIN_1STOPWINGS)        { $script:DOMAIN_1STOPWINGS }        else { "" }
     $domainExecutiveCatering = if ($script:DOMAIN_EXECUTIVE_CATERING){ $script:DOMAIN_EXECUTIVE_CATERING }else { "" }
+    $domainOpsblueprint      = if ($script:DOMAIN_OPSBLUEPRINT)      { $script:DOMAIN_OPSBLUEPRINT }      else { "" }
     $domainAnalytics         = if ($script:DOMAIN_ANALYTICS)          { $script:DOMAIN_ANALYTICS }          else { "" }
     $domainGrafana           = if ($script:DOMAIN_GRAFANA)            { $script:DOMAIN_GRAFANA }            else { "" }
     $domainN8n               = if ($script:DOMAIN_N8N)                { $script:DOMAIN_N8N }                else { "" }
@@ -409,6 +419,7 @@ function Deploy-ToServer {
     $jessicaImage           = $script:FRONTEND_JESSICA_IMAGE
     $busybeeImage           = $script:FRONTEND_BUSYBEE_IMAGE
     $executiveCateringImage = $script:FRONTEND_EXECUTIVE_CATERING_IMAGE
+    $opsblueprintImage      = $script:FRONTEND_OPSBLUEPRINT_IMAGE
 
     Log-Info "Deploying to $($script:DROPLET_IP)..."
     Log-Info "Using images:"
@@ -417,6 +428,7 @@ function Deploy-ToServer {
     Log-Info "  Frontend Jessica:  $jessicaImage"
     Log-Info "  Frontend BusyBee:  $busybeeImage"
     Log-Info "  Frontend Executive Catering: $executiveCateringImage"
+    Log-Info "  Frontend OpsBlueprint: $opsblueprintImage"
     Log-Info "  n8n Python Helper: $n8nPythonHelperImage"
 
     $domainFernandoDisplay          = if ($domainFernando)          { $domainFernando }          else { "localhost" }
@@ -424,6 +436,7 @@ function Deploy-ToServer {
     $domainBusybeeDisplay           = if ($domainBusybee)           { $domainBusybee }           else { "busybee.localhost" }
     $domain1stopwingsDisplay        = if ($domain1stopwings)        { $domain1stopwings }        else { "1stopwings.localhost" }
     $domainExecutiveCateringDisplay = if ($domainExecutiveCatering) { $domainExecutiveCatering } else { "executivecatering.localhost" }
+    $domainOpsblueprintDisplay      = if ($domainOpsblueprint)      { $domainOpsblueprint }      else { "opsblueprint.localhost" }
     $domainAnalyticsDisplay         = if ($domainAnalytics)         { $domainAnalytics }         else { "analytics.localhost" }
     $domainGrafanaDisplay           = if ($domainGrafana)           { $domainGrafana }           else { "grafana.localhost" }
     $domainN8nDisplay               = if ($domainN8n)               { $domainN8n }               else { "n8n.localhost" }
@@ -434,6 +447,7 @@ function Deploy-ToServer {
     Log-Info "  BusyBee:  $domainBusybeeDisplay"
     Log-Info "  1StopWings: $domain1stopwingsDisplay"
     Log-Info "  Executive Catering: $domainExecutiveCateringDisplay"
+    Log-Info "  OpsBlueprint: $domainOpsblueprintDisplay"
     Log-Info "  Analytics: $domainAnalyticsDisplay"
     Log-Info "  Grafana:   $domainGrafanaDisplay"
     Log-Info "  n8n:       $domainN8nDisplay"
@@ -554,6 +568,19 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/1stopwings-site/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-opsblueprint:
+    image: $opsblueprintImage
+    container_name: portfolio-frontend-opsblueprint
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -816,6 +843,7 @@ services:
       - frontend-jessica
       - frontend-busybee
       - frontend-executive-catering
+      - frontend-opsblueprint
       - backend
       - plausible
       - grafana
@@ -952,6 +980,17 @@ $domainExecutiveCateringDisplay {
 
     handle {
         reverse_proxy frontend-executive-catering:80
+    }
+}
+
+# OpsBlueprint (workflow automation consulting)
+$domainOpsblueprintDisplay {
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle {
+        reverse_proxy frontend-opsblueprint:80
     }
 }
 
@@ -1285,6 +1324,11 @@ function Build-Only {
     docker build -t "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)" -f "$ProjectRoot/frontend/portfolio-executive-catering/Dockerfile" "$ProjectRoot/frontend/portfolio-executive-catering"
     Assert-ExitCode "Frontend Executive Catering build"
 
+    # Build frontend - OpsBlueprint
+    Log-Info "Building frontend image (OpsBlueprint): $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
+    docker build -t "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)" -f "$ProjectRoot/frontend/portfolio-opsblueprint/Dockerfile" "$ProjectRoot/frontend/portfolio-opsblueprint"
+    Assert-ExitCode "Frontend OpsBlueprint build"
+
     # Build n8n Python Helper
     Log-Info "Building n8n Python Helper image: $($script:N8N_PYTHON_HELPER_IMAGE)"
     docker build -t "$($script:N8N_PYTHON_HELPER_IMAGE)" -f "$ProjectRoot/n8n-agent/python-helper/Dockerfile" "$ProjectRoot/n8n-agent/python-helper"
@@ -1298,6 +1342,7 @@ function Build-Only {
     Write-Host "  $($script:FRONTEND_JESSICA_IMAGE)"
     Write-Host "  $($script:FRONTEND_BUSYBEE_IMAGE)"
     Write-Host "  $($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
+    Write-Host "  $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
     Write-Host "  $($script:N8N_PYTHON_HELPER_IMAGE)"
 }
 

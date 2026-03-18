@@ -270,6 +270,29 @@ https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
     }
 }
 
+# OpsBlueprint workflow automation consulting
+https://{$DOMAIN_OPSBLUEPRINT:opsblueprint.localhost} {
+    tls internal
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle {
+        reverse_proxy frontend-opsblueprint:80
+    }
+}
+
+# OpsBlueprint (LAN)
+http://opsblueprint.homehost {
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-opsblueprint:80
+    }
+}
+
 # Plausible Analytics dashboard
 https://{$DOMAIN_ANALYTICS:analytics.localhost} {
     tls internal
