@@ -1,0 +1,175 @@
+{
+  "id": "opsblueprint-error-handler",
+  "name": "OpsBlueprint: Error Handler",
+  "nodes": [
+    {
+      "parameters": {
+        "events": "trigger.n8n"
+      },
+      "id": "node-error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const errorData = $input.first().json;\n\n// Extract useful error details from the n8n error trigger payload\nconst execution = errorData.execution || {};\nconst workflow = errorData.workflow || {};\nconst lastNodeExecuted = execution.lastNodeExecuted || 'Unknown';\n\n// Get error message from the execution data\nlet errorMessage = 'Unknown error';\nlet errorStack = '';\ntry {\n  const resultData = execution.data?.resultData;\n  if (resultData?.error) {\n    errorMessage = resultData.error.message || resultData.error.description || String(resultData.error);\n    errorStack = resultData.error.stack || '';\n  } else if (resultData?.runData) {\n    // Try to find the failed node's error\n    const nodeData = resultData.runData[lastNodeExecuted];\n    if (nodeData && nodeData[0]?.error) {\n      errorMessage = nodeData[0].error.message || String(nodeData[0].error);\n      errorStack = nodeData[0].error.stack || '';\n    }\n  }\n} catch (e) {\n  errorMessage = 'Could not parse error details: ' + e.message;\n}\n\nconst now = new Date().toISOString();\n\nreturn [{ json: {\n  timestamp: now,\n  workflowId: workflow.id || 'Unknown',\n  workflowName: workflow.name || 'Unknown',\n  executionId: execution.id || 'Unknown',\n  lastNodeExecuted: lastNodeExecuted,\n  errorMessage: errorMessage,\n  errorStack: errorStack.substring(0, 1000),\n  executionUrl: execution.url || '',\n  severity: 'ERROR',\n  source: 'OpsBlueprint n8n Workflows'\n} }];"
+      },
+      "id": "node-parse-error",
+      "name": "Parse Error Details",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const err = $input.first().json;\n\nconsole.error(`[OPSBLUEPRINT ERROR HANDLER] ${err.timestamp}`);\nconsole.error(`  Workflow: ${err.workflowName} (${err.workflowId})`);\nconsole.error(`  Execution: ${err.executionId}`);\nconsole.error(`  Failed Node: ${err.lastNodeExecuted}`);\nconsole.error(`  Error: ${err.errorMessage}`);\nif (err.errorStack) {\n  console.error(`  Stack: ${err.errorStack.substring(0, 500)}`);\n}\n\nconst emailHtml = `\n<div style=\"font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto;\">\n  <div style=\"background: #dc3545; padding: 15px 20px; border-radius: 6px 6px 0 0;\">\n    <h2 style=\"color: #fff; margin: 0; font-size: 16px;\">n8n Workflow Error \u2014 OpsBlueprint</h2>\n  </div>\n  <div style=\"background: #f8f9fa; padding: 20px; border: 1px solid #dee2e6; border-top: none;\">\n    <table style=\"width: 100%; border-collapse: collapse; font-size: 14px;\">\n      <tr><td style=\"padding: 6px 8px; font-weight: bold; width: 130px;\">Timestamp</td><td style=\"padding: 6px 8px;\">${err.timestamp}</td></tr>\n      <tr style=\"background: #fff;\"><td style=\"padding: 6px 8px; font-weight: bold;\">Workflow</td><td style=\"padding: 6px 8px;\">${err.workflowName}</td></tr>\n      <tr><td style=\"padding: 6px 8px; font-weight: bold;\">Execution ID</td><td style=\"padding: 6px 8px;\"><code>${err.executionId}</code></td></tr>\n      <tr style=\"background: #fff;\"><td style=\"padding: 6px 8px; font-weight: bold;\">Failed Node</td><td style=\"padding: 6px 8px;\"><code>${err.lastNodeExecuted}</code></td></tr>\n    </table>\n    <div style=\"margin-top: 15px; padding: 12px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px;\">\n      <strong>Error Message:</strong><br>\n      <code style=\"word-break: break-all;\">${err.errorMessage}</code>\n    </div>\n    ${err.executionUrl ? `<p style=\"margin-top: 15px;\"><a href=\"${err.executionUrl}\" style=\"color: #0d6efd;\">View Execution Details</a></p>` : ''}\n  </div>\n  <div style=\"background: #e9ecef; padding: 10px 20px; border-radius: 0 0 6px 6px; font-size: 12px; color: #6c757d;\">\n    OpsBlueprint Automation Monitor | ${err.timestamp}\n  </div>\n</div>`;\n\nconst emailSubject = `[ALERT] OpsBlueprint n8n Error: ${err.workflowName} \u2014 ${err.lastNodeExecuted}`;\n\nreturn [{ json: { ...err, emailHtml, emailSubject } }];"
+      },
+      "id": "node-log-and-format",
+      "name": "Log & Format Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const err = $input.first().json;\n\nconst tenantId = $env.MS_GRAPH_TENANT_ID;\nconst clientId = $env.MS_GRAPH_CLIENT_ID;\nconst clientSecret = $env.MS_GRAPH_CLIENT_SECRET;\nconst mailUserUpn = $env.MAIL_USER_UPN;\n\nif (!tenantId || !clientId || !clientSecret || !mailUserUpn) {\n  console.error('[OB ERROR HANDLER] MS Graph credentials not configured, skipping email notification');\n  return [{ json: { ...err, emailSent: false, reason: 'MS Graph credentials not configured' } }];\n}\n\nreturn [{ json: {\n  ...err,\n  tenantId,\n  clientId,\n  clientSecret,\n  mailUserUpn,\n  shouldSendEmail: true\n} }];"
+      },
+      "id": "node-check-creds",
+      "name": "Check Email Credentials",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "condition-should-email",
+              "leftValue": "={{ $json.shouldSendEmail }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "node-if-send-email",
+      "name": "If: Can Send Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $json.tenantId }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "grant_type", "value": "client_credentials" },
+            { "name": "client_id", "value": "={{ $json.clientId }}" },
+            { "name": "client_secret", "value": "={{ $json.clientSecret }}" },
+            { "name": "scope", "value": "https://graph.microsoft.com/.default" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Get Graph Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Check Email Credentials').first().json.mailUserUpn }}/sendMail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.access_token }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { subject: $('Check Email Credentials').first().json.emailSubject, body: { contentType: 'HTML', content: $('Check Email Credentials').first().json.emailHtml }, toRecipients: [{ emailAddress: { address: $('Check Email Credentials').first().json.mailUserUpn } }], from: { emailAddress: { address: $('Check Email Credentials').first().json.mailUserUpn, name: 'n8n Error Handler' } } }, saveToSentItems: true }) }}",
+        "options": {}
+      },
+      "id": "node-send-email",
+      "name": "Send Error Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const err = $('Check Email Credentials').first().json;\nconsole.error('[OB ERROR HANDLER] Notification skipped \u2014 no Graph credentials');\nreturn [{ json: { emailSent: false, workflowName: err.workflowName, errorMessage: err.errorMessage } }];"
+      },
+      "id": "node-skip-email",
+      "name": "Skip Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 400]
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [{ "node": "Parse Error Details", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Error Details": {
+      "main": [
+        [{ "node": "Log & Format Notification", "type": "main", "index": 0 }]
+      ]
+    },
+    "Log & Format Notification": {
+      "main": [
+        [{ "node": "Check Email Credentials", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Email Credentials": {
+      "main": [
+        [{ "node": "If: Can Send Email?", "type": "main", "index": 0 }]
+      ]
+    },
+    "If: Can Send Email?": {
+      "main": [
+        [{ "node": "Get Graph Token", "type": "main", "index": 0 }],
+        [{ "node": "Skip Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Graph Token": {
+      "main": [
+        [{ "node": "Send Error Email", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "portfolio-n8n"
+  },
+  "tags": [
+    { "name": "opsblueprint" },
+    { "name": "error-handler" }
+  ]
+}

@@ -338,6 +338,14 @@ deploy() {
     local email_categories_file_id="${EMAIL_CATEGORIES_FILE_ID:-}"
     local email_categories_table_name="${EMAIL_CATEGORIES_TABLE_NAME:-Categories}"
     
+    # OpsBlueprint SharePoint env vars
+    local ob_sharepoint_leads_folder_id="${OB_SHAREPOINT_LEADS_FOLDER_ID:-}"
+    local ob_sharepoint_proposals_folder_id="${OB_SHAREPOINT_PROPOSALS_FOLDER_ID:-}"
+    local ob_leads_tracker_file_id="${OB_LEADS_TRACKER_FILE_ID:-}"
+    local ob_email_categories_file_id="${OB_EMAIL_CATEGORIES_FILE_ID:-}"
+    local ob_email_categories_table_name="${OB_EMAIL_CATEGORIES_TABLE_NAME:-OBCategories}"
+    local ob_sharepoint_kb_file_id="${OB_SHAREPOINT_KB_FILE_ID:-}"
+    
     log_info "Deploying to $DROPLET_IP..."
     log_info "Using images:"
     log_info "  Backend:          $backend_image"
@@ -830,6 +838,13 @@ services:
       - AZURE_OPENAI_API_VERSION=${azure_openai_api_version}
       - EMAIL_CATEGORIES_FILE_ID=${email_categories_file_id}
       - EMAIL_CATEGORIES_TABLE_NAME=${email_categories_table_name}
+      # OpsBlueprint SharePoint env vars
+      - OB_SHAREPOINT_LEADS_FOLDER_ID=${ob_sharepoint_leads_folder_id}
+      - OB_SHAREPOINT_PROPOSALS_FOLDER_ID=${ob_sharepoint_proposals_folder_id}
+      - OB_LEADS_TRACKER_FILE_ID=${ob_leads_tracker_file_id}
+      - OB_EMAIL_CATEGORIES_FILE_ID=${ob_email_categories_file_id}
+      - OB_EMAIL_CATEGORIES_TABLE_NAME=${ob_email_categories_table_name}
+      - OB_SHAREPOINT_KB_FILE_ID=${ob_sharepoint_kb_file_id}
     volumes:
       - n8n-data:/home/node/.n8n
     sysctls:

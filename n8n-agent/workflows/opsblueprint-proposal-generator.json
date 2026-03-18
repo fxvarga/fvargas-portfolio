@@ -1,0 +1,223 @@
+{
+  "id": "opsblueprint-proposal-gen",
+  "name": "OpsBlueprint: Proposal/Quote Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "opsblueprint-proposal",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook: Generate Proposal",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "opsblueprint-proposal"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Setup: read env vars + merge with webhook input\nconst body = $input.first().json.body || $input.first().json;\n\nconst tenantId = $env.MS_GRAPH_TENANT_ID;\nconst clientId = $env.MS_GRAPH_CLIENT_ID;\nconst clientSecret = $env.MS_GRAPH_CLIENT_SECRET;\nconst driveId = $env.SHAREPOINT_DRIVE_ID;\nconst proposalsFolderId = $env.OB_SHAREPOINT_PROPOSALS_FOLDER_ID;\nconst leadsTrackerFileId = $env.OB_LEADS_TRACKER_FILE_ID;\nconst kbFileId = $env.OB_SHAREPOINT_KB_FILE_ID;\nconst aoaiEndpoint = $env.AZURE_OPENAI_ENDPOINT;\nconst aoaiDeployment = $env.AZURE_OPENAI_CHAT_DEPLOYMENT;\nconst aoaiApiVersion = $env.AZURE_OPENAI_API_VERSION;\nconst mailUserUpn = $env.MAIL_USER_UPN;\n\nreturn [{\n  json: {\n    tenantId, clientId, clientSecret, driveId,\n    proposalsFolderId, leadsTrackerFileId, kbFileId,\n    aoaiEndpoint, aoaiDeployment, aoaiApiVersion,\n    mailUserUpn,\n    lead: {\n      leadId: body.leadId || `OB-LEAD-${Date.now()}`,\n      fullName: body.fullName || '',\n      email: body.email || '',\n      company: body.company || '',\n      industry: body.industry || '',\n      problemDescription: body.problemDescription || '',\n      serviceTier: body.serviceTier || body.suggestedTier || 'Professional',\n      qualificationNotes: body.qualificationNotes || '',\n      source: body.source || 'Website'\n    }\n  }\n}];"
+      },
+      "id": "node-setup",
+      "name": "Setup Variables",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $json.tenantId }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "grant_type", "value": "client_credentials" },
+            { "name": "client_id", "value": "={{ $json.clientId }}" },
+            { "name": "client_secret", "value": "={{ $json.clientSecret }}" },
+            { "name": "scope", "value": "https://graph.microsoft.com/.default" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Get Graph Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Save the access token and pass through setup vars, then prepare KB download URL\nconst setup = $('Setup Variables').first().json;\nconst tokenResp = $input.first().json;\nconst accessToken = tokenResp.access_token;\nconst driveId = setup.driveId;\nconst kbFileId = setup.kbFileId;\n\n// Build the Graph API URL to download KB file content\nconst kbDownloadUrl = `https://graph.microsoft.com/v1.0/drives/${driveId}/items/${kbFileId}/content`;\n\nreturn [{\n  json: {\n    ...setup,\n    accessToken,\n    kbDownloadUrl\n  }\n}];"
+      },
+      "id": "node-prepare-kb-download",
+      "name": "Prepare KB Download",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.kbDownloadUrl }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.accessToken }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "node-download-kb",
+      "name": "Download Knowledge Base",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Build AI proposal generation prompt — grounded in Knowledge Base\nconst setup = $('Prepare KB Download').first().json;\nconst kbContent = $input.first().json.data || $input.first().json;\nconst lead = setup.lead;\n\n// The KB download returns the raw markdown text\nlet knowledgeBase = '';\nif (typeof kbContent === 'string') {\n  knowledgeBase = kbContent;\n} else if (kbContent.data && typeof kbContent.data === 'string') {\n  knowledgeBase = kbContent.data;\n} else {\n  // Fallback: stringify whatever we got\n  knowledgeBase = JSON.stringify(kbContent);\n}\n\nconst systemPrompt = `You are a professional proposal writer for OpsBlueprint, a workflow automation consulting firm. You write formal, detailed automation consulting proposals that are STRICTLY grounded in the company's official knowledge base.\n\n=== KNOWLEDGE BASE (AUTHORITATIVE SOURCE) ===\n${knowledgeBase}\n=== END KNOWLEDGE BASE ===\n\nCRITICAL RULES:\n1. You must ONLY include services, tiers, pricing, and deliverables that appear in the Knowledge Base above.\n2. Do NOT invent, fabricate, or hallucinate any services, features, or pricing not listed in the Knowledge Base.\n3. Use the exact tier names, pricing ranges, and included deliverables from the Knowledge Base.\n4. The engagement process steps must match the Knowledge Base exactly.\n5. Payment terms, cancellation policy, and other terms must come directly from the Knowledge Base.\n6. If the client requests something not in the Knowledge Base, note it as a \\\"custom requirement requiring consultation.\\\"\n7. Proposal validity is 30 days as stated in the Knowledge Base.\n\nGenerate a complete automation consulting proposal based on the lead information provided. The proposal should be professional, detailed, and tailored to their industry and pain points.\n\nReturn a JSON object with this exact structure:\n{\n  \"companyName\": \"<client company>\",\n  \"contactName\": \"<lead name>\",\n  \"proposalDate\": \"<today's date>\",\n  \"validUntil\": \"<30 days from today>\",\n  \"executiveSummary\": \"<2-3 paragraph summary of their automation needs and our proposed solution>\",\n  \"recommendedTier\": \"<Starter|Professional|Enterprise>\",\n  \"estimatedInvestment\": \"<price range from KB>\",\n  \"scopeOfWork\": [\n    {\"phase\": \"<phase name>\", \"description\": \"<what we'll do>\", \"duration\": \"<timeline>\"}\n  ],\n  \"deliverables\": [\"<list of specific deliverables>\"],\n  \"automationOpportunities\": [\n    {\"process\": \"<manual process identified>\", \"solution\": \"<proposed automation>\", \"estimatedROI\": \"<time/cost savings>\"}\n  ],\n  \"timeline\": \"<overall project timeline>\",\n  \"paymentTerms\": \"<from KB>\",\n  \"nextSteps\": [\"<action items>\"],\n  \"terms\": \"<key terms from KB>\"\n}`;\n\nconst userPrompt = `Generate an automation consulting proposal for this lead:\n\nName: ${lead.fullName}\nEmail: ${lead.email}\nCompany: ${lead.company}\nIndustry: ${lead.industry}\nProblem: ${lead.problemDescription}\nService Tier Interest: ${lead.serviceTier}\nQualification Notes: ${lead.qualificationNotes}\nSource: ${lead.source}`;\n\nreturn [{\n  json: {\n    ...setup,\n    lead,\n    aoaiBody: {\n      messages: [\n        { role: 'system', content: systemPrompt },\n        { role: 'user', content: userPrompt }\n      ],\n      max_completion_tokens: 4096,\n      response_format: { type: 'json_object' }\n    }\n  }\n}];"
+      },
+      "id": "node-build-ai",
+      "name": "Build AI Proposal Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.aoaiEndpoint }}/openai/deployments/{{ $json.aoaiDeployment }}/chat/completions?api-version={{ $json.aoaiApiVersion }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.aoaiBody) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "node-ai-generate",
+      "name": "AI Generate Proposal",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "0sfAlhodWZDgWdu5",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse AI response and prepare data for DOCX generation\nconst prev = $('Build AI Proposal Prompt').first().json;\nconst aiResp = $input.first().json;\nconst lead = prev.lead;\n\nlet proposal;\ntry {\n  proposal = JSON.parse(aiResp.choices[0].message.content);\n} catch (e) {\n  throw new Error(`Failed to parse AI proposal: ${e.message}`);\n}\n\nconst safeName = (lead.fullName || 'Client').replace(/[^a-zA-Z0-9]/g, '_');\nconst filename = `OpsBlueprint_Proposal_${safeName}_${new Date().toISOString().split('T')[0]}.docx`;\n\nreturn [{\n  json: {\n    accessToken: prev.accessToken,\n    driveId: prev.driveId,\n    proposalsFolderId: prev.proposalsFolderId,\n    leadsTrackerFileId: prev.leadsTrackerFileId,\n    lead,\n    proposal,\n    filename,\n    leadId: lead.leadId\n  }\n}];"
+      },
+      "id": "node-prepare-data",
+      "name": "Prepare Proposal Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://n8n-python-helper:8000/generate-docx-and-upload",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ proposal: $json.proposal, lead: $json.lead, filename: $json.filename, accessToken: $json.accessToken, driveId: $json.driveId, folderId: $json.proposalsFolderId }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "node-generate-and-upload",
+      "name": "Generate DOCX & Upload",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1960, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Finalize: build webhook response from upload result\nconst uploadResp = $input.first().json;\nconst prev = $('Prepare Proposal Data').first().json;\n\nreturn [{\n  json: {\n    status: 'proposal_generated',\n    leadId: prev.leadId,\n    filename: uploadResp.filename || prev.filename,\n    sharePointUrl: uploadResp.sharePointUrl || '',\n    docxSizeBytes: uploadResp.sizeBytes || 0,\n    generatedAt: new Date().toISOString(),\n    message: 'Proposal generated and saved to SharePoint Proposals folder (grounded in Knowledge Base)'\n  }\n}];"
+      },
+      "id": "node-finalize",
+      "name": "Finalize Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2180, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" }
+            ]
+          }
+        }
+      },
+      "id": "node-respond",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2400, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Generate Proposal": {
+      "main": [[{ "node": "Setup Variables", "type": "main", "index": 0 }]]
+    },
+    "Setup Variables": {
+      "main": [[{ "node": "Get Graph Token", "type": "main", "index": 0 }]]
+    },
+    "Get Graph Token": {
+      "main": [[{ "node": "Prepare KB Download", "type": "main", "index": 0 }]]
+    },
+    "Prepare KB Download": {
+      "main": [[{ "node": "Download Knowledge Base", "type": "main", "index": 0 }]]
+    },
+    "Download Knowledge Base": {
+      "main": [[{ "node": "Build AI Proposal Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build AI Proposal Prompt": {
+      "main": [[{ "node": "AI Generate Proposal", "type": "main", "index": 0 }]]
+    },
+    "AI Generate Proposal": {
+      "main": [[{ "node": "Prepare Proposal Data", "type": "main", "index": 0 }]]
+    },
+    "Prepare Proposal Data": {
+      "main": [[{ "node": "Generate DOCX & Upload", "type": "main", "index": 0 }]]
+    },
+    "Generate DOCX & Upload": {
+      "main": [[{ "node": "Finalize Response", "type": "main", "index": 0 }]]
+    },
+    "Finalize Response": {
+      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "instanceId": "portfolio-n8n"
+  },
+  "tags": [
+    { "name": "opsblueprint" },
+    { "name": "proposals" },
+    { "name": "knowledge-base" }
+  ]
+}
