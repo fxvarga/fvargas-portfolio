@@ -6,7 +6,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "opsblueprint-lead",
-        "responseMode": "responseNode",
+        "responseMode": "onReceived",
         "options": {}
       },
       "id": "node-webhook",
@@ -139,34 +139,42 @@
     },
     {
       "parameters": {
-        "mode": "raw",
-        "jsonOutput": "={\n  \"status\": \"qualified\",\n  \"leadId\": \"{{ $('Parse & Prepare').first().json.leadId }}\",\n  \"qualificationScore\": {{ $('Parse & Prepare').first().json.qualification.qualificationScore }},\n  \"suggestedTier\": \"{{ $('Parse & Prepare').first().json.qualification.suggestedTier }}\",\n  \"estimatedValue\": \"{{ $('Parse & Prepare').first().json.qualification.estimatedValue }}\",\n  \"urgency\": \"{{ $('Parse & Prepare').first().json.qualification.urgency }}\",\n  \"emailSent\": true,\n  \"excelUpdated\": true,\n  \"processedAt\": \"{{ new Date().toISOString() }}\"\n}",
-        "options": {}
+        "method": "POST",
+        "url": "http://n8n:5678/webhook/opsblueprint-proposal",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ leadId: $('Parse & Prepare').first().json.leadId, fullName: $('Parse & Prepare').first().json.lead.fullName, email: $('Parse & Prepare').first().json.lead.email, company: $('Parse & Prepare').first().json.lead.company, industry: $('Parse & Prepare').first().json.lead.industry, problemDescription: $('Parse & Prepare').first().json.lead.problemDescription, serviceTier: $('Parse & Prepare').first().json.lead.serviceTier, suggestedTier: $('Parse & Prepare').first().json.qualification.suggestedTier, qualificationNotes: $('Parse & Prepare').first().json.qualification.qualificationNotes, estimatedValue: $('Parse & Prepare').first().json.qualification.estimatedValue, urgency: $('Parse & Prepare').first().json.qualification.urgency, source: $('Parse & Prepare').first().json.lead.source }) }}",
+        "options": {
+          "timeout": 120000
+        }
       },
-      "id": "node-merge-results",
-      "name": "Build Response",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.4,
-      "position": [1740, 300]
+      "id": "node-trigger-proposal",
+      "name": "Trigger Proposal Generator",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 560]
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}",
-        "options": {
-          "responseCode": 200,
-          "responseHeaders": {
-            "entries": [
-              { "name": "Content-Type", "value": "application/json" }
-            ]
-          }
-        }
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $('Parse & Prepare').first().json.mailUserUpn }}/sendMail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $('Parse & Prepare').first().json.accessToken }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: { subject: '[OpsBlueprint Lead] ' + $('Parse & Prepare').first().json.lead.fullName + ' - ' + ($('Parse & Prepare').first().json.lead.company || 'No Company') + ' (Score: ' + $('Parse & Prepare').first().json.qualification.qualificationScore + '/10)', body: { contentType: 'HTML', content: '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;\"><h2 style=\"color:#0D9488;\">New OpsBlueprint Lead</h2><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Name</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.lead.fullName + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Email</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.lead.email + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Company</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.company || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Industry</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.industry || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Service Tier</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.serviceTier || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Problem</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.problemDescription || 'N/A') + '</td></tr></table><h3 style=\"color:#1E293B;margin-top:20px;\">AI Qualification</h3><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Score</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.qualificationScore + '/10</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Suggested Tier</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.suggestedTier + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Est. Value</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.estimatedValue + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Urgency</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.urgency + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Notes</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.qualificationNotes + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Follow-Up</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.followUpRecommendation + '</td></tr></table><p style=\"color:#666;font-size:12px;margin-top:20px;\">Lead ID: ' + $('Parse & Prepare').first().json.leadId + ' | Source: ' + ($('Parse & Prepare').first().json.lead.source || 'Website') + '</p></div>' }, toRecipients: [{ emailAddress: { address: 'fxvarga@gmail.com' } }], from: { emailAddress: { address: $('Parse & Prepare').first().json.mailUserUpn, name: 'OpsBlueprint Notifications' } } }, saveToSentItems: true }) }}",
+        "options": {}
       },
-      "id": "node-respond",
-      "name": "Respond to Webhook",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1960, 300]
+      "id": "node-send-notification",
+      "name": "Send Internal Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 700]
     }
   ],
   "connections": {
@@ -188,17 +196,10 @@
     "Parse & Prepare": {
       "main": [[
         { "node": "Add to Leads Tracker", "type": "main", "index": 0 },
-        { "node": "Send Confirmation Email", "type": "main", "index": 0 }
+        { "node": "Send Confirmation Email", "type": "main", "index": 0 },
+        { "node": "Trigger Proposal Generator", "type": "main", "index": 0 },
+        { "node": "Send Internal Notification", "type": "main", "index": 0 }
       ]]
-    },
-    "Add to Leads Tracker": {
-      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
-    },
-    "Send Confirmation Email": {
-      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
-    },
-    "Build Response": {
-      "main": [[{ "node": "Respond to Webhook", "type": "main", "index": 0 }]]
     }
   },
   "active": false,

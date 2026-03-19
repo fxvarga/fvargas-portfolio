@@ -651,6 +651,303 @@ def html_to_docx_base64(req: HtmlToDocxRequest):
         raise HTTPException(500, f"DOCX conversion failed: {e}")
 
 
+# ── OpsBlueprint proposal to DOCX conversion ──────────────────────────────
+
+
+@app.post("/opsblueprint-to-docx-base64")
+def opsblueprint_to_docx_base64(req: HtmlToDocxRequest):
+    """
+    Build a professional Word document from OpsBlueprint proposal JSON data.
+    Expects the OpsBlueprint proposal schema (scopeOfWork, deliverables,
+    automationOpportunities, etc.) rather than the catering schema.
+    Returns the .docx as a base64-encoded string for SharePoint upload.
+    """
+    try:
+        from docx import Document
+        from docx.shared import Pt, Cm, RGBColor
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        from docx.enum.table import WD_TABLE_ALIGNMENT
+
+        doc = Document()
+
+        # ── Page margins ────────────────────────────────────────────
+        for section in doc.sections:
+            section.top_margin = Cm(2)
+            section.bottom_margin = Cm(2)
+            section.left_margin = Cm(2.5)
+            section.right_margin = Cm(2.5)
+
+        # ── Brand colors ────────────────────────────────────────────
+        brand_blue = RGBColor(0x1E, 0x3A, 0x5F)      # Deep navy
+        brand_accent = RGBColor(0x2B, 0x7A, 0xD9)     # Bright blue
+        text_dark = RGBColor(0x2D, 0x2D, 0x2D)
+        light_gray = RGBColor(0x99, 0x99, 0x99)
+        success_green = RGBColor(0x27, 0xAE, 0x60)
+
+        proposal = req.proposal
+        lead = req.lead
+
+        # ── Header ──────────────────────────────────────────────────
+        title = doc.add_heading("OpsBlueprint", level=0)
+        title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in title.runs:
+            run.font.color.rgb = brand_blue
+            run.font.size = Pt(28)
+
+        subtitle = doc.add_paragraph("Workflow Automation Consulting Proposal")
+        subtitle.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        for run in subtitle.runs:
+            run.font.color.rgb = brand_accent
+            run.font.size = Pt(14)
+
+        # ── Date and validity ───────────────────────────────────────
+        from datetime import datetime
+        date_para = doc.add_paragraph()
+        date_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        date_run = date_para.add_run(
+            f"Prepared: {proposal.get('proposalDate', datetime.now().strftime('%B %d, %Y'))}"
+        )
+        date_run.font.color.rgb = light_gray
+        date_run.font.size = Pt(10)
+
+        if proposal.get("validUntil"):
+            valid_para = doc.add_paragraph()
+            valid_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+            valid_run = valid_para.add_run(f"Valid Until: {proposal['validUntil']}")
+            valid_run.font.color.rgb = light_gray
+            valid_run.font.size = Pt(10)
+
+        ref_para = doc.add_paragraph()
+        ref_para.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        ref_run = ref_para.add_run(f"Ref: {lead.get('leadId', '')}")
+        ref_run.font.color.rgb = light_gray
+        ref_run.font.size = Pt(10)
+
+        # ── Client info ─────────────────────────────────────────────
+        contact_name = (
+            proposal.get("contactName")
+            or lead.get("fullName")
+            or "Valued Client"
+        )
+        company_name = proposal.get("companyName") or lead.get("company", "")
+
+        greeting = doc.add_heading(f"Prepared for: {contact_name}", level=2)
+        for run in greeting.runs:
+            run.font.color.rgb = brand_blue
+
+        if company_name:
+            company_para = doc.add_paragraph()
+            company_run = company_para.add_run(company_name)
+            company_run.font.size = Pt(12)
+            company_run.font.color.rgb = text_dark
+
+        # ── Executive Summary ───────────────────────────────────────
+        if proposal.get("executiveSummary"):
+            h = doc.add_heading("Executive Summary", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+            doc.add_paragraph(proposal["executiveSummary"])
+
+        # ── Recommended Tier & Investment ───────────────────────────
+        tier = proposal.get("recommendedTier", "")
+        investment = proposal.get("estimatedInvestment", "")
+        if tier or investment:
+            h = doc.add_heading("Recommended Service Tier", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+
+            if tier:
+                tier_para = doc.add_paragraph()
+                tier_label = tier_para.add_run("Tier: ")
+                tier_label.font.bold = True
+                tier_label.font.color.rgb = text_dark
+                tier_value = tier_para.add_run(tier)
+                tier_value.font.color.rgb = brand_accent
+                tier_value.font.size = Pt(14)
+                tier_value.font.bold = True
+
+            if investment:
+                inv_para = doc.add_paragraph()
+                inv_label = inv_para.add_run("Estimated Investment: ")
+                inv_label.font.bold = True
+                inv_label.font.color.rgb = text_dark
+                inv_value = inv_para.add_run(investment)
+                inv_value.font.color.rgb = success_green
+                inv_value.font.size = Pt(13)
+                inv_value.font.bold = True
+
+        # ── Scope of Work ───────────────────────────────────────────
+        scope = proposal.get("scopeOfWork", [])
+        if scope:
+            h = doc.add_heading("Scope of Work", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+
+            if isinstance(scope, list):
+                table = doc.add_table(rows=1, cols=3)
+                table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                table.style = "Light Shading Accent 1"
+                hdr = table.rows[0].cells
+                hdr[0].text = "Phase"
+                hdr[1].text = "Description"
+                hdr[2].text = "Duration"
+                for cell in hdr:
+                    for run in cell.paragraphs[0].runs:
+                        run.font.bold = True
+
+                for phase in scope:
+                    if isinstance(phase, dict):
+                        row = table.add_row().cells
+                        row[0].text = phase.get("phase", "")
+                        row[1].text = phase.get("description", "")
+                        row[2].text = phase.get("duration", "")
+                    elif isinstance(phase, str):
+                        row = table.add_row().cells
+                        row[0].text = phase
+                        row[1].text = ""
+                        row[2].text = ""
+            elif isinstance(scope, str):
+                doc.add_paragraph(scope)
+
+        # ── Deliverables ────────────────────────────────────────────
+        deliverables = proposal.get("deliverables", [])
+        if deliverables:
+            h = doc.add_heading("Deliverables", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+
+            if isinstance(deliverables, list):
+                for item in deliverables:
+                    if isinstance(item, str):
+                        bullet = doc.add_paragraph(item, style="List Bullet")
+                        for run in bullet.runs:
+                            run.font.color.rgb = text_dark
+                    elif isinstance(item, dict):
+                        bullet = doc.add_paragraph(
+                            item.get("name", item.get("deliverable", str(item))),
+                            style="List Bullet",
+                        )
+                        for run in bullet.runs:
+                            run.font.color.rgb = text_dark
+            elif isinstance(deliverables, str):
+                doc.add_paragraph(deliverables)
+
+        # ── Automation Opportunities ────────────────────────────────
+        opportunities = proposal.get("automationOpportunities", [])
+        if opportunities:
+            h = doc.add_heading("Automation Opportunities", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+
+            if isinstance(opportunities, list):
+                table = doc.add_table(rows=1, cols=3)
+                table.alignment = WD_TABLE_ALIGNMENT.CENTER
+                table.style = "Light Shading Accent 1"
+                hdr = table.rows[0].cells
+                hdr[0].text = "Process"
+                hdr[1].text = "Proposed Solution"
+                hdr[2].text = "Estimated ROI"
+                for cell in hdr:
+                    for run in cell.paragraphs[0].runs:
+                        run.font.bold = True
+
+                for opp in opportunities:
+                    if isinstance(opp, dict):
+                        row = table.add_row().cells
+                        row[0].text = opp.get("process", "")
+                        row[1].text = opp.get("solution", "")
+                        row[2].text = opp.get("estimatedROI", "")
+
+        # ── Timeline ────────────────────────────────────────────────
+        timeline = proposal.get("timeline", "")
+        if timeline:
+            h = doc.add_heading("Project Timeline", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+
+            if isinstance(timeline, str):
+                doc.add_paragraph(timeline)
+            elif isinstance(timeline, list):
+                for entry in timeline:
+                    if isinstance(entry, dict):
+                        item_para = doc.add_paragraph(style="List Bullet")
+                        phase_run = item_para.add_run(
+                            f"{entry.get('phase', entry.get('time', ''))}: "
+                        )
+                        phase_run.font.bold = True
+                        item_para.add_run(
+                            entry.get("description", entry.get("activity", ""))
+                        )
+                    elif isinstance(entry, str):
+                        doc.add_paragraph(entry, style="List Bullet")
+
+        # ── Payment Terms ───────────────────────────────────────────
+        payment = proposal.get("paymentTerms", "")
+        if payment:
+            h = doc.add_heading("Payment Terms", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+            doc.add_paragraph(payment)
+
+        # ── Next Steps ──────────────────────────────────────────────
+        next_steps = proposal.get("nextSteps", [])
+        if next_steps:
+            h = doc.add_heading("Next Steps", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+
+            if isinstance(next_steps, list):
+                for i, step in enumerate(next_steps, 1):
+                    step_text = step if isinstance(step, str) else str(step)
+                    step_para = doc.add_paragraph()
+                    num_run = step_para.add_run(f"{i}. ")
+                    num_run.font.bold = True
+                    num_run.font.color.rgb = brand_accent
+                    step_para.add_run(step_text)
+            elif isinstance(next_steps, str):
+                doc.add_paragraph(next_steps)
+
+        # ── Terms & Conditions ──────────────────────────────────────
+        if proposal.get("terms"):
+            h = doc.add_heading("Terms & Conditions", level=2)
+            for run in h.runs:
+                run.font.color.rgb = brand_blue
+            doc.add_paragraph(proposal["terms"])
+
+        # ── Footer ──────────────────────────────────────────────────
+        doc.add_paragraph("")  # spacer
+        footer = doc.add_paragraph()
+        footer.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r1 = footer.add_run(
+            "OpsBlueprint | Workflow Automation Consulting"
+        )
+        r1.font.color.rgb = light_gray
+        r1.font.size = Pt(9)
+        footer2 = doc.add_paragraph()
+        footer2.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r2 = footer2.add_run(
+            "This proposal is valid for 30 days from the date of preparation."
+        )
+        r2.font.color.rgb = light_gray
+        r2.font.size = Pt(9)
+
+        # ── Serialize to bytes ──────────────────────────────────────
+        buf = io.BytesIO()
+        doc.save(buf)
+        docx_bytes = buf.getvalue()
+        b64 = base64.b64encode(docx_bytes).decode("ascii")
+
+        return {
+            "base64Content": b64,
+            "filename": req.filename,
+            "sizeBytes": len(docx_bytes),
+            "contentType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        }
+    except Exception as e:
+        logger.error("OpsBlueprint DOCX conversion failed: %s", e)
+        raise HTTPException(500, f"DOCX conversion failed: {e}")
+
+
 # ── Generate DOCX and upload to SharePoint in one call ──────────────────────
 
 
@@ -673,13 +970,25 @@ def generate_docx_and_upload(req: DocxAndUploadRequest):
     This bypasses n8n's Code node sandbox which cannot send raw binary
     bodies (Buffer objects get serialized to JSON instead of raw bytes).
     """
-    # Step 1: Generate the DOCX (reuse existing logic)
+    # Step 1: Generate the DOCX — detect proposal type and use the right builder
     inner_req = HtmlToDocxRequest(
         proposal=req.proposal,
         lead=req.lead,
         filename=req.filename,
     )
-    docx_result = html_to_docx_base64(inner_req)
+
+    # Detect OpsBlueprint proposals by their unique fields
+    is_opsblueprint = (
+        "scopeOfWork" in req.proposal
+        or "automationOpportunities" in req.proposal
+        or "recommendedTier" in req.proposal
+    )
+
+    if is_opsblueprint:
+        docx_result = opsblueprint_to_docx_base64(inner_req)
+    else:
+        docx_result = html_to_docx_base64(inner_req)
+
     docx_bytes = base64.b64decode(docx_result["base64Content"])
     docx_size = len(docx_bytes)
 
