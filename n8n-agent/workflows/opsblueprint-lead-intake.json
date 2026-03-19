@@ -13,7 +13,10 @@
       "name": "Webhook: OpsBlueprint Lead",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "webhookId": "opsblueprint-lead"
     },
     {
@@ -26,7 +29,10 @@
       "name": "Setup Variables",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [420, 300]
+      "position": [
+        420,
+        300
+      ]
     },
     {
       "parameters": {
@@ -36,10 +42,22 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "grant_type", "value": "client_credentials" },
-            { "name": "client_id", "value": "={{ $json.clientId }}" },
-            { "name": "client_secret", "value": "={{ $json.clientSecret }}" },
-            { "name": "scope", "value": "https://graph.microsoft.com/.default" }
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $json.clientId }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $json.clientSecret }}"
+            },
+            {
+              "name": "scope",
+              "value": "https://graph.microsoft.com/.default"
+            }
           ]
         },
         "options": {}
@@ -48,7 +66,10 @@
       "name": "Get Graph Token",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300]
+      "position": [
+        640,
+        300
+      ]
     },
     {
       "parameters": {
@@ -58,7 +79,10 @@
       "name": "Build AI Qualification",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 300]
+      "position": [
+        860,
+        300
+      ]
     },
     {
       "parameters": {
@@ -75,7 +99,10 @@
       "name": "AI Qualify Lead",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1080, 300],
+      "position": [
+        1080,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "0sfAlhodWZDgWdu5",
@@ -85,13 +112,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// Parse AI qualification result and prepare for Excel + Email\nconst prev = $('Build AI Qualification').first().json;\nconst aiResp = $input.first().json;\n\nlet qualification;\ntry {\n  const content = aiResp.choices[0].message.content;\n  qualification = JSON.parse(content);\n} catch (e) {\n  qualification = {\n    qualificationScore: 5,\n    qualificationNotes: 'AI parsing failed — manual review needed',\n    suggestedTier: 'Professional',\n    estimatedValue: 'Unknown',\n    urgency: 'medium',\n    followUpRecommendation: 'Contact lead directly for more details'\n  };\n}\n\nconst lead = prev.lead;\nconst now = new Date().toISOString();\n\n// Excel row values (must match OBLeadsTable column order exactly)\nconst excelRow = [\n  prev.leadId,\n  lead.fullName || '',\n  lead.email || '',\n  lead.company || '',\n  lead.industry || '',\n  lead.problemDescription || '',\n  lead.serviceTier || '',\n  lead.source || '',\n  String(qualification.qualificationScore),\n  qualification.qualificationNotes,\n  qualification.suggestedTier,\n  qualification.estimatedValue,\n  qualification.urgency,\n  qualification.followUpRecommendation,\n  'New',\n  '',\n  now\n];\n\n// Confirmation email HTML\nconst emailHtml = `\n<div style=\"font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">\n  <div style=\"background: #1E293B; padding: 30px; text-align: center;\">\n    <h1 style=\"color: #0D9488; margin: 0; font-size: 24px;\">OpsBlueprint</h1>\n    <p style=\"color: #94A3B8; margin: 5px 0 0;\">Workflow Automation Consulting</p>\n  </div>\n  <div style=\"padding: 30px; background: #f9f9f9;\">\n    <h2 style=\"color: #1E293B;\">Thank you, ${lead.fullName}!</h2>\n    <p>We've received your automation consulting inquiry and are excited to help streamline your operations.</p>\n    <div style=\"background: #fff; border-left: 4px solid #0D9488; padding: 15px; margin: 20px 0;\">\n      <p style=\"margin: 0;\"><strong>Company:</strong> ${lead.company || 'Not provided'}</p>\n      <p style=\"margin: 5px 0;\"><strong>Industry:</strong> ${lead.industry || 'Not provided'}</p>\n      <p style=\"margin: 5px 0;\"><strong>Service Interest:</strong> ${lead.serviceTier || 'Not specified'}</p>\n    </div>\n    <p>Our team will review your inquiry and reach out within 1-2 business days to schedule a free 30-minute discovery call.</p>\n    <p style=\"margin-top: 20px;\">In the meantime, here's what to expect:</p>\n    <ol style=\"color: #475569;\">\n      <li>We'll review your automation needs</li>\n      <li>Schedule a discovery call</li>\n      <li>Provide a detailed proposal with scope and ROI estimate</li>\n    </ol>\n  </div>\n  <div style=\"background: #1E293B; padding: 20px; text-align: center;\">\n    <p style=\"color: #94A3B8; margin: 0; font-size: 12px;\">OpsBlueprint | opsblueprint.fernando-vargas.com</p>\n  </div>\n</div>`;\n\nreturn [{\n  json: {\n    accessToken: prev.accessToken,\n    driveId: prev.driveId,\n    leadsTrackerFileId: prev.leadsTrackerFileId,\n    mailUserUpn: prev.mailUserUpn,\n    leadId: prev.leadId,\n    lead,\n    qualification,\n    excelRow,\n    emailHtml,\n    emailSubject: `OpsBlueprint — We received your inquiry, ${lead.fullName}!`\n  }\n}];"
+        "jsCode": "// Parse AI qualification result and prepare for Excel + Email\nconst prev = $('Build AI Qualification').first().json;\nconst aiResp = $input.first().json;\n\nlet qualification;\ntry {\n  const content = aiResp.choices[0].message.content;\n  qualification = JSON.parse(content);\n} catch (e) {\n  qualification = {\n    qualificationScore: 5,\n    qualificationNotes: 'AI parsing failed \u00e2\u20ac\u201d manual review needed',\n    suggestedTier: 'Professional',\n    estimatedValue: 'Unknown',\n    urgency: 'medium',\n    followUpRecommendation: 'Contact lead directly for more details'\n  };\n}\n\nconst lead = prev.lead;\nconst now = new Date().toISOString();\n\n// Excel row values (must match OBLeadsTable column order exactly)\nconst excelRow = [\n  prev.leadId,\n  lead.fullName || '',\n  lead.email || '',\n  lead.company || '',\n  lead.industry || '',\n  lead.problemDescription || '',\n  lead.serviceTier || '',\n  lead.source || '',\n  String(qualification.qualificationScore),\n  qualification.qualificationNotes,\n  qualification.suggestedTier,\n  qualification.estimatedValue,\n  qualification.urgency,\n  qualification.followUpRecommendation,\n  'New',\n  '',\n  now\n];\n\n// Confirmation email HTML\nconst emailHtml = `\n<div style=\"font-family: 'Inter', Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333;\">\n  <div style=\"background: #1E293B; padding: 30px; text-align: center;\">\n    <h1 style=\"color: #0D9488; margin: 0; font-size: 24px;\">OpsBlueprint</h1>\n    <p style=\"color: #94A3B8; margin: 5px 0 0;\">Workflow Automation Consulting</p>\n  </div>\n  <div style=\"padding: 30px; background: #f9f9f9;\">\n    <h2 style=\"color: #1E293B;\">Thank you, ${lead.fullName}!</h2>\n    <p>We've received your automation consulting inquiry and are excited to help streamline your operations.</p>\n    <div style=\"background: #fff; border-left: 4px solid #0D9488; padding: 15px; margin: 20px 0;\">\n      <p style=\"margin: 0;\"><strong>Company:</strong> ${lead.company || 'Not provided'}</p>\n      <p style=\"margin: 5px 0;\"><strong>Industry:</strong> ${lead.industry || 'Not provided'}</p>\n      <p style=\"margin: 5px 0;\"><strong>Service Interest:</strong> ${lead.serviceTier || 'Not specified'}</p>\n    </div>\n    <p>Our team will review your inquiry and reach out within 1-2 business days to schedule a free 30-minute discovery call.</p>\n    <p style=\"margin-top: 20px;\">In the meantime, here's what to expect:</p>\n    <ol style=\"color: #475569;\">\n      <li>We'll review your automation needs</li>\n      <li>Schedule a discovery call</li>\n      <li>Provide a detailed proposal with scope and ROI estimate</li>\n    </ol>\n  </div>\n  <div style=\"background: #1E293B; padding: 20px; text-align: center;\">\n    <p style=\"color: #94A3B8; margin: 0; font-size: 12px;\">OpsBlueprint | opsblueprint.fernando-vargas.com</p>\n  </div>\n</div>`;\n\nreturn [{\n  json: {\n    accessToken: prev.accessToken,\n    driveId: prev.driveId,\n    leadsTrackerFileId: prev.leadsTrackerFileId,\n    mailUserUpn: prev.mailUserUpn,\n    leadId: prev.leadId,\n    lead,\n    qualification,\n    excelRow,\n    emailHtml,\n    emailSubject: `OpsBlueprint \u00e2\u20ac\u201d We received your inquiry, ${lead.fullName}!`\n  }\n}];"
       },
       "id": "node-parse-ai",
       "name": "Parse & Prepare",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1300, 300]
+      "position": [
+        1300,
+        300
+      ]
     },
     {
       "parameters": {
@@ -100,8 +130,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $json.accessToken }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -113,7 +149,10 @@
       "name": "Add to Leads Tracker",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 200]
+      "position": [
+        1520,
+        200
+      ]
     },
     {
       "parameters": {
@@ -122,8 +161,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Parse & Prepare').first().json.accessToken }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Parse & Prepare').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
@@ -135,7 +180,10 @@
       "name": "Send Confirmation Email",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 400]
+      "position": [
+        1520,
+        400
+      ]
     },
     {
       "parameters": {
@@ -152,7 +200,10 @@
       "name": "Trigger Proposal Generator",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 560]
+      "position": [
+        1520,
+        560
+      ]
     },
     {
       "parameters": {
@@ -161,45 +212,112 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $('Parse & Prepare').first().json.accessToken }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Parse & Prepare').first().json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: { subject: '[OpsBlueprint Lead] ' + $('Parse & Prepare').first().json.lead.fullName + ' - ' + ($('Parse & Prepare').first().json.lead.company || 'No Company') + ' (Score: ' + $('Parse & Prepare').first().json.qualification.qualificationScore + '/10)', body: { contentType: 'HTML', content: '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;\"><h2 style=\"color:#0D9488;\">New OpsBlueprint Lead</h2><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Name</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.lead.fullName + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Email</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.lead.email + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Company</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.company || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Industry</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.industry || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Service Tier</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.serviceTier || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Problem</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.problemDescription || 'N/A') + '</td></tr></table><h3 style=\"color:#1E293B;margin-top:20px;\">AI Qualification</h3><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Score</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.qualificationScore + '/10</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Suggested Tier</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.suggestedTier + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Est. Value</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.estimatedValue + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Urgency</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.urgency + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Notes</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.qualificationNotes + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Follow-Up</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.followUpRecommendation + '</td></tr></table><p style=\"color:#666;font-size:12px;margin-top:20px;\">Lead ID: ' + $('Parse & Prepare').first().json.leadId + ' | Source: ' + ($('Parse & Prepare').first().json.lead.source || 'Website') + '</p></div>' }, toRecipients: [{ emailAddress: { address: 'fxvarga@gmail.com' } }], from: { emailAddress: { address: $('Parse & Prepare').first().json.mailUserUpn, name: 'OpsBlueprint Notifications' } } }, saveToSentItems: true }) }}",
+        "jsonBody": "={{ JSON.stringify({ message: { subject: '[OpsBlueprint Lead] ' + $('Parse & Prepare').first().json.lead.fullName + ' - ' + ($('Parse & Prepare').first().json.lead.company || 'No Company') + ' (Score: ' + $('Parse & Prepare').first().json.qualification.qualificationScore + '/10)', body: { contentType: 'HTML', content: '<div style=\"font-family:Arial,sans-serif;max-width:600px;margin:0 auto;\"><h2 style=\"color:#0D9488;\">New OpsBlueprint Lead</h2><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Name</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.lead.fullName + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Email</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.lead.email + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Company</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.company || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Industry</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.industry || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Service Tier</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.serviceTier || 'N/A') + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Problem</td><td style=\"padding:8px;border:1px solid #ddd;\">' + ($('Parse & Prepare').first().json.lead.problemDescription || 'N/A') + '</td></tr></table><h3 style=\"color:#1E293B;margin-top:20px;\">AI Qualification</h3><table style=\"width:100%;border-collapse:collapse;\"><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Score</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.qualificationScore + '/10</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Suggested Tier</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.suggestedTier + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Est. Value</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.estimatedValue + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Urgency</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.urgency + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Notes</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.qualificationNotes + '</td></tr><tr><td style=\"padding:8px;border:1px solid #ddd;font-weight:bold;\">Follow-Up</td><td style=\"padding:8px;border:1px solid #ddd;\">' + $('Parse & Prepare').first().json.qualification.followUpRecommendation + '</td></tr></table><p style=\"color:#666;font-size:12px;margin-top:20px;\">Lead ID: ' + $('Parse & Prepare').first().json.leadId + ' | Source: ' + ($('Parse & Prepare').first().json.lead.source || 'Website') + '</p></div>' }, toRecipients: [{ emailAddress: { address: 'fxvarga@gmail.com' } }, { emailAddress: { address: 'fernandovargas@busybee690.onmicrosoft.com' } }], from: { emailAddress: { address: $('Parse & Prepare').first().json.mailUserUpn, name: 'OpsBlueprint Notifications' } } }, saveToSentItems: true }) }}",
         "options": {}
       },
       "id": "node-send-notification",
       "name": "Send Internal Notification",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 700]
+      "position": [
+        1520,
+        700
+      ]
     }
   ],
   "connections": {
     "Webhook: OpsBlueprint Lead": {
-      "main": [[{ "node": "Setup Variables", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Setup Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Setup Variables": {
-      "main": [[{ "node": "Get Graph Token", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Graph Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Graph Token": {
-      "main": [[{ "node": "Build AI Qualification", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Build AI Qualification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Build AI Qualification": {
-      "main": [[{ "node": "AI Qualify Lead", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "AI Qualify Lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "AI Qualify Lead": {
-      "main": [[{ "node": "Parse & Prepare", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Parse & Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Parse & Prepare": {
-      "main": [[
-        { "node": "Add to Leads Tracker", "type": "main", "index": 0 },
-        { "node": "Send Confirmation Email", "type": "main", "index": 0 },
-        { "node": "Trigger Proposal Generator", "type": "main", "index": 0 },
-        { "node": "Send Internal Notification", "type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          {
+            "node": "Add to Leads Tracker",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Confirmation Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Trigger Proposal Generator",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Internal Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -211,7 +329,11 @@
     "instanceId": "portfolio-n8n"
   },
   "tags": [
-    { "name": "opsblueprint" },
-    { "name": "leads" }
+    {
+      "name": "opsblueprint"
+    },
+    {
+      "name": "leads"
+    }
   ]
 }
