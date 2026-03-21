@@ -101,7 +101,7 @@ export default function LeadCaptureSection() {
           <h2 className="font-heading font-bold text-2xl text-gray-900">Thank you!</h2>
           <p className="mt-2 text-gray-600">
             We've received your request and will reach out within 24 hours to discuss
-            how we can help automate your operations.
+            how we can help your business run on autopilot.
           </p>
         </div>
       </Section>
@@ -113,11 +113,11 @@ export default function LeadCaptureSection() {
       <div className="max-w-xl mx-auto" ref={reveal.ref} style={reveal.style}>
         <div className="text-center mb-8">
           <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-            Let's Talk About Your Workflow
+            Tell Us What's Eating Up Your Time
           </h2>
           <p className="mt-4 text-gray-600">
-            Tell us about your biggest operational challenge. We'll respond with a
-            custom analysis within 24 hours — no obligation.
+            Describe the task you wish you could stop doing. We'll respond with a
+            free analysis and a plan to automate it — no strings attached.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ export default function LeadCaptureSection() {
               id="email"
               label="Email"
               type="email"
-              placeholder="jane@company.com"
+              placeholder="jane@mybusiness.com"
               required
               value={form.email}
               onChange={handleChange('email')}
@@ -146,7 +146,7 @@ export default function LeadCaptureSection() {
             <Input
               id="company"
               label="Company"
-              placeholder="Acme Corp"
+              placeholder="My Business LLC"
               value={form.company}
               onChange={handleChange('company')}
             />
@@ -161,8 +161,8 @@ export default function LeadCaptureSection() {
 
           <Textarea
             id="problemDescription"
-            label="What's your biggest operational challenge?"
-            placeholder="e.g., We spend 3 hours every morning manually entering lead data from email into our CRM..."
+            label="What task do you wish you could stop doing?"
+            placeholder="e.g., I spend 2 hours every morning manually entering orders from email into our spreadsheet..."
             value={form.problemDescription}
             onChange={handleChange('problemDescription')}
           />
@@ -181,7 +181,7 @@ export default function LeadCaptureSection() {
           </Button>
 
           <p className="text-center text-xs text-gray-500">
-            No spam. No obligation. We'll review your challenge and respond within 24 hours.
+            No spam. No pressure. Just a free look at how we can save you time.
           </p>
         </form>
       </div>

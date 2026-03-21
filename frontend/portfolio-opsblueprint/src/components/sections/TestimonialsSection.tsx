@@ -5,25 +5,25 @@ import useScrollReveal from '../../hooks/useScrollReveal';
 const testimonials = [
   {
     quote:
-      "OpsBlueprint transformed our lead intake process. What used to take our team 3 hours of manual work each morning now happens automatically. The AI triage alone saved us from losing two major accounts that were sitting in an overflowing inbox.",
+      "I was spending the first three hours of every morning sorting emails and updating our booking spreadsheet. Fernando automated the whole thing in two weeks. Now leads land in our CRM, clients get an instant reply, and I actually start my day with coffee instead of data entry.",
     name: 'Sarah Mitchell',
-    title: 'Operations Director, Horizon Events',
+    title: 'Owner, Horizon Events (12 employees)',
     metric: '3 hrs/day saved',
     photo: '/images/testimonial-1.jpg',
   },
   {
     quote:
-      "We were skeptical about automation — we'd tried Zapier on our own and gave up. Fernando mapped out our entire fulfillment workflow in week one, and by week three we had zero manual data entry between our CRM and accounting system. ROI paid for itself in the first month.",
+      "We tried setting up Zapier ourselves and gave up after a weekend. Fernando came in, mapped our entire order-to-invoice flow, and by week three we had zero manual data entry between our CRM and QuickBooks. The project paid for itself in the first month.",
     name: 'Marcus Chen',
-    title: 'CEO, Pacific Coast Catering',
+    title: 'Founder, Pacific Coast Catering (8 employees)',
     metric: '100% ROI in 30 days',
     photo: '/images/testimonial-2.jpg',
   },
   {
     quote:
-      "The proposal generation workflow alone was a game-changer. We used to spend 45 minutes drafting each client proposal manually. Now it's generated automatically from our intake form — branded, accurate, and delivered within seconds.",
+      "As a two-person sales team, we couldn't afford to spend 45 minutes building each proposal by hand. Now our intake form triggers a branded proposal automatically — accurate, professional, and delivered in seconds. It's like having an extra employee.",
     name: 'Elena Rodriguez',
-    title: 'VP of Sales, Clearview Property Group',
+    title: 'Co-Owner, Clearview Property Group (5 employees)',
     metric: '45 min → seconds',
     photo: '/images/testimonial-3.jpg',
   },
@@ -86,7 +86,7 @@ export default function TestimonialsSection() {
           What Our Clients Say
         </h2>
         <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Real results from businesses that automated their operations with OpsBlueprint.
+          Real results from small business owners who stopped doing everything manually.
         </p>
       </div>
 

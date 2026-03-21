@@ -4,17 +4,17 @@ import useScrollReveal from '../../hooks/useScrollReveal';
 const steps = [
   {
     label: 'Intake',
-    description: 'Lead forms, emails, and requests flow into a single pipeline.',
+    description: 'Leads, emails, and customer requests flow into one place automatically.',
     color: 'bg-primary-500',
   },
   {
     label: 'Automation',
-    description: 'AI-powered workflows route, classify, and process each item.',
+    description: 'Smart workflows sort, route, and act on each item — no manual steps.',
     color: 'bg-primary-600',
   },
   {
     label: 'Tracking',
-    description: 'Every action is logged, reported, and visible in real time.',
+    description: 'You see everything that happened, in real time, from your phone or laptop.',
     color: 'bg-primary-700',
   },
 ];
@@ -27,11 +27,11 @@ export default function SolutionSection() {
     <Section className="bg-primary-50/50">
       <div className="text-center mb-12" ref={headerReveal.ref} style={headerReveal.style}>
         <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-          We turn chaos into structured workflows
+          We connect the tools you already use — so they work for you
         </h2>
         <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Our approach connects your existing tools into automated pipelines
-          that work 24/7 without human intervention.
+          No ripping out what works. We link your email, CRM, spreadsheets, and
+          forms into automated pipelines that run 24/7 — even when you're off the clock.
         </p>
       </div>
 

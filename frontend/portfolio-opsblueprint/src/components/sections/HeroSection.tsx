@@ -10,29 +10,30 @@ export default function HeroSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-12 items-center" ref={reveal.ref} style={reveal.style}>
           <div>
-            <Badge>Workflow Automation Consulting</Badge>
+            <Badge>Automation for Small Businesses</Badge>
             <h1 className="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-gray-900 mt-4 leading-tight">
-              Cut 20+ Hours of{' '}
-              <span className="text-primary-600">Manual Work</span>{' '}
-              Every Week
+              Stop Doing{' '}
+              <span className="text-primary-600">Everything</span>{' '}
+              Yourself
             </h1>
             <p className="mt-6 text-lg text-gray-600 leading-relaxed max-w-lg">
-              Your team spends hours on data entry, email routing, and report generation
-              that software should handle. We design and implement custom automations
-              that eliminate repetitive tasks — so you can focus on growth.
+              You started your business to do what you love — not to spend nights
+              on data entry, chasing emails, and building spreadsheets.
+              We set up automations that handle the busywork, so you can get back
+              to running your business.
             </p>
             <div className="mt-6 flex items-center gap-6 text-sm text-gray-500">
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span>No-code & AI-powered</span>
+                <span>Built for small teams</span>
               </div>
               <div className="flex items-center gap-2">
                 <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                <span>Live in weeks, not months</span>
+                <span>Up and running in weeks</span>
               </div>
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
@@ -71,7 +72,7 @@ export default function HeroSection() {
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">20+ hrs saved</p>
-                    <p className="text-xs text-gray-500">per week, per client</p>
+                    <p className="text-xs text-gray-500">per week, per business</p>
                   </div>
                 </div>
               </div>

@@ -3,8 +3,8 @@ import useScrollReveal from '../../hooks/useScrollReveal';
 
 const highlights = [
   { label: '12+ Years', description: 'Full-stack engineering experience' },
-  { label: 'Finance & Healthcare', description: 'Enterprise-grade domain expertise' },
-  { label: 'AI + Automation', description: 'Modern workflow orchestration' },
+  { label: 'Small Business Focus', description: 'Built for teams of 5–50 people' },
+  { label: 'AI + Automation', description: 'Modern tools, practical results' },
 ];
 
 export default function AboutSection() {
@@ -21,18 +21,19 @@ export default function AboutSection() {
               About the Founder
             </p>
             <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-              Built by an engineer who's automated operations across industries
+              Built by an engineer who gets small business
             </h2>
             <p className="mt-6 text-gray-600 leading-relaxed">
               I'm Fernando Vargas, a Senior Full-Stack Engineer with 12+ years of experience
-              building systems for finance, healthcare, and content-driven businesses.
-              I've seen firsthand how much time teams waste on tasks that software should handle.
+              building systems across finance, healthcare, and service businesses.
+              I've watched small business owners spend their nights on work that
+              a well-built automation could handle in seconds.
             </p>
             <p className="mt-4 text-gray-600 leading-relaxed">
-              OpsBlueprint is the result of years spent designing AI workflow orchestration,
-              financial dashboard applications, CMS platforms, and search systems.
-              I combine deep technical expertise with a practical understanding of business
-              operations to deliver automations that actually work.
+              OpsBlueprint exists because I kept seeing the same pattern: talented owners
+              stuck doing admin work instead of growing their business. I bring the
+              same caliber of automation that large companies use, packaged and priced
+              for businesses with 5 to 50 people.
             </p>
             <div className="mt-6 flex items-center gap-4">
               <a
@@ -91,8 +92,8 @@ export default function AboutSection() {
 
               <div className="mt-6 pt-6 border-t border-white/20">
                 <p className="text-primary-200 text-sm leading-relaxed">
-                  "I built OpsBlueprint because I kept seeing the same problem: talented teams
-                  drowning in manual processes that a well-designed automation could eliminate in days."
+                  "I built OpsBlueprint because small business owners deserve the same
+                  automation power that big companies have — without the big company price tag."
                 </p>
               </div>
             </div>

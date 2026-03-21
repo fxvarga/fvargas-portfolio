@@ -14,8 +14,8 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-sm leading-relaxed">
-              Workflow automation consulting for small and mid-size businesses.
-              We turn manual chaos into structured, automated workflows.
+              Workflow automation built for small businesses.
+              We handle the busywork so you can focus on your customers.
             </p>
           </div>
 

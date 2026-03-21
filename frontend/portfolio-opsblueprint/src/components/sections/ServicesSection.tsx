@@ -8,13 +8,13 @@ const services = [
     tier: 'Starter',
     name: 'Workflow Audit',
     price: '$500 - $1,500',
-    description: 'We map your current processes, identify bottlenecks, and deliver a prioritized automation roadmap.',
+    description: 'We map how your business actually runs today, find the time-wasters, and hand you a clear plan for what to automate first.',
     features: [
       'Process mapping & documentation',
       'Bottleneck identification',
       'Tool & integration assessment',
       'Prioritized automation roadmap',
-      'ROI projections',
+      'ROI projections for your budget',
     ],
     badge: 'gray' as const,
   },
@@ -22,7 +22,7 @@ const services = [
     tier: 'Professional',
     name: 'Core Automation',
     price: '$5,000 - $15,000',
-    description: 'We build and deploy the core workflow automations your business needs to save 20+ hours per week.',
+    description: 'We build the automations that give you your time back — lead follow-ups, invoicing, data syncing — so you can focus on customers.',
     features: [
       'Everything in Workflow Audit',
       'Custom n8n/Zapier workflows',
@@ -35,10 +35,10 @@ const services = [
     featured: true,
   },
   {
-    tier: 'Enterprise',
+    tier: 'Growth',
     name: 'Advanced Systems',
     price: '$15,000 - $40,000',
-    description: 'Full-scale operational automation with AI-powered decision making and custom dashboards.',
+    description: 'For growing businesses ready to scale operations — AI-powered triage, multi-step approvals, and dashboards that keep you in control.',
     features: [
       'Everything in Core Automation',
       'AI-powered email triage',
@@ -103,11 +103,11 @@ export default function ServicesSection() {
     <Section id="services">
       <div className="text-center mb-12" ref={headerReveal.ref} style={headerReveal.style}>
         <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-          Services & Pricing
+          Packages That Fit a Small Business Budget
         </h2>
         <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Choose the engagement level that fits your business. Every project starts
-          with understanding your unique workflow challenges.
+          Every dollar counts when you're growing. Pick the level that makes sense
+          for where you are — each one pays for itself in time saved.
         </p>
       </div>
 
