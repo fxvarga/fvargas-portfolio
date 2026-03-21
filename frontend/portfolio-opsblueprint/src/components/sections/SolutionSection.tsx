@@ -1,4 +1,5 @@
 import Section from '../layout/Section';
+import useScrollReveal from '../../hooks/useScrollReveal';
 
 const steps = [
   {
@@ -19,9 +20,12 @@ const steps = [
 ];
 
 export default function SolutionSection() {
+  const headerReveal = useScrollReveal();
+  const flowReveal = useScrollReveal({ threshold: 0.2 });
+
   return (
     <Section className="bg-primary-50/50">
-      <div className="text-center mb-12">
+      <div className="text-center mb-12" ref={headerReveal.ref} style={headerReveal.style}>
         <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
           We turn chaos into structured workflows
         </h2>
@@ -31,7 +35,7 @@ export default function SolutionSection() {
         </p>
       </div>
 
-      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-0">
+      <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-0" ref={flowReveal.ref} style={flowReveal.style}>
         {steps.map((step, i) => (
           <div key={i} className="flex items-center">
             <div className="text-center">

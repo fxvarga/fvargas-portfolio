@@ -8,11 +8,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path d="M3 5h12M3 9h9M3 13h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                </svg>
-              </div>
+              <img src="/logo.svg" alt="OpsBlueprint logo" className="w-8 h-8" />
               <span className="font-heading font-bold text-xl text-white">
                 Ops<span className="text-primary-400">Blueprint</span>
               </span>
@@ -43,8 +39,8 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="mailto:hello@opsblueprint.com" className="hover:text-white transition-colors">
-                  hello@opsblueprint.com
+                <a href="mailto:fxvarga@gmail.com" className="hover:text-white transition-colors">
+                  fxvarga@gmail.com
                 </a>
               </li>
             </ul>

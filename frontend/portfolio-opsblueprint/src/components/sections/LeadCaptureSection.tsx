@@ -4,6 +4,13 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import Button from '../ui/Button';
+import useScrollReveal from '../../hooks/useScrollReveal';
+
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
 
 const industries = [
   { value: 'catering', label: 'Catering & Food Service' },
@@ -35,6 +42,7 @@ export default function LeadCaptureSection() {
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const reveal = useScrollReveal();
 
   const handleChange = (field: keyof FormData) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -61,6 +69,16 @@ export default function LeadCaptureSection() {
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Something went wrong');
+      }
+
+      // GA4 conversion event
+      if (window.gtag) {
+        window.gtag('event', 'generate_lead', {
+          event_category: 'engagement',
+          event_label: form.industry || 'unknown',
+          value: 1,
+          currency: 'USD',
+        });
       }
 
       setStatus('success');
@@ -92,7 +110,7 @@ export default function LeadCaptureSection() {
 
   return (
     <Section id="lead-form" className="bg-primary-50">
-      <div className="max-w-xl mx-auto">
+      <div className="max-w-xl mx-auto" ref={reveal.ref} style={reveal.style}>
         <div className="text-center mb-8">
           <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
             Let's Talk About Your Workflow

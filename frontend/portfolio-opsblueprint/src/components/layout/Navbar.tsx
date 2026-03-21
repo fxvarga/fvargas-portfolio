@@ -8,6 +8,7 @@ export default function Navbar() {
   const links = [
     { href: '#services', label: 'Services' },
     { href: '#how-it-works', label: 'How It Works' },
+    { href: '#testimonials', label: 'Testimonials' },
     { href: '#about', label: 'About' },
   ];
 
@@ -17,11 +18,7 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="#" className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-primary-600 rounded-lg flex items-center justify-center">
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M3 5h12M3 9h9M3 13h10" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
-            </div>
+            <img src="/logo.svg" alt="OpsBlueprint logo" className="w-8 h-8" />
             <span className="font-heading font-bold text-xl text-gray-900">
               Ops<span className="text-primary-600">Blueprint</span>
             </span>

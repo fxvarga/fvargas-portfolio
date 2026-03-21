@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1E3A8A"/>
+      <stop offset="100%" style="stop-color:#2563EB"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <!-- Logo mark -->
+  <circle cx="600" cy="220" r="60" stroke="white" stroke-width="3" stroke-dasharray="8 5" opacity="0.35"/>
+  <circle cx="600" cy="220" r="28" fill="white" opacity="0.9"/>
+  <path d="M600 170 L600 185" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M595 178 L600 170 L605 178" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M565 260 L580 245" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M562 254 L565 260 L571 257" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M635 260 L620 245" stroke="white" stroke-width="3" stroke-linecap="round"/>
+  <path d="M638 254 L635 260 L629 257" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="600" cy="220" r="10" fill="#2563EB"/>
+  <!-- Text -->
+  <text x="600" y="350" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="800" font-size="64" fill="white">
+    <tspan>Ops</tspan><tspan fill="#93C5FD">Blueprint</tspan>
+  </text>
+  <text x="600" y="410" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="400" font-size="28" fill="#BFDBFE">
+    Workflow Automation Consulting
+  </text>
+  <text x="600" y="470" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-weight="600" font-size="22" fill="#93C5FD">
+    Cut 20+ hours of manual work every week
+  </text>
+  <!-- Bottom accent bar -->
+  <rect x="0" y="610" width="1200" height="20" fill="#60A5FA" opacity="0.5"/>
+</svg>

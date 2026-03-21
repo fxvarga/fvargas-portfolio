@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://opsblueprint.fernando-vargas.com/sitemap.xml

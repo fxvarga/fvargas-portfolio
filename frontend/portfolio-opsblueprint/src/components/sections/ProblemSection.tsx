@@ -1,4 +1,5 @@
 import Section from '../layout/Section';
+import useScrollReveal from '../../hooks/useScrollReveal';
 
 const problems = [
   {
@@ -40,9 +41,12 @@ const problems = [
 ];
 
 export default function ProblemSection() {
+  const headerReveal = useScrollReveal();
+  const gridReveal = useScrollReveal({ threshold: 0.1 });
+
   return (
     <Section>
-      <div className="text-center mb-12">
+      <div className="text-center mb-12" ref={headerReveal.ref} style={headerReveal.style}>
         <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
           Your operations are more manual than they should be
         </h2>
@@ -51,7 +55,7 @@ export default function ProblemSection() {
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-6">
+      <div className="grid sm:grid-cols-2 gap-6" ref={gridReveal.ref} style={gridReveal.style}>
         {problems.map((problem, i) => (
           <div
             key={i}

@@ -6,6 +6,7 @@ import SolutionSection from '../components/sections/SolutionSection';
 import ServicesSection from '../components/sections/ServicesSection';
 import HowItWorksSection from '../components/sections/HowItWorksSection';
 import TestimonialsSection from '../components/sections/TestimonialsSection';
+import AboutSection from '../components/sections/AboutSection';
 import LeadCaptureSection from '../components/sections/LeadCaptureSection';
 import CTASection from '../components/sections/CTASection';
 
@@ -19,6 +20,7 @@ export default function Home() {
       <ServicesSection />
       <HowItWorksSection />
       <TestimonialsSection />
+      <AboutSection />
       <LeadCaptureSection />
       <CTASection />
       <Footer />
