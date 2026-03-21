@@ -1036,4 +1036,5 @@ def generate_docx_and_upload(req: DocxAndUploadRequest):
         "sizeBytes": docx_size,
         "sharePointUrl": upload_result.get("webUrl", ""),
         "sharePointItemId": upload_result.get("id", ""),
+        "base64Content": docx_result["base64Content"],
     }

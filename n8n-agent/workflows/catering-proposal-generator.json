@@ -147,13 +147,48 @@
     },
     {
       "parameters": {
-        "jsCode": "// Finalize: build webhook response from upload result\nconst uploadResp = $input.first().json;\nconst prev = $('Prepare Proposal Data').first().json;\n\nreturn [{\n  json: {\n    status: 'proposal_generated',\n    leadId: prev.leadId,\n    filename: uploadResp.filename || prev.filename,\n    sharePointUrl: uploadResp.sharePointUrl || '',\n    docxSizeBytes: uploadResp.sizeBytes || 0,\n    generatedAt: new Date().toISOString(),\n    message: 'Proposal generated and saved to SharePoint Proposals folder (grounded in Knowledge Base)'\n  }\n}];"
+        "jsCode": "// Prepare internal notification email with DOCX attachment via MS Graph\nconst uploadResp = $input.first().json;\nconst prev = $('Prepare Proposal Data').first().json;\nconst setup = $('Setup Variables').first().json;\nconst lead = prev.lead;\nconst filename = uploadResp.filename || prev.filename;\nconst sharePointUrl = uploadResp.sharePointUrl || '';\nconst base64Content = uploadResp.base64Content || '';\n\nconst emailBody = `<h2>New Catering Proposal Generated</h2>\n<table style=\"border-collapse:collapse;width:100%\">\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Lead</td><td style=\"padding:6px;border:1px solid #ddd\">${lead.firstName} ${lead.lastName}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Email</td><td style=\"padding:6px;border:1px solid #ddd\">${lead.email}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Phone</td><td style=\"padding:6px;border:1px solid #ddd\">${lead.phone || 'N/A'}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Event Date</td><td style=\"padding:6px;border:1px solid #ddd\">${lead.eventDate || 'TBD'}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Guest Count</td><td style=\"padding:6px;border:1px solid #ddd\">${lead.guestCount || 'N/A'}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Menu Tier</td><td style=\"padding:6px;border:1px solid #ddd\">${lead.menuTier || 'N/A'}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">File</td><td style=\"padding:6px;border:1px solid #ddd\">${filename}</td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">SharePoint</td><td style=\"padding:6px;border:1px solid #ddd\"><a href=\"${sharePointUrl}\">${sharePointUrl ? 'View in SharePoint' : 'N/A'}</a></td></tr>\n<tr><td style=\"padding:6px;border:1px solid #ddd;font-weight:bold\">Size</td><td style=\"padding:6px;border:1px solid #ddd\">${uploadResp.sizeBytes ? Math.round(uploadResp.sizeBytes / 1024) + ' KB' : 'N/A'}</td></tr>\n</table>\n<p style=\"margin-top:16px;color:#666\">The proposal DOCX is attached to this email.</p>`;\n\nconst mailPayload = {\n  message: {\n    subject: `[Executive Catering] Proposal Generated — ${lead.firstName} ${lead.lastName} (${lead.eventDate || 'TBD'})`,\n    body: { contentType: 'HTML', content: emailBody },\n    toRecipients: [\n      { emailAddress: { address: 'fxvarga@gmail.com' } },\n      { emailAddress: { address: 'fernandovargas@busybee690.onmicrosoft.com' } }\n    ],\n    attachments: base64Content ? [{\n      '@odata.type': '#microsoft.graph.fileAttachment',\n      name: filename,\n      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',\n      contentBytes: base64Content\n    }] : []\n  },\n  saveToSentItems: true\n};\n\nreturn [{\n  json: {\n    accessToken: prev.accessToken || setup.accessToken || $('Prepare KB Download').first().json.accessToken,\n    mailUserUpn: setup.mailUserUpn,\n    mailPayload,\n    // Pass through for Finalize\n    uploadResp,\n    lead,\n    leadId: prev.leadId,\n    filename,\n    sharePointUrl\n  }\n}];"
+      },
+      "id": "node-prepare-notification",
+      "name": "Prepare Notification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2180, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $json.mailUserUpn }}/sendMail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $json.accessToken }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.mailPayload) }}",
+        "options": {
+          "timeout": 30000,
+          "ignore-ssl-issues": false
+        }
+      },
+      "id": "node-send-notification",
+      "name": "Send Internal Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2400, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Finalize: build webhook response from upload result\nconst prev = $('Prepare Notification').first().json;\n\nreturn [{\n  json: {\n    status: 'proposal_generated',\n    leadId: prev.leadId,\n    filename: prev.filename,\n    sharePointUrl: prev.sharePointUrl || '',\n    docxSizeBytes: prev.uploadResp ? prev.uploadResp.sizeBytes || 0 : 0,\n    generatedAt: new Date().toISOString(),\n    notificationSent: true,\n    message: 'Proposal generated, saved to SharePoint, and internal notification sent with attachment'\n  }\n}];"
       },
       "id": "node-finalize",
       "name": "Finalize Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2180, 300]
+      "position": [2620, 300]
     },
     {
       "parameters": {
@@ -172,7 +207,7 @@
       "name": "Respond to Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2400, 300]
+      "position": [2840, 300]
     }
   ],
   "connections": {
@@ -201,6 +236,12 @@
       "main": [[{ "node": "Generate DOCX & Upload", "type": "main", "index": 0 }]]
     },
     "Generate DOCX & Upload": {
+      "main": [[{ "node": "Prepare Notification", "type": "main", "index": 0 }]]
+    },
+    "Prepare Notification": {
+      "main": [[{ "node": "Send Internal Notification", "type": "main", "index": 0 }]]
+    },
+    "Send Internal Notification": {
       "main": [[{ "node": "Finalize Response", "type": "main", "index": 0 }]]
     },
     "Finalize Response": {
