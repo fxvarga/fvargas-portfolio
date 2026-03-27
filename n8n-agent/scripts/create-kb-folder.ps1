@@ -1,6 +1,11 @@
-$tokenResp = Invoke-RestMethod -Uri 'https://login.microsoftonline.com//oauth2/v2.0/token' -Method POST -Body @{
-    client_id = :AZURE_CLIENT_ID
-    client_secret = :AZURE_CLIENT_SECRET
+# Requires environment variables: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
+if (-not $env:AZURE_TENANT_ID -or -not $env:AZURE_CLIENT_ID -or -not $env:AZURE_CLIENT_SECRET) {
+    Write-Error "Missing required environment variables: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET"
+    exit 1
+}
+$tokenResp = Invoke-RestMethod -Uri "https://login.microsoftonline.com/$($env:AZURE_TENANT_ID)/oauth2/v2.0/token" -Method POST -Body @{
+    client_id = $env:AZURE_CLIENT_ID
+    client_secret = $env:AZURE_CLIENT_SECRET
     scope = 'https://graph.microsoft.com/.default'
     grant_type = 'client_credentials'
 }
