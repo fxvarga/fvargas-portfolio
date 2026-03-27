@@ -1,4 +1,6 @@
 import React from 'react';
+import { Field, Input } from '@fluentui/react-components';
+import type { InputProps } from '@fluentui/react-components';
 
 interface FormInputProps {
   label: string;
@@ -24,24 +26,21 @@ const FormInput: React.FC<FormInputProps> = ({
   disabled = false,
 }) => {
   return (
-    <div className="admin-form-group">
-      <label>
-        {label}
-        {required && <span className="admin-required">*</span>}
-      </label>
-      <input
-        type={type}
+    <Field
+      label={label}
+      required={required}
+      hint={!error ? helpText : undefined}
+      validationMessage={error}
+      validationState={error ? 'error' : undefined}
+    >
+      <Input
+        type={type as InputProps['type']}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(_e, data) => onChange(data.value)}
         placeholder={placeholder}
         disabled={disabled}
-        className={error ? 'admin-input-error' : ''}
       />
-      {helpText && !error && (
-        <span className="admin-help-text">{helpText}</span>
-      )}
-      {error && <span className="admin-error-text">{error}</span>}
-    </div>
+    </Field>
   );
 };
 

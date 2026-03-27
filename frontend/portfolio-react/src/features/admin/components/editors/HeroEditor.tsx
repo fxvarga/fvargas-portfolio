@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormInput, FormTextarea, FieldGroup, ImagePicker } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface CtaButton {
   label: string;
@@ -32,6 +33,7 @@ interface HeroEditorProps {
 }
 
 const HeroEditor: React.FC<HeroEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   // Ensure data has proper structure
   const safeData: HeroData = {
     title: data?.title || '',
@@ -48,7 +50,7 @@ const HeroEditor: React.FC<HeroEditorProps> = ({ data, onChange }) => {
   };
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <FieldGroup title="Hero Content" defaultExpanded>
         <FormInput
           label="Title"

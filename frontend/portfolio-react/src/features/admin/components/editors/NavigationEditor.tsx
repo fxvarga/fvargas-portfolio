@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormInput, FieldGroup, ArrayField, ImagePicker } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface MenuItem {
   id: number;
@@ -26,6 +27,7 @@ interface NavigationEditorProps {
 }
 
 const NavigationEditor: React.FC<NavigationEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   // Ensure data has proper structure
   const safeData: NavigationData = {
     logo: data?.logo || { url: '', alt: '' },
@@ -43,7 +45,7 @@ const NavigationEditor: React.FC<NavigationEditorProps> = ({ data, onChange }) =
   const generateId = () => Date.now();
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <FieldGroup title="Logo" defaultExpanded>
         <ImagePicker
           label="Navigation Logo"
@@ -61,7 +63,7 @@ const NavigationEditor: React.FC<NavigationEditorProps> = ({ data, onChange }) =
           createItem={() => ({ id: generateId(), title: '', link: '' })}
           itemLabel={(item) => item.title || 'New Link'}
           renderItem={(item, _index, onItemChange) => (
-            <div className="admin-editor-nested-fields">
+            <div className={styles.nestedFields}>
               <FormInput
                 label="Title"
                 value={item.title}

@@ -1,4 +1,13 @@
 import React, { useState, KeyboardEvent } from 'react';
+import {
+  Field,
+  Input,
+  InteractionTag,
+  InteractionTagPrimary,
+  TagGroup,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
 
 interface TagInputProps {
   label: string;
@@ -8,6 +17,20 @@ interface TagInputProps {
   helpText?: string;
 }
 
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalXS,
+  },
+  tagsRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: tokens.spacingHorizontalXS,
+    alignItems: 'center',
+  },
+});
+
 const TagInput: React.FC<TagInputProps> = ({
   label,
   value,
@@ -15,6 +38,7 @@ const TagInput: React.FC<TagInputProps> = ({
   placeholder = 'Type and press Enter...',
   helpText,
 }) => {
+  const styles = useStyles();
   const [inputValue, setInputValue] = useState('');
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -29,41 +53,36 @@ const TagInput: React.FC<TagInputProps> = ({
     }
   };
 
-  const handleRemove = (index: number) => {
-    const newValue = [...value];
-    newValue.splice(index, 1);
-    onChange(newValue);
+  const handleRemove = (_e: React.MouseEvent | React.KeyboardEvent, data: { value: string }) => {
+    onChange(value.filter((tag) => tag !== data.value));
   };
 
   return (
-    <div className="admin-form-group">
-      <label>{label}</label>
-      <div className="admin-tag-input">
-        <div className="admin-tag-input-tags">
-          {value.map((tag, index) => (
-            <span key={index} className="admin-tag">
-              {tag}
-              <button
-                type="button"
-                className="admin-tag-remove"
-                onClick={() => handleRemove(index)}
+    <Field label={label} hint={helpText}>
+      <div className={styles.root}>
+        {value.length > 0 && (
+          <TagGroup onDismiss={handleRemove} className={styles.tagsRow}>
+            {value.map((tag) => (
+              <InteractionTag
+                key={tag}
+                shape="rounded"
+                size="small"
+                value={tag}
               >
-                ×
-              </button>
-            </span>
-          ))}
-          <input
-            type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={value.length === 0 ? placeholder : ''}
-            className="admin-tag-input-field"
-          />
-        </div>
+                <InteractionTagPrimary hasSecondaryAction>{tag}</InteractionTagPrimary>
+              </InteractionTag>
+            ))}
+          </TagGroup>
+        )}
+        <Input
+          value={inputValue}
+          onChange={(_e, data) => setInputValue(data.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={value.length === 0 ? placeholder : ''}
+          size="small"
+        />
       </div>
-      {helpText && <span className="admin-help-text">{helpText}</span>}
-    </div>
+    </Field>
   );
 };
 

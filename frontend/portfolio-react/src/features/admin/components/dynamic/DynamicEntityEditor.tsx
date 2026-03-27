@@ -1,4 +1,5 @@
 import React from 'react';
+import { makeStyles, tokens } from '@fluentui/react-components';
 import DynamicFieldRenderer from './DynamicFieldRenderer';
 import { EntityDefinition, ValidationError } from '../../types/entityDefinition';
 
@@ -9,12 +10,21 @@ interface DynamicEntityEditorProps {
   validationErrors?: ValidationError[];
 }
 
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalM,
+  },
+});
+
 const DynamicEntityEditor: React.FC<DynamicEntityEditorProps> = ({
   definition,
   data,
   onChange,
   validationErrors = [],
 }) => {
+  const styles = useStyles();
   const sortedAttributes = [...definition.attributes].sort(
     (a, b) => a.order - b.order
   );
@@ -23,7 +33,6 @@ const DynamicEntityEditor: React.FC<DynamicEntityEditorProps> = ({
     onChange({ ...data, [fieldName]: value });
   };
 
-  // Get errors for a specific field (including nested paths)
   const getFieldErrors = (fieldName: string): ValidationError[] => {
     return validationErrors.filter(
       (error) => error.field === fieldName || error.field.startsWith(`${fieldName}.`) || error.field.startsWith(`${fieldName}[`)
@@ -31,7 +40,7 @@ const DynamicEntityEditor: React.FC<DynamicEntityEditorProps> = ({
   };
 
   return (
-    <div className="admin-editor-form admin-dynamic-editor">
+    <div className={styles.root}>
       {sortedAttributes.map((attr) => (
         <DynamicFieldRenderer
           key={attr.id || attr.name}

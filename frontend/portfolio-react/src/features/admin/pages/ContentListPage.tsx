@@ -4,7 +4,29 @@ import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
 import AdminLayout from '../layout/AdminLayout';
-import '../styles/admin.css';
+import PageHeader from '../components/PageHeader';
+import {
+  Button,
+  Badge,
+  Card,
+  Dropdown,
+  Option,
+  Spinner,
+  Text,
+  MessageBar,
+  MessageBarBody,
+  DataGrid,
+  DataGridHeader,
+  DataGridRow,
+  DataGridHeaderCell,
+  DataGridBody,
+  DataGridCell,
+  TableColumnDefinition,
+  createTableColumn,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import { ArrowSyncRegular } from '@fluentui/react-icons';
 
 // Types
 interface ContentRecord {
@@ -51,7 +73,89 @@ const GET_ALL_ENTITY_DEFINITIONS = gql`
   }
 `;
 
+const useStyles = makeStyles({
+  card: {
+    width: '100%',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04)',
+    overflow: 'hidden',
+  },
+  cardHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: '18px',
+    paddingBottom: '14px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  cardHeaderLeft: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '16px',
+  },
+  cardHeaderTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    letterSpacing: '-0.01em',
+    color: tokens.colorNeutralForeground1,
+  },
+  cardBody: {
+    padding: '0',
+  },
+  spinnerContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '200px',
+    padding: '40px',
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '56px 24px',
+    gap: '10px',
+  },
+  emptyTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    letterSpacing: '-0.01em',
+    color: tokens.colorNeutralForeground1,
+  },
+  emptySubtitle: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: '14px',
+  },
+  typeCell: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '2px',
+  },
+  typeMuted: {
+    color: tokens.colorNeutralForeground4,
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: '11px',
+  },
+  grid: {
+    width: '100%',
+  },
+  errorBar: {
+    marginBottom: '16px',
+  },
+  filterDropdown: {
+    minWidth: '160px',
+  },
+  dateText: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: '13px',
+  },
+});
+
 const ContentListPage: React.FC = () => {
+  const styles = useStyles();
   const [content, setContent] = useState<ContentRecord[]>([]);
   const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionSummary[]>([]);
   const [contentTypeLabels, setContentTypeLabels] = useState<Record<string, string>>({});
@@ -93,7 +197,7 @@ const ContentListPage: React.FC = () => {
       // Process entity definitions into labels map
       const definitions: EntityDefinitionSummary[] = definitionsResult.data?.allEntityDefinitions || [];
       setEntityDefinitions(definitions);
-      
+
       const labels: Record<string, string> = {};
       definitions.forEach((def) => {
         labels[def.name] = def.displayName || def.name;
@@ -110,8 +214,8 @@ const ContentListPage: React.FC = () => {
     }
   };
 
-  const filteredContent = filter === 'all' 
-    ? content 
+  const filteredContent = filter === 'all'
+    ? content
     : content.filter(c => c.entityType === filter);
 
   const formatDate = (dateString: string | null): string => {
@@ -143,114 +247,156 @@ const ContentListPage: React.FC = () => {
     return `/admin/content/${record.entityType}/${record.id}`;
   };
 
+  const columns: TableColumnDefinition<ContentRecord>[] = [
+    createTableColumn<ContentRecord>({
+      columnId: 'type',
+      compare: (a, b) => getLabel(a.entityType).localeCompare(getLabel(b.entityType)),
+      renderHeaderCell: () => 'Type',
+      renderCell: (item) => (
+        <div className={styles.typeCell}>
+          <Text weight="semibold">{getLabel(item.entityType)}</Text>
+          <Text className={styles.typeMuted}>
+            {item.id.substring(0, 8)}
+          </Text>
+        </div>
+      ),
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'status',
+      compare: (a, b) => {
+        const aStatus = a.publishedAt ? 'Published' : 'Draft';
+        const bStatus = b.publishedAt ? 'Published' : 'Draft';
+        return aStatus.localeCompare(bStatus);
+      },
+      renderHeaderCell: () => 'Status',
+      renderCell: (item) =>
+        item.publishedAt ? (
+          <Badge appearance="filled" color="success">Published</Badge>
+        ) : (
+          <Badge appearance="tint" color="warning">Draft</Badge>
+        ),
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'version',
+      compare: (a, b) => a.version - b.version,
+      renderHeaderCell: () => 'Version',
+      renderCell: (item) => (
+        <Text style={{ color: tokens.colorNeutralForeground3 }}>v{item.version}</Text>
+      ),
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'published',
+      compare: (a, b) => {
+        const aDate = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+        const bDate = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+        return aDate - bDate;
+      },
+      renderHeaderCell: () => 'Published',
+      renderCell: (item) => <Text className={styles.dateText}>{formatDate(item.publishedAt)}</Text>,
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'updated',
+      compare: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      renderHeaderCell: () => 'Updated',
+      renderCell: (item) => <Text className={styles.dateText}>{formatDate(item.updatedAt)}</Text>,
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'actions',
+      renderHeaderCell: () => '',
+      renderCell: (item) => (
+        <Link to={getEditLink(item)} style={{ textDecoration: 'none' }}>
+          <Button appearance="subtle" size="small">
+            Edit
+          </Button>
+        </Link>
+      ),
+    }),
+  ];
+
   return (
     <AdminLayout>
-      <div className="admin-header">
-        <h1>Content Management</h1>
-        <p>View and edit all content sections</p>
-      </div>
+      <PageHeader
+        title="Content"
+        subtitle={`${filteredContent.length} record${filteredContent.length !== 1 ? 's' : ''}`}
+      />
 
       {error && (
-        <div className="admin-alert admin-alert-error">{error}</div>
+        <MessageBar intent="error" className={styles.errorBar}>
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
       )}
 
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h2 className="admin-card-title">All Content</h2>
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              style={{
-                padding: '0.375rem 0.75rem',
-                borderRadius: '6px',
-                border: '1px solid var(--admin-border)',
-                fontSize: '0.875rem',
-              }}
+      <Card className={styles.card}>
+        <div className={styles.cardHeader}>
+          <div className={styles.cardHeaderLeft}>
+            <Text className={styles.cardHeaderTitle}>All Content</Text>
+            <Dropdown
+              className={styles.filterDropdown}
+              value={filter === 'all' ? 'All Types' : (contentTypeLabels[filter] || filter)}
+              selectedOptions={[filter]}
+              onOptionSelect={(_e, data) => setFilter(data.optionValue ?? 'all')}
+              size="small"
             >
-              <option value="all">All Types</option>
+              <Option value="all">All Types</Option>
               {entityDefinitions.map((def) => (
-                <option key={def.name} value={def.name}>
+                <Option key={def.name} value={def.name}>
                   {def.displayName || def.name}
-                </option>
+                </Option>
               ))}
-            </select>
+            </Dropdown>
           </div>
-          <button
-            className="admin-btn admin-btn-secondary admin-btn-sm"
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={<ArrowSyncRegular />}
             onClick={fetchData}
             disabled={isLoading}
           >
             {isLoading ? 'Loading...' : 'Refresh'}
-          </button>
+          </Button>
         </div>
-        <div className="admin-card-body" style={{ padding: 0 }}>
+        <div className={styles.cardBody}>
           {isLoading ? (
-            <div className="admin-loading-container" style={{ minHeight: '200px' }}>
-              <div className="admin-loading-spinner"></div>
+            <div className={styles.spinnerContainer}>
+              <Spinner label="Loading content..." />
             </div>
           ) : filteredContent.length === 0 ? (
-            <div className="admin-empty-state">
-              <h3>No content found</h3>
-              <p>
+            <div className={styles.emptyState}>
+              <Text className={styles.emptyTitle}>No content found</Text>
+              <Text className={styles.emptySubtitle}>
                 {filter === 'all'
                   ? 'No content records exist yet.'
                   : `No ${getLabel(filter)} records found.`}
-              </p>
+              </Text>
             </div>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Version</th>
-                  <th>Published</th>
-                  <th>Updated</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredContent.map((record) => (
-                  <tr key={record.id}>
-                    <td>
-                      <strong>{getLabel(record.entityType)}</strong>
-                      <br />
-                      <small style={{ color: 'var(--admin-text-muted)' }}>
-                        {record.id.substring(0, 8)}...
-                      </small>
-                    </td>
-                    <td>
-                      {record.publishedAt ? (
-                        <span className="admin-badge admin-badge-success">
-                          Published
-                        </span>
-                      ) : (
-                        <span className="admin-badge admin-badge-warning">
-                          Draft
-                        </span>
-                      )}
-                    </td>
-                    <td>v{record.version}</td>
-                    <td>{formatDate(record.publishedAt)}</td>
-                    <td>{formatDate(record.updatedAt)}</td>
-                    <td>
-                      <div className="admin-btn-group">
-                        <Link
-                          to={getEditLink(record)}
-                          className="admin-btn admin-btn-primary admin-btn-sm"
-                        >
-                          Edit
-                        </Link>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataGrid
+              items={filteredContent}
+              columns={columns}
+              sortable
+              getRowId={(item) => item.id}
+              className={styles.grid}
+            >
+              <DataGridHeader>
+                <DataGridRow>
+                  {({ renderHeaderCell }) => (
+                    <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                  )}
+                </DataGridRow>
+              </DataGridHeader>
+              <DataGridBody<ContentRecord>>
+                {({ item, rowId }) => (
+                  <DataGridRow<ContentRecord> key={rowId}>
+                    {({ renderCell }) => (
+                      <DataGridCell>{renderCell(item)}</DataGridCell>
+                    )}
+                  </DataGridRow>
+                )}
+              </DataGridBody>
+            </DataGrid>
           )}
         </div>
-      </div>
+      </Card>
     </AdminLayout>
   );
 };

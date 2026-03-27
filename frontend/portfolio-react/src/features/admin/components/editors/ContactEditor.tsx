@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormInput, FormTextarea, FieldGroup } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface FormFieldConfig {
   label: string;
@@ -28,6 +29,7 @@ interface ContactEditorProps {
 }
 
 const ContactEditor: React.FC<ContactEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   // Ensure data has proper structure
   const safeData: ContactData = {
     title: data?.title || '',
@@ -59,7 +61,7 @@ const ContactEditor: React.FC<ContactEditorProps> = ({ data, onChange }) => {
   };
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <FieldGroup title="Section Header" defaultExpanded>
         <FormInput
           label="Title"

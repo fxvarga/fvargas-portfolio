@@ -1,4 +1,5 @@
 import React from 'react';
+import { Field, Dropdown, Option } from '@fluentui/react-components';
 
 interface SelectOption {
   value: string;
@@ -28,30 +29,30 @@ const FormSelect: React.FC<FormSelectProps> = ({
   error,
   disabled = false,
 }) => {
+  const selectedOption = options.find((o) => o.value === value);
+
   return (
-    <div className="admin-form-group">
-      <label>
-        {label}
-        {required && <span className="admin-required">*</span>}
-      </label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
+    <Field
+      label={label}
+      required={required}
+      hint={!error ? helpText : undefined}
+      validationMessage={error}
+      validationState={error ? 'error' : undefined}
+    >
+      <Dropdown
+        value={selectedOption?.label ?? ''}
+        selectedOptions={value ? [value] : []}
+        onOptionSelect={(_e, data) => onChange(data.optionValue ?? '')}
+        placeholder={placeholder}
         disabled={disabled}
-        className={error ? 'admin-input-error' : ''}
       >
-        <option value="">{placeholder}</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <Option key={option.value} value={option.value}>
             {option.label}
-          </option>
+          </Option>
         ))}
-      </select>
-      {helpText && !error && (
-        <span className="admin-help-text">{helpText}</span>
-      )}
-      {error && <span className="admin-error-text">{error}</span>}
-    </div>
+      </Dropdown>
+    </Field>
   );
 };
 

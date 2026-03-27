@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormInput, FormTextarea, FieldGroup, ArrayField } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface SocialLink {
   platform: string;
@@ -32,6 +33,7 @@ interface SiteConfigEditorProps {
 }
 
 const SiteConfigEditor: React.FC<SiteConfigEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   // Ensure data has proper structure
   const safeData: SiteConfigData = {
     owner: data?.owner || { name: '', title: '', tagline: '' },
@@ -46,7 +48,7 @@ const SiteConfigEditor: React.FC<SiteConfigEditorProps> = ({ data, onChange }) =
   };
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <FieldGroup title="Owner Information" defaultExpanded>
         <FormInput
           label="Name"
@@ -102,7 +104,7 @@ const SiteConfigEditor: React.FC<SiteConfigEditorProps> = ({ data, onChange }) =
           createItem={() => ({ platform: '', url: '', icon: '' })}
           itemLabel={(item) => item.platform || 'New Link'}
           renderItem={(item, _index, onItemChange) => (
-            <div className="admin-editor-nested-fields">
+            <div className={styles.nestedFields}>
               <FormInput
                 label="Platform"
                 value={item.platform}

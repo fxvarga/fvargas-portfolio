@@ -1,4 +1,13 @@
-import React, { useState } from 'react';
+import React from 'react';
+import {
+  Accordion,
+  AccordionItem,
+  AccordionHeader,
+  AccordionPanel,
+  Text,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
 
 interface FieldGroupProps {
   title: string;
@@ -7,35 +16,47 @@ interface FieldGroupProps {
   description?: string;
 }
 
+const useStyles = makeStyles({
+  description: {
+    color: tokens.colorNeutralForeground3,
+    marginLeft: tokens.spacingHorizontalS,
+    fontSize: '13px',
+  },
+  panel: {
+    paddingTop: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+});
+
 const FieldGroup: React.FC<FieldGroupProps> = ({
   title,
   children,
   defaultExpanded = true,
   description,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(defaultExpanded);
+  const styles = useStyles();
 
   return (
-    <div className={`admin-field-group ${isExpanded ? 'expanded' : 'collapsed'}`}>
-      <button
-        type="button"
-        className="admin-field-group-header"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <span className="admin-field-group-toggle">
-          {isExpanded ? '▼' : '▶'}
-        </span>
-        <span className="admin-field-group-title">{title}</span>
-        {description && (
-          <span className="admin-field-group-description">{description}</span>
-        )}
-      </button>
-      {isExpanded && (
-        <div className="admin-field-group-content">
+    <Accordion
+      defaultOpenItems={defaultExpanded ? ['field-group'] : []}
+      collapsible
+    >
+      <AccordionItem value="field-group">
+        <AccordionHeader>
+          {title}
+          {description && (
+            <Text className={styles.description} size={200}>
+              {description}
+            </Text>
+          )}
+        </AccordionHeader>
+        <AccordionPanel className={styles.panel}>
           {children}
-        </div>
-      )}
-    </div>
+        </AccordionPanel>
+      </AccordionItem>
+    </Accordion>
   );
 };
 

@@ -4,6 +4,7 @@ import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
 import AdminLayout from '../layout/AdminLayout';
+import PageHeader from '../components/PageHeader';
 import {
   FooterEditor,
   NavigationEditor,
@@ -15,7 +16,34 @@ import {
 } from '../components/editors';
 import { DynamicEntityEditor } from '../components/dynamic';
 import { EntityDefinition, ValidationError, validateData } from '../types/entityDefinition';
-import '../styles/admin.css';
+import {
+  Badge,
+  Button,
+  Card,
+  CardHeader,
+  Spinner,
+  Text,
+  MessageBar,
+  MessageBarBody,
+  TabList,
+  Tab,
+  DataGrid,
+  DataGridHeader,
+  DataGridRow,
+  DataGridHeaderCell,
+  DataGridBody,
+  DataGridCell,
+  TableColumnDefinition,
+  createTableColumn,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  SaveRegular,
+  SendRegular,
+  OpenRegular,
+  ArrowLeftRegular,
+} from '@fluentui/react-icons';
 
 // Types
 interface ContentRecord {
@@ -170,10 +198,183 @@ const parseRecordData = (data: unknown): Record<string, unknown> => {
   return data as Record<string, unknown>;
 };
 
+// Styles
+const useStyles = makeStyles({
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    gap: '12px',
+  },
+  emptyState: {
+    textAlign: 'center',
+    paddingTop: '56px',
+    paddingBottom: '56px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+  },
+  emptyTitle: {
+    fontSize: '16px',
+    fontWeight: '600',
+    letterSpacing: '-0.01em',
+    color: tokens.colorNeutralForeground1,
+    marginBottom: '6px',
+  },
+  emptySubtitle: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: '14px',
+  },
+  editorContainer: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 340px',
+    gap: '20px',
+    '@media (max-width: 1024px)': {
+      gridTemplateColumns: '1fr',
+    },
+  },
+  editorMain: {
+    minWidth: 0,
+  },
+  editorSidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+    position: 'sticky' as const,
+    top: '24px',
+    alignSelf: 'start',
+    '@media (max-width: 1024px)': {
+      position: 'static' as const,
+    },
+  },
+  editorCard: {
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04)',
+    overflow: 'hidden',
+  },
+  sidebarCard: {
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04)',
+  },
+  cardHeaderRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    width: '100%',
+  },
+  cardHeaderTitle: {
+    fontSize: '13px',
+    fontWeight: '600',
+    letterSpacing: '-0.005em',
+    color: tokens.colorNeutralForeground1,
+    textTransform: 'uppercase' as const,
+  },
+  modeToggleArea: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalM,
+  },
+  sidebarActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  infoBlock: {
+    fontSize: tokens.fontSizeBase200,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '16px',
+  },
+  infoItem: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '3px',
+  },
+  infoLabel: {
+    fontSize: '11px',
+    fontWeight: '600',
+    color: tokens.colorNeutralForeground3,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em',
+  },
+  infoValue: {
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground2,
+  },
+  jsonEditorWrapper: {
+    fontFamily: "'Monaco', 'Menlo', 'Ubuntu Mono', monospace",
+    fontSize: '0.8125rem',
+    lineHeight: '1.6',
+    backgroundColor: '#1a1e2e',
+    color: '#e2e8f0',
+    borderRadius: '0 0 12px 12px',
+    paddingTop: tokens.spacingVerticalM,
+    paddingBottom: tokens.spacingVerticalM,
+    paddingLeft: tokens.spacingHorizontalM,
+    paddingRight: tokens.spacingHorizontalM,
+    minHeight: '400px',
+    overflow: 'auto',
+  },
+  jsonTextarea: {
+    width: '100%',
+    minHeight: '400px',
+    backgroundColor: 'transparent',
+    border: 'none',
+    color: 'inherit',
+    fontFamily: 'inherit',
+    fontSize: 'inherit',
+    lineHeight: 'inherit',
+    resize: 'vertical' as const,
+    outline: 'none',
+  },
+  cardBody: {
+    paddingTop: '16px',
+    paddingBottom: '20px',
+    paddingLeft: '20px',
+    paddingRight: '20px',
+  },
+  cardBodyNoPadding: {
+    padding: '0',
+  },
+  messageBarSpacing: {
+    marginBottom: '12px',
+  },
+  recordIdText: {
+    color: tokens.colorNeutralForeground4,
+    fontSize: tokens.fontSizeBase200,
+    fontFamily: tokens.fontFamilyMonospace,
+  },
+  dataGridEditLink: {
+    textDecoration: 'none',
+  },
+  listCard: {
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04)',
+    overflow: 'hidden',
+  },
+  previewButton: {
+    width: '100%',
+  },
+});
+
+// DataGrid column definitions for the record list
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return 'Never';
+  return new Date(dateString).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const ContentEditorPage: React.FC = () => {
   const { entityType, recordId } = useParams<{ entityType: string; recordId?: string }>();
   const navigate = useNavigate();
-  
+  const styles = useStyles();
+
   const [record, setRecord] = useState<ContentRecord | null>(null);
   const [allRecords, setAllRecords] = useState<ContentRecord[]>([]); // For non-singleton list view
   const [formData, setFormData] = useState<Record<string, unknown>>({});
@@ -195,7 +396,7 @@ const ContentEditorPage: React.FC = () => {
 
   const fetchEntityDefinition = useCallback(async () => {
     if (!entityType) return;
-    
+
     try {
       const client = getClient();
       const { data } = await client.query({
@@ -215,7 +416,7 @@ const ContentEditorPage: React.FC = () => {
 
   const fetchContent = useCallback(async () => {
     if (!entityType) return;
-    
+
     try {
       setIsLoading(true);
       const client = getClient();
@@ -236,7 +437,7 @@ const ContentEditorPage: React.FC = () => {
 
       // Determine which record to edit
       let foundRecord: ContentRecord | null = null;
-      
+
       if (recordId) {
         // If recordId is provided, find that specific record
         foundRecord = records.find((r: ContentRecord) => r.id === recordId) || null;
@@ -484,17 +685,6 @@ const ContentEditorPage: React.FC = () => {
     }
   };
 
-  const formatDate = (dateString: string | null): string => {
-    if (!dateString) return 'Never';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const getLabel = (): string => {
     // Prefer displayName from entity definition
     if (entityDefinition?.displayName) {
@@ -516,61 +706,101 @@ const ContentEditorPage: React.FC = () => {
   };
 
   // Check if we should show the list view (non-singleton with multiple records and no recordId)
-  const shouldShowListView = !recordId && 
-    entityDefinition && 
-    !entityDefinition.isSingleton && 
+  const shouldShowListView = !recordId &&
+    entityDefinition &&
+    !entityDefinition.isSingleton &&
     allRecords.length > 1;
 
+  // DataGrid columns for record list
+  const recordColumns: TableColumnDefinition<ContentRecord>[] = [
+    createTableColumn<ContentRecord>({
+      columnId: 'title',
+      compare: (a, b) => getRecordTitle(a).localeCompare(getRecordTitle(b)),
+      renderHeaderCell: () => 'Title',
+      renderCell: (item) => (
+        <div>
+          <Text weight="semibold">{getRecordTitle(item)}</Text>
+          <br />
+          <Text className={styles.recordIdText} size={200}>
+            {item.id.substring(0, 8)}
+          </Text>
+        </div>
+      ),
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'status',
+      compare: (a, b) => (a.publishedAt ? 1 : 0) - (b.publishedAt ? 1 : 0),
+      renderHeaderCell: () => 'Status',
+      renderCell: (item) =>
+        item.publishedAt ? (
+          <Badge appearance="filled" color="success">Published</Badge>
+        ) : (
+          <Badge appearance="tint" color="warning">Draft</Badge>
+        ),
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'version',
+      compare: (a, b) => a.version - b.version,
+      renderHeaderCell: () => 'Version',
+      renderCell: (item) => <Text style={{ color: tokens.colorNeutralForeground3 }}>v{item.version}</Text>,
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'updated',
+      compare: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      renderHeaderCell: () => 'Updated',
+      renderCell: (item) => (
+        <Text style={{ color: tokens.colorNeutralForeground3, fontSize: '13px' }}>
+          {formatDate(item.updatedAt)}
+        </Text>
+      ),
+    }),
+    createTableColumn<ContentRecord>({
+      columnId: 'actions',
+      renderHeaderCell: () => '',
+      renderCell: (item) => (
+        <Link to={`/admin/content/${entityType}/${item.id}`} className={styles.dataGridEditLink}>
+          <Button appearance="subtle" size="small">Edit</Button>
+        </Link>
+      ),
+    }),
+  ];
+
   const renderRecordListView = () => (
-    <div className="admin-card">
-      <div className="admin-card-header">
-        <h2 className="admin-card-title">{getLabel()} Records</h2>
-        <span className="admin-badge admin-badge-info">{allRecords.length} records</span>
+    <Card className={styles.listCard}>
+      <CardHeader
+        header={
+          <div className={styles.cardHeaderRow}>
+            <Text className={styles.cardHeaderTitle}>{getLabel()} Records</Text>
+            <Badge appearance="tint" color="informative">{allRecords.length} records</Badge>
+          </div>
+        }
+      />
+      <div className={styles.cardBodyNoPadding}>
+        <DataGrid
+          items={allRecords}
+          columns={recordColumns}
+          sortable
+          getRowId={(item) => item.id}
+        >
+          <DataGridHeader>
+            <DataGridRow>
+              {({ renderHeaderCell }) => (
+                <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+              )}
+            </DataGridRow>
+          </DataGridHeader>
+          <DataGridBody<ContentRecord>>
+            {({ item, rowId }) => (
+              <DataGridRow<ContentRecord> key={rowId}>
+                {({ renderCell }) => (
+                  <DataGridCell>{renderCell(item)}</DataGridCell>
+                )}
+              </DataGridRow>
+            )}
+          </DataGridBody>
+        </DataGrid>
       </div>
-      <div className="admin-card-body" style={{ padding: 0 }}>
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Title</th>
-              <th>Status</th>
-              <th>Version</th>
-              <th>Updated</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {allRecords.map((rec) => (
-              <tr key={rec.id}>
-                <td>
-                  <strong>{getRecordTitle(rec)}</strong>
-                  <br />
-                  <small style={{ color: 'var(--admin-text-muted)' }}>
-                    {rec.id.substring(0, 8)}...
-                  </small>
-                </td>
-                <td>
-                  {rec.publishedAt ? (
-                    <span className="admin-badge admin-badge-success">Published</span>
-                  ) : (
-                    <span className="admin-badge admin-badge-warning">Draft</span>
-                  )}
-                </td>
-                <td>v{rec.version}</td>
-                <td>{formatDate(rec.updatedAt)}</td>
-                <td>
-                  <Link
-                    to={`/admin/content/${entityType}/${rec.id}`}
-                    className="admin-btn admin-btn-primary admin-btn-sm"
-                  >
-                    Edit
-                  </Link>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </Card>
   );
 
   const renderLegacyEditor = () => {
@@ -619,8 +849,9 @@ const ContentEditorPage: React.FC = () => {
   };
 
   const renderJsonEditor = () => (
-    <div className="admin-json-editor">
+    <div className={styles.jsonEditorWrapper}>
       <textarea
+        className={styles.jsonTextarea}
         value={jsonData}
         onChange={(e) => handleJsonChange(e.target.value)}
         spellCheck={false}
@@ -630,180 +861,197 @@ const ContentEditorPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1>{shouldShowListView ? getLabel() : `Edit ${getLabel()}`}</h1>
-          <p>
-            {entityDefinition?.description || (shouldShowListView ? `Manage ${getLabel()} records` : 'Modify the content data for this section')}
-            {hasDynamicEditor && !shouldShowListView && (
-              <span className="admin-badge admin-badge-info" style={{ marginLeft: '0.5rem' }}>
-                Dynamic Schema
-              </span>
+      {/* Header */}
+      <PageHeader
+        title={shouldShowListView ? getLabel() : `Edit ${getLabel()}`}
+        subtitle={entityDefinition?.description || (shouldShowListView ? `Manage ${getLabel()} records` : 'Modify the content data for this section')}
+        badge={hasDynamicEditor && !shouldShowListView ? { label: 'Dynamic Schema', color: 'informative' } : undefined}
+        actions={
+          <>
+            {recordId && !entityDefinition?.isSingleton && (
+              <Button
+                appearance="secondary"
+                size="small"
+                icon={<ArrowLeftRegular />}
+                onClick={() => navigate(`/admin/content/${entityType}`)}
+              >
+                Back to List
+              </Button>
             )}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {recordId && !entityDefinition?.isSingleton && (
-            <button
-              className="admin-btn admin-btn-secondary"
-              onClick={() => navigate(`/admin/content/${entityType}`)}
+            <Button
+              appearance="secondary"
+              size="small"
+              icon={<ArrowLeftRegular />}
+              onClick={() => navigate('/admin/content')}
             >
-              Back to List
-            </button>
-          )}
-          <button
-            className="admin-btn admin-btn-secondary"
-            onClick={() => navigate('/admin/content')}
-          >
-            Back to Content
-          </button>
-        </div>
-      </div>
+              All Content
+            </Button>
+          </>
+        }
+      />
 
+      {/* Error message */}
       {error && (
-        <div className="admin-alert admin-alert-error">{error}</div>
+        <div className={styles.messageBarSpacing}>
+          <MessageBar intent="error">
+            <MessageBarBody>{error}</MessageBarBody>
+          </MessageBar>
+        </div>
       )}
 
+      {/* Success message */}
       {success && (
-        <div className="admin-alert admin-alert-success">{success}</div>
+        <div className={styles.messageBarSpacing}>
+          <MessageBar intent="success">
+            <MessageBarBody>{success}</MessageBarBody>
+          </MessageBar>
+        </div>
       )}
 
+      {/* Loading state */}
       {isLoading ? (
-        <div className="admin-loading-container" style={{ minHeight: '400px' }}>
-          <div className="admin-loading-spinner"></div>
-          <p>Loading content...</p>
+        <div className={styles.loadingContainer}>
+          <Spinner size="large" />
+          <Text style={{ color: tokens.colorNeutralForeground3 }}>Loading content...</Text>
         </div>
       ) : shouldShowListView ? (
         renderRecordListView()
       ) : !record ? (
-        <div className="admin-card">
-          <div className="admin-card-body">
-            <div className="admin-empty-state">
-              <h3>No Content Found</h3>
-              <p>No {getLabel()} content exists yet. The content will be created when the database is seeded.</p>
-            </div>
+        /* Empty state */
+        <Card className={styles.editorCard}>
+          <div className={styles.emptyState}>
+            <Text className={styles.emptyTitle} block>No Content Found</Text>
+            <Text className={styles.emptySubtitle} block>
+              No {getLabel()} content exists yet. The content will be created when the database is seeded.
+            </Text>
           </div>
-        </div>
+        </Card>
       ) : (
-        <div className="admin-editor-container">
-          <div className="admin-editor-main">
-            <div className="admin-card">
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">
-                  {editorMode === 'visual' ? 'Visual Editor' : 'JSON Editor'}
-                </h2>
-                <div className="admin-editor-mode-toggle">
-                  {hasChanges && (
-                    <span className="admin-badge admin-badge-warning" style={{ marginRight: '0.75rem' }}>
-                      Unsaved Changes
-                    </span>
-                  )}
-                  {hasVisualEditor && (
-                    <div className="admin-btn-group">
-                      <button
-                        className={`admin-btn admin-btn-sm ${editorMode === 'visual' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-                        onClick={() => handleSwitchMode('visual')}
-                      >
-                        Visual
-                      </button>
-                      <button
-                        className={`admin-btn admin-btn-sm ${editorMode === 'json' ? 'admin-btn-primary' : 'admin-btn-secondary'}`}
-                        onClick={() => handleSwitchMode('json')}
-                      >
-                        JSON
-                      </button>
+        /* Editor layout */
+        <div className={styles.editorContainer}>
+          {/* Main editor area */}
+          <div className={styles.editorMain}>
+            <Card className={styles.editorCard}>
+              <CardHeader
+                header={
+                  <div className={styles.cardHeaderRow}>
+                    <Text className={styles.cardHeaderTitle}>
+                      {editorMode === 'visual' ? 'Visual Editor' : 'JSON Editor'}
+                    </Text>
+                    <div className={styles.modeToggleArea}>
+                      {hasChanges && (
+                        <Badge appearance="tint" color="warning" size="small">
+                          Unsaved
+                        </Badge>
+                      )}
+                      {hasVisualEditor && (
+                        <TabList
+                          selectedValue={editorMode}
+                          onTabSelect={(_e, data) => handleSwitchMode(data.value as EditorMode)}
+                          size="small"
+                        >
+                          <Tab value="visual">Visual</Tab>
+                          <Tab value="json">JSON</Tab>
+                        </TabList>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
-              <div className="admin-card-body" style={{ padding: editorMode === 'json' ? 0 : undefined }}>
+                  </div>
+                }
+              />
+              <div className={editorMode === 'json' ? styles.cardBodyNoPadding : styles.cardBody}>
                 {editorMode === 'visual' && hasVisualEditor ? renderVisualEditor() : renderJsonEditor()}
               </div>
-            </div>
+            </Card>
           </div>
 
-          <div className="admin-editor-sidebar">
+          {/* Sidebar */}
+          <div className={styles.editorSidebar}>
             {/* Actions Card */}
-            <div className="admin-card">
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">Actions</h2>
-              </div>
-              <div className="admin-card-body">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <button
-                    className="admin-btn admin-btn-primary admin-btn-full"
+            <Card className={styles.sidebarCard}>
+              <CardHeader header={<Text className={styles.cardHeaderTitle}>Actions</Text>} />
+              <div className={styles.cardBody}>
+                <div className={styles.sidebarActions}>
+                  <Button
+                    appearance="primary"
+                    icon={<SaveRegular />}
                     onClick={handleSave}
                     disabled={isSaving || !hasChanges}
+                    size="small"
                   >
                     {isSaving ? 'Saving...' : 'Save Draft'}
-                  </button>
-                  
-                  <button
-                    className="admin-btn admin-btn-secondary admin-btn-full"
+                  </Button>
+
+                  <Button
+                    appearance="secondary"
+                    icon={<SendRegular />}
                     onClick={handleSaveAndPublish}
                     disabled={isSaving}
+                    size="small"
                   >
                     {isSaving ? 'Saving...' : 'Save & Publish'}
-                  </button>
+                  </Button>
 
                   {!record.publishedAt && (
-                    <button
-                      className="admin-btn admin-btn-secondary admin-btn-full"
+                    <Button
+                      appearance="subtle"
+                      icon={<SendRegular />}
                       onClick={handlePublish}
                       disabled={isPublishing || hasChanges}
+                      size="small"
                     >
                       {isPublishing ? 'Publishing...' : 'Publish Current'}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Info Card */}
-            <div className="admin-card">
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">Info</h2>
-              </div>
-              <div className="admin-card-body">
-                <div style={{ fontSize: '0.875rem' }}>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <strong>Status:</strong>{' '}
+            <Card className={styles.sidebarCard}>
+              <CardHeader header={<Text className={styles.cardHeaderTitle}>Details</Text>} />
+              <div className={styles.cardBody}>
+                <div className={styles.infoBlock}>
+                  <div className={styles.infoItem}>
+                    <Text className={styles.infoLabel}>Status</Text>
                     {record.publishedAt ? (
-                      <span className="admin-badge admin-badge-success">Published</span>
+                      <Badge appearance="filled" color="success">Published</Badge>
                     ) : (
-                      <span className="admin-badge admin-badge-warning">Draft</span>
+                      <Badge appearance="tint" color="warning">Draft</Badge>
                     )}
                   </div>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <strong>Version:</strong> {record.version}
+                  <div className={styles.infoItem}>
+                    <Text className={styles.infoLabel}>Version</Text>
+                    <Text className={styles.infoValue}>{record.version}</Text>
                   </div>
-                  <div style={{ marginBottom: '0.75rem' }}>
-                    <strong>Published:</strong>
-                    <br />
-                    {formatDate(record.publishedAt)}
+                  <div className={styles.infoItem}>
+                    <Text className={styles.infoLabel}>Published</Text>
+                    <Text className={styles.infoValue}>{formatDate(record.publishedAt)}</Text>
                   </div>
-                  <div>
-                    <strong>Last Updated:</strong>
-                    <br />
-                    {formatDate(record.updatedAt)}
+                  <div className={styles.infoItem}>
+                    <Text className={styles.infoLabel}>Last Updated</Text>
+                    <Text className={styles.infoValue}>{formatDate(record.updatedAt)}</Text>
                   </div>
                 </div>
               </div>
-            </div>
+            </Card>
 
-            {/* Preview Link */}
-            <div className="admin-card">
-              <div className="admin-card-body">
-                <a
+            {/* Preview Card */}
+            <Card className={styles.sidebarCard}>
+              <div className={styles.cardBody}>
+                <Button
+                  appearance="subtle"
+                  icon={<OpenRegular />}
+                  as="a"
                   href="/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="admin-btn admin-btn-secondary admin-btn-full"
+                  className={styles.previewButton}
+                  size="small"
                 >
                   Preview Site
-                </a>
+                </Button>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}

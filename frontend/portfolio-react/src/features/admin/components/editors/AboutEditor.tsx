@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormInput, FormTextarea, FieldGroup, ImagePicker } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface AboutImage {
   url: string;
@@ -28,6 +29,7 @@ interface AboutEditorProps {
 }
 
 const AboutEditor: React.FC<AboutEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   // Ensure data has proper structure
   const safeData: AboutData = {
     greeting: data?.greeting || '',
@@ -46,7 +48,7 @@ const AboutEditor: React.FC<AboutEditorProps> = ({ data, onChange }) => {
   };
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <FieldGroup title="Section Header" defaultExpanded>
         <FormInput
           label="Section Title"

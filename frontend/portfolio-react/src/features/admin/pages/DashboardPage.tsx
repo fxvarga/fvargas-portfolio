@@ -4,7 +4,27 @@ import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
 import AdminLayout from '../layout/AdminLayout';
-import '../styles/admin.css';
+import PageHeader from '../components/PageHeader';
+import {
+  Button,
+  Badge,
+  Card,
+  Spinner,
+  Text,
+  MessageBar,
+  MessageBarBody,
+  DataGrid,
+  DataGridHeader,
+  DataGridRow,
+  DataGridHeaderCell,
+  DataGridBody,
+  DataGridCell,
+  TableColumnDefinition,
+  createTableColumn,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import { ArrowSyncRegular, OpenRegular } from '@fluentui/react-icons';
 
 // Types
 interface ContentRecord {
@@ -23,6 +43,14 @@ interface EntityDefinitionSummary {
   icon?: string;
   isSingleton: boolean;
   category?: string;
+}
+
+// Row type for the DataGrid
+interface ContentRowItem {
+  key: string;
+  label: string;
+  icon: string;
+  record: ContentRecord | undefined;
 }
 
 // GraphQL queries
@@ -63,7 +91,161 @@ const FALLBACK_CONTENT_TYPES = [
   { name: 'footer', displayName: 'Footer', icon: '&#9638;' },
 ];
 
+const useStyles = makeStyles({
+  // ── Stats row ──
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '16px',
+    marginBottom: '32px',
+  },
+  statCard: {
+    position: 'relative' as const,
+    paddingTop: '24px',
+    paddingBottom: '24px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04)',
+    overflow: 'hidden',
+    transition: 'box-shadow 0.2s ease, transform 0.2s ease',
+    ':hover': {
+      boxShadow: '0 4px 12px rgba(16, 24, 40, 0.08)',
+      transform: 'translateY(-1px)',
+    },
+  },
+  // Colored top accent for each stat card
+  statAccent1: {
+    borderTop: '3px solid #3A66A2',
+  },
+  statAccent2: {
+    borderTop: '3px solid #2d8a4e',
+  },
+  statAccent3: {
+    borderTop: '3px solid #c4820e',
+  },
+  statAccent4: {
+    borderTop: '3px solid #6e56cf',
+  },
+  statLabel: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: '11px',
+    fontWeight: '600',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.06em',
+    marginBottom: '8px',
+  },
+  statValue: {
+    fontSize: '32px',
+    fontWeight: '700',
+    letterSpacing: '-0.04em',
+    lineHeight: '1',
+    color: tokens.colorNeutralForeground1,
+  },
+
+  // ── Content cards ──
+  card: {
+    marginBottom: '20px',
+    padding: 0,
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04)',
+    overflow: 'hidden',
+  },
+  cardHeaderRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: '18px',
+    paddingBottom: '14px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  cardHeaderTitle: {
+    fontSize: '14px',
+    fontWeight: '600',
+    letterSpacing: '-0.01em',
+    color: tokens.colorNeutralForeground1,
+  },
+  cardBody: {
+    paddingTop: '20px',
+    paddingBottom: '24px',
+    paddingLeft: '24px',
+    paddingRight: '24px',
+  },
+  cardBodyNoPadding: {
+    padding: 0,
+  },
+  spinnerContainer: {
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '200px',
+  },
+
+  // ── Quick actions ──
+  quickActionsRow: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '10px',
+  },
+
+  // ── Schema chips ──
+  schemaChipsRow: {
+    display: 'flex',
+    gap: '10px',
+    flexWrap: 'wrap',
+  },
+  schemaChip: {
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+    borderRadius: '10px',
+    transition: 'box-shadow 0.2s ease, transform 0.15s ease',
+    ':hover': {
+      boxShadow: '0 2px 8px rgba(16, 24, 40, 0.08)',
+      transform: 'translateY(-1px)',
+    },
+  },
+  schemaMoreLink: {
+    paddingTop: '10px',
+    paddingBottom: '10px',
+    paddingLeft: '16px',
+    paddingRight: '16px',
+    color: tokens.colorBrandForeground1,
+    textDecoration: 'none',
+    display: 'flex',
+    alignItems: 'center',
+    fontWeight: tokens.fontWeightSemibold,
+    fontSize: '13px',
+  },
+  linkNoDecoration: {
+    textDecoration: 'none',
+  },
+  schemaParagraph: {
+    marginBottom: '16px',
+    color: tokens.colorNeutralForeground3,
+    fontSize: '14px',
+    lineHeight: '22px',
+    letterSpacing: '-0.005em',
+  },
+  sectionCell: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: tokens.spacingHorizontalS,
+  },
+  alert: {
+    marginBottom: '16px',
+  },
+});
+
 const DashboardPage: React.FC = () => {
+  const styles = useStyles();
   const [content, setContent] = useState<ContentRecord[]>([]);
   const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -134,198 +316,227 @@ const DashboardPage: React.FC = () => {
         icon: t.icon,
       }));
 
+  // Build DataGrid rows
+  const gridItems: ContentRowItem[] = contentTypes.map((type) => ({
+    key: type.key,
+    label: type.label,
+    icon: type.icon,
+    record: getContentByType(type.key),
+  }));
+
+  // DataGrid column definitions
+  const columns: TableColumnDefinition<ContentRowItem>[] = [
+    createTableColumn<ContentRowItem>({
+      columnId: 'section',
+      compare: (a, b) => a.label.localeCompare(b.label),
+      renderHeaderCell: () => 'Section',
+      renderCell: (item) => (
+        <span className={styles.sectionCell}>
+          <span dangerouslySetInnerHTML={{ __html: item.icon }} />
+          <Text weight="semibold">{item.label}</Text>
+        </span>
+      ),
+    }),
+    createTableColumn<ContentRowItem>({
+      columnId: 'status',
+      compare: (a, b) => {
+        const statusA = a.record ? (a.record.publishedAt ? 'Published' : 'Draft') : 'Not Created';
+        const statusB = b.record ? (b.record.publishedAt ? 'Published' : 'Draft') : 'Not Created';
+        return statusA.localeCompare(statusB);
+      },
+      renderHeaderCell: () => 'Status',
+      renderCell: (item) => {
+        if (!item.record) {
+          return <Badge appearance="tint" color="informative">Not Created</Badge>;
+        }
+        if (item.record.publishedAt) {
+          return <Badge appearance="filled" color="success">Published</Badge>;
+        }
+        return <Badge appearance="tint" color="warning">Draft</Badge>;
+      },
+    }),
+    createTableColumn<ContentRowItem>({
+      columnId: 'version',
+      compare: (a, b) => (a.record?.version || 0) - (b.record?.version || 0),
+      renderHeaderCell: () => 'Version',
+      renderCell: (item) => (
+        <Text style={{ color: tokens.colorNeutralForeground3 }}>
+          {item.record?.version ? `v${item.record.version}` : '-'}
+        </Text>
+      ),
+    }),
+    createTableColumn<ContentRowItem>({
+      columnId: 'lastUpdated',
+      compare: (a, b) => {
+        const dateA = a.record?.updatedAt || '';
+        const dateB = b.record?.updatedAt || '';
+        return dateA.localeCompare(dateB);
+      },
+      renderHeaderCell: () => 'Last Updated',
+      renderCell: (item) => (
+        <Text style={{ color: tokens.colorNeutralForeground3, fontSize: '13px' }}>
+          {item.record ? formatDate(item.record.updatedAt) : '-'}
+        </Text>
+      ),
+    }),
+    createTableColumn<ContentRowItem>({
+      columnId: 'actions',
+      renderHeaderCell: () => '',
+      renderCell: (item) => (
+        <Link to={`/admin/content/${item.key}`} className={styles.linkNoDecoration}>
+          <Button appearance="subtle" size="small">
+            Edit
+          </Button>
+        </Link>
+      ),
+    }),
+  ];
+
+  const publishedCount = content.filter((c) => c.publishedAt).length;
+  const draftCount = content.filter((c) => !c.publishedAt).length;
+
   return (
     <AdminLayout>
-      <div className="admin-header">
-        <h1>Dashboard</h1>
-        <p>Overview of your portfolio content</p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        subtitle="Overview of your portfolio content"
+      />
 
       {error && (
-        <div className="admin-alert admin-alert-error">{error}</div>
+        <MessageBar intent="error" className={styles.alert}>
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
       )}
 
       {/* Stats */}
-      <div className="admin-stats-grid">
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Content Types</div>
-          <div className="admin-stat-value">{contentTypes.length}</div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Published</div>
-          <div className="admin-stat-value">
-            {content.filter((c) => c.publishedAt).length}
-          </div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Drafts</div>
-          <div className="admin-stat-value">
-            {content.filter((c) => !c.publishedAt).length}
-          </div>
-        </div>
-        <div className="admin-stat-card">
-          <div className="admin-stat-label">Total Records</div>
-          <div className="admin-stat-value">{content.length}</div>
-        </div>
+      <div className={styles.statsGrid}>
+        <Card className={`${styles.statCard} ${styles.statAccent1}`}>
+          <Text className={styles.statLabel} block>Content Types</Text>
+          <Text className={styles.statValue} block>{contentTypes.length}</Text>
+        </Card>
+        <Card className={`${styles.statCard} ${styles.statAccent2}`}>
+          <Text className={styles.statLabel} block>Published</Text>
+          <Text className={styles.statValue} block>{publishedCount}</Text>
+        </Card>
+        <Card className={`${styles.statCard} ${styles.statAccent3}`}>
+          <Text className={styles.statLabel} block>Drafts</Text>
+          <Text className={styles.statValue} block>{draftCount}</Text>
+        </Card>
+        <Card className={`${styles.statCard} ${styles.statAccent4}`}>
+          <Text className={styles.statLabel} block>Total Records</Text>
+          <Text className={styles.statValue} block>{content.length}</Text>
+        </Card>
       </div>
 
       {/* Content Overview */}
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <h2 className="admin-card-title">Content Sections</h2>
-          <button
-            className="admin-btn admin-btn-secondary admin-btn-sm"
+      <Card className={styles.card}>
+        <div className={styles.cardHeaderRow}>
+          <Text className={styles.cardHeaderTitle}>Content Sections</Text>
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={<ArrowSyncRegular />}
             onClick={fetchData}
             disabled={isLoading}
           >
             {isLoading ? 'Loading...' : 'Refresh'}
-          </button>
+          </Button>
         </div>
-        <div className="admin-card-body" style={{ padding: 0 }}>
+        <div className={styles.cardBodyNoPadding}>
           {isLoading ? (
-            <div className="admin-loading-container" style={{ minHeight: '200px' }}>
-              <div className="admin-loading-spinner"></div>
+            <div className={styles.spinnerContainer}>
+              <Spinner />
             </div>
           ) : (
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th>Section</th>
-                  <th>Status</th>
-                  <th>Version</th>
-                  <th>Last Updated</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {contentTypes.map((type) => {
-                  const record = getContentByType(type.key);
-                  return (
-                    <tr key={type.key}>
-                      <td>
-                        <span
-                          dangerouslySetInnerHTML={{ __html: type.icon }}
-                          style={{ marginRight: '0.5rem' }}
-                        />
-                        {type.label}
-                      </td>
-                      <td>
-                        {record ? (
-                          record.publishedAt ? (
-                            <span className="admin-badge admin-badge-success">
-                              Published
-                            </span>
-                          ) : (
-                            <span className="admin-badge admin-badge-warning">
-                              Draft
-                            </span>
-                          )
-                        ) : (
-                          <span className="admin-badge admin-badge-info">
-                            Not Created
-                          </span>
-                        )}
-                      </td>
-                      <td>{record?.version || '-'}</td>
-                      <td>{record ? formatDate(record.updatedAt) : '-'}</td>
-                      <td>
-                        <div className="admin-btn-group">
-                          <Link
-                            to={`/admin/content/${type.key}`}
-                            className="admin-btn admin-btn-primary admin-btn-sm"
-                          >
-                            Edit
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+            <DataGrid
+              items={gridItems}
+              columns={columns}
+              getRowId={(item) => item.key}
+              sortable
+            >
+              <DataGridHeader>
+                <DataGridRow>
+                  {({ renderHeaderCell }) => (
+                    <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                  )}
+                </DataGridRow>
+              </DataGridHeader>
+              <DataGridBody<ContentRowItem>>
+                {({ item, rowId }) => (
+                  <DataGridRow<ContentRowItem> key={rowId}>
+                    {({ renderCell }) => (
+                      <DataGridCell>{renderCell(item)}</DataGridCell>
+                    )}
+                  </DataGridRow>
+                )}
+              </DataGridBody>
+            </DataGrid>
           )}
         </div>
-      </div>
+      </Card>
 
       {/* Quick Links */}
-      <div className="admin-card">
-        <div className="admin-card-header">
-          <h2 className="admin-card-title">Quick Actions</h2>
+      <Card className={styles.card}>
+        <div className={styles.cardHeaderRow}>
+          <Text className={styles.cardHeaderTitle}>Quick Actions</Text>
         </div>
-        <div className="admin-card-body">
-          <div className="admin-btn-group" style={{ flexWrap: 'wrap', gap: '0.5rem' }}>
-            <a
+        <div className={styles.cardBody}>
+          <div className={styles.quickActionsRow}>
+            <Button
+              as="a"
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="admin-btn admin-btn-secondary"
+              appearance="secondary"
+              icon={<OpenRegular />}
+              size="small"
             >
               View Portfolio
-            </a>
-            <Link to="/admin/content" className="admin-btn admin-btn-primary">
-              Manage Content
+            </Button>
+            <Link to="/admin/content" className={styles.linkNoDecoration}>
+              <Button appearance="primary" size="small">Manage Content</Button>
             </Link>
-            <Link to="/admin/schema" className="admin-btn admin-btn-secondary">
-              Manage Content Types
+            <Link to="/admin/schema" className={styles.linkNoDecoration}>
+              <Button appearance="secondary" size="small">Manage Content Types</Button>
             </Link>
-            <Link to="/admin/schema/new" className="admin-btn admin-btn-primary">
-              + New Content Type
+            <Link to="/admin/schema/new" className={styles.linkNoDecoration}>
+              <Button appearance="primary" size="small">+ New Content Type</Button>
             </Link>
           </div>
         </div>
-      </div>
+      </Card>
 
       {/* Dynamic Schema Info */}
       {entityDefinitions.length > 0 && (
-        <div className="admin-card">
-          <div className="admin-card-header">
-            <h2 className="admin-card-title">Dynamic Schema</h2>
-            <span className="admin-badge admin-badge-success">Active</span>
+        <Card className={styles.card}>
+          <div className={styles.cardHeaderRow}>
+            <Text className={styles.cardHeaderTitle}>Dynamic Schema</Text>
+            <Badge appearance="tint" color="success">Active</Badge>
           </div>
-          <div className="admin-card-body">
-            <p style={{ marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>
+          <div className={styles.cardBody}>
+            <Text className={styles.schemaParagraph} block>
               Your CMS is using dynamic content types. You can create and modify content type schemas from the Content Types page.
-            </p>
-            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+            </Text>
+            <div className={styles.schemaChipsRow}>
               {entityDefinitions.slice(0, 6).map((def) => (
-                <Link
-                  key={def.id}
-                  to={`/admin/schema/${def.id}`}
-                  className="admin-schema-chip"
-                  style={{
-                    padding: '0.5rem 1rem',
-                    background: 'var(--admin-bg)',
-                    borderRadius: '4px',
-                    textDecoration: 'none',
-                    color: 'var(--admin-text)',
-                    border: '1px solid var(--admin-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                  }}
-                >
-                  {def.icon && <span>{def.icon}</span>}
-                  <span>{def.displayName || def.name}</span>
-                  <span className="admin-badge admin-badge-info" style={{ fontSize: '0.7rem' }}>
-                    {def.isSingleton ? 'Singleton' : 'Collection'}
-                  </span>
+                <Link key={def.id} to={`/admin/schema/${def.id}`} className={styles.linkNoDecoration}>
+                  <Card className={styles.schemaChip}>
+                    {def.icon && <span>{def.icon}</span>}
+                    <Text weight="semibold" size={200}>{def.displayName || def.name}</Text>
+                    <Badge appearance="tint" color="informative" size="small">
+                      {def.isSingleton ? 'Singleton' : 'Collection'}
+                    </Badge>
+                  </Card>
                 </Link>
               ))}
               {entityDefinitions.length > 6 && (
-                <Link
-                  to="/admin/schema"
-                  style={{
-                    padding: '0.5rem 1rem',
-                    color: 'var(--admin-primary)',
-                    textDecoration: 'none',
-                  }}
-                >
-                  +{entityDefinitions.length - 6} more...
+                <Link to="/admin/schema" className={styles.schemaMoreLink}>
+                  +{entityDefinitions.length - 6} more
                 </Link>
               )}
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </AdminLayout>
   );

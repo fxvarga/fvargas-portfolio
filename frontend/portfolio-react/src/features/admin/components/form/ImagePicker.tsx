@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Field, Input, makeStyles, tokens } from '@fluentui/react-components';
 
 interface ImagePickerProps {
   label: string;
@@ -7,12 +8,39 @@ interface ImagePickerProps {
   helpText?: string;
 }
 
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+  content: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalM,
+    alignItems: 'flex-start',
+  },
+  preview: {
+    width: '80px',
+    height: '80px',
+    borderRadius: tokens.borderRadiusMedium,
+    objectFit: 'cover' as const,
+    border: `1px solid ${tokens.colorNeutralStroke1}`,
+  },
+  fields: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+});
+
 const ImagePicker: React.FC<ImagePickerProps> = ({
   label,
   value,
   onChange,
   helpText,
 }) => {
+  const styles = useStyles();
   const [showPreview, setShowPreview] = useState(true);
 
   const handleUrlChange = (url: string) => {
@@ -24,41 +52,36 @@ const ImagePicker: React.FC<ImagePickerProps> = ({
   };
 
   return (
-    <div className="admin-image-picker">
-      <label className="admin-image-picker-label">{label}</label>
-      <div className="admin-image-picker-content">
-        {showPreview && value.url && (
-          <div className="admin-image-preview">
+    <div className={styles.root}>
+      <Field label={label} hint={helpText}>
+        <div className={styles.content}>
+          {showPreview && value.url && (
             <img
               src={value.url}
               alt={value.alt || 'Preview'}
+              className={styles.preview}
               onError={() => setShowPreview(false)}
               onLoad={() => setShowPreview(true)}
             />
-          </div>
-        )}
-        <div className="admin-image-fields">
-          <div className="admin-form-group">
-            <label>Image URL</label>
-            <input
-              type="text"
-              value={value.url || ''}
-              onChange={(e) => handleUrlChange(e.target.value)}
-              placeholder="/assets/images/..."
-            />
-          </div>
-          <div className="admin-form-group">
-            <label>Alt Text</label>
-            <input
-              type="text"
-              value={value.alt || ''}
-              onChange={(e) => handleAltChange(e.target.value)}
-              placeholder="Describe the image..."
-            />
+          )}
+          <div className={styles.fields}>
+            <Field label="Image URL">
+              <Input
+                value={value.url || ''}
+                onChange={(_e, data) => handleUrlChange(data.value)}
+                placeholder="/assets/images/..."
+              />
+            </Field>
+            <Field label="Alt Text">
+              <Input
+                value={value.alt || ''}
+                onChange={(_e, data) => handleAltChange(data.value)}
+                placeholder="Describe the image..."
+              />
+            </Field>
           </div>
         </div>
-      </div>
-      {helpText && <span className="admin-help-text">{helpText}</span>}
+      </Field>
     </div>
   );
 };

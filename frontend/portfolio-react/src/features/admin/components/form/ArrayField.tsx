@@ -1,4 +1,17 @@
 import React from 'react';
+import {
+  Button,
+  Text,
+  Card,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import {
+  AddRegular,
+  ArrowUpRegular,
+  ArrowDownRegular,
+  DismissRegular,
+} from '@fluentui/react-icons';
 
 interface ArrayFieldProps<T> {
   label: string;
@@ -11,6 +24,53 @@ interface ArrayFieldProps<T> {
   minItems?: number;
 }
 
+const useStyles = makeStyles({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '10px',
+  },
+  header: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerLabel: {
+    fontSize: '13px',
+    letterSpacing: '-0.01em',
+  },
+  items: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  itemCard: {
+    borderLeft: `3px solid ${tokens.colorNeutralStroke2}`,
+  },
+  itemHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '8px',
+  },
+  itemLabel: {
+    fontSize: '12px',
+    letterSpacing: '-0.01em',
+    color: tokens.colorNeutralForeground2,
+  },
+  itemActions: {
+    display: 'flex',
+    gap: '2px',
+  },
+  empty: {
+    color: tokens.colorNeutralForeground3,
+    fontStyle: 'italic',
+    padding: '16px',
+    textAlign: 'center' as const,
+    fontSize: '13px',
+  },
+});
+
 function ArrayField<T>({
   label,
   items,
@@ -21,6 +81,8 @@ function ArrayField<T>({
   maxItems,
   minItems = 0,
 }: ArrayFieldProps<T>) {
+  const styles = useStyles();
+
   const handleAdd = () => {
     if (maxItems && items.length >= maxItems) return;
     onChange([...items, createItem()]);
@@ -57,64 +119,60 @@ function ArrayField<T>({
   const canRemove = items.length > minItems;
 
   return (
-    <div className="admin-array-field">
-      <div className="admin-array-field-header">
-        <label>{label}</label>
-        <button
-          type="button"
-          className="admin-btn admin-btn-sm admin-btn-primary"
+    <div className={styles.root}>
+      <div className={styles.header}>
+        <Text weight="semibold" className={styles.headerLabel}>{label}</Text>
+        <Button
+          appearance="subtle"
+          size="small"
+          icon={<AddRegular />}
           onClick={handleAdd}
           disabled={!canAdd}
         >
-          + Add
-        </button>
+          Add
+        </Button>
       </div>
-      <div className="admin-array-field-items">
+      <div className={styles.items}>
         {items.length === 0 ? (
-          <div className="admin-array-field-empty">
-            No items yet. Click "Add" to create one.
-          </div>
+          <Text className={styles.empty}>
+            No items yet. Click &ldquo;Add&rdquo; to create one.
+          </Text>
         ) : (
           items.map((item, index) => (
-            <div key={index} className="admin-array-field-item">
-              <div className="admin-array-field-item-header">
-                <span className="admin-array-field-item-label">
+            <Card key={index} size="small" className={styles.itemCard}>
+              <div className={styles.itemHeader}>
+                <Text weight="semibold" className={styles.itemLabel}>
                   {itemLabel ? itemLabel(item, index) : `Item ${index + 1}`}
-                </span>
-                <div className="admin-array-field-item-actions">
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn-sm admin-btn-secondary"
+                </Text>
+                <div className={styles.itemActions}>
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ArrowUpRegular />}
                     onClick={() => handleMoveUp(index)}
                     disabled={index === 0}
                     title="Move up"
-                  >
-                    ↑
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn-sm admin-btn-secondary"
+                  />
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<ArrowDownRegular />}
                     onClick={() => handleMoveDown(index)}
                     disabled={index === items.length - 1}
                     title="Move down"
-                  >
-                    ↓
-                  </button>
-                  <button
-                    type="button"
-                    className="admin-btn admin-btn-sm admin-btn-danger"
+                  />
+                  <Button
+                    appearance="subtle"
+                    size="small"
+                    icon={<DismissRegular />}
                     onClick={() => handleRemove(index)}
                     disabled={!canRemove}
                     title="Remove"
-                  >
-                    ×
-                  </button>
+                  />
                 </div>
               </div>
-              <div className="admin-array-field-item-content">
-                {renderItem(item, index, (newItem) => handleItemChange(index, newItem))}
-              </div>
-            </div>
+              {renderItem(item, index, (newItem) => handleItemChange(index, newItem))}
+            </Card>
           ))
         )}
       </div>

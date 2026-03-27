@@ -235,6 +235,105 @@
         1520,
         700
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalize phone to E.164 and build SMS welcome message\nconst lead = $('Parse & Prepare').first().json.lead;\nconst phone = (lead.phone || '').trim();\n\n// Strip all non-digit characters\nlet digits = phone.replace(/[^0-9]/g, '');\n\n// Normalize to E.164 for US numbers\nlet e164Phone = '';\nif (digits.length === 10) {\n  e164Phone = '+1' + digits;\n} else if (digits.length === 11 && digits.startsWith('1')) {\n  e164Phone = '+' + digits;\n} else if (phone.startsWith('+') && digits.length >= 10) {\n  e164Phone = '+' + digits;\n}\n\n// Validate: must be E.164 format with at least 11 digits\nconst isValid = /^\\+[1-9]\\d{10,14}$/.test(e164Phone);\n\n// TRIAL MODE: Override To number to verified number only.\n// Remove this line and use e164Phone directly when upgraded to paid.\nconst toNumber = '+19802190610';\n\n// Build the welcome SMS body\nconst firstName = lead.firstName || 'there';\nconst smsBody = `Hi ${firstName}! Thanks for reaching out to Executive Catering CT. We've received your inquiry and are already working on a custom proposal for your event. Our team will be in touch within 24 hours. Questions? Reply to this text or call us anytime! - Executive Catering CT. Reply STOP to opt out.`;\n\n// Twilio credentials from env (API Key auth)\nconst twilioSid = $env.TWILIO_ACCOUNT_SID || '';\nconst twilioApiKey = $env.TWILIO_API_KEY_SID || '';\nconst twilioApiSecret = $env.TWILIO_API_KEY_SECRET || '';\nconst twilioFrom = $env.TWILIO_PHONE_NUMBER || '';\n\n// Build Basic Auth header (Base64 encode ApiKeySid:ApiKeySecret)\nconst twilioAuth = Buffer.from(twilioApiKey + ':' + twilioApiSecret).toString('base64');\n\nreturn [{\n  json: {\n    phoneValid: isValid,\n    e164Phone: toNumber,\n    originalPhone: e164Phone,\n    smsBody,\n    twilioAccountSid: twilioSid,\n    twilioAuth,\n    twilioFromNumber: twilioFrom\n  }\n}];"
+      },
+      "id": "node-normalize-phone",
+      "name": "Normalize Phone",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1520,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "phone-valid-check",
+              "leftValue": "={{ $json.phoneValid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            },
+            {
+              "id": "twilio-configured-check",
+              "leftValue": "={{ $json.twilioAccountSid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals",
+                "name": "filter.operator.notEquals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-check-phone",
+      "name": "Phone Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1740,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $json.twilioAccountSid }}/Messages.json",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Basic {{ $json.twilioAuth }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "To",
+              "value": "={{ $json.e164Phone }}"
+            },
+            {
+              "name": "From",
+              "value": "={{ $json.twilioFromNumber }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json.smsBody }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "node-send-sms",
+      "name": "Send Welcome SMS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1960,
+        830
+      ]
     }
   ],
   "connections": {
@@ -315,8 +414,36 @@
             "node": "Send Internal Notification",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Normalize Phone",
+            "type": "main",
+            "index": 0
           }
         ]
+      ]
+    },
+    "Normalize Phone": {
+      "main": [
+        [
+          {
+            "node": "Phone Valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Phone Valid?": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome SMS",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
       ]
     }
   },

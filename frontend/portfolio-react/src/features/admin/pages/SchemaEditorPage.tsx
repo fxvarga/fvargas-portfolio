@@ -4,9 +4,15 @@ import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
 import AdminLayout from '../layout/AdminLayout';
+import PageHeader from '../components/PageHeader';
 import { FormInput, FormTextarea, FormSelect, ArrayField } from '../components/form';
 import { AttributeDefinition, EntityDefinition } from '../types/entityDefinition';
-import '../styles/admin.css';
+import {
+  Button, Card, Checkbox, Spinner, Text,
+  MessageBar, MessageBarBody,
+  makeStyles, tokens,
+} from '@fluentui/react-components';
+import { SaveRegular, ArrowLeftRegular } from '@fluentui/react-icons';
 
 const GET_ENTITY_DEFINITION = gql`
   query GetEntityDefinition($id: UUID!) {
@@ -107,7 +113,107 @@ interface FormData {
   attributes: AttributeDefinition[];
 }
 
+const useStyles = makeStyles({
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    gap: '12px',
+  },
+  editorContainer: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 320px',
+    gap: '28px',
+    alignItems: 'start',
+  },
+  editorMain: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '24px',
+  },
+  editorSidebar: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '20px',
+    position: 'sticky' as const,
+    top: '24px',
+  },
+  card: {
+    padding: '24px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(16, 24, 40, 0.02)',
+  },
+  cardHeader: {
+    marginBottom: '20px',
+    paddingBottom: '12px',
+    borderBottom: `1px solid ${tokens.colorNeutralStroke2}`,
+  },
+  cardHeaderTitle: {
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase' as const,
+    color: tokens.colorNeutralForeground3,
+  },
+  cardBody: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  grid2: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '16px',
+  },
+  grid3: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr 1fr',
+    gap: '16px',
+  },
+  marginTopSm: {
+    marginTop: '10px',
+  },
+  marginTopM: {
+    marginTop: '20px',
+  },
+  alert: {
+    marginBottom: '12px',
+  },
+  sidebarActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '8px',
+  },
+  schemaPreview: {
+    fontSize: '11px',
+    fontFamily: tokens.fontFamilyMonospace,
+    backgroundColor: '#1a1e2e',
+    color: '#c4cedd',
+    padding: '16px',
+    borderRadius: '8px',
+    overflowX: 'auto',
+    overflowY: 'auto',
+    maxHeight: '320px',
+    margin: 0,
+    whiteSpace: 'pre-wrap',
+    wordBreak: 'break-word',
+    lineHeight: '1.7',
+    letterSpacing: '0.01em',
+  },
+  attributeEditor: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  optionsGrid: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 1fr',
+    gap: '8px',
+  },
+});
+
 const SchemaEditorPage: React.FC = () => {
+  const styles = useStyles();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isNew = id === 'new';
@@ -292,8 +398,8 @@ const SchemaEditorPage: React.FC = () => {
     };
 
     return (
-      <div className="admin-attribute-editor" style={{ paddingLeft: depth > 0 ? '1rem' : 0 }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+      <div className={styles.attributeEditor} style={{ paddingLeft: depth > 0 ? '1rem' : 0 }}>
+        <div className={styles.grid2}>
           <FormInput
             label="Field Name"
             value={attr.name}
@@ -311,7 +417,7 @@ const SchemaEditorPage: React.FC = () => {
           />
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
+        <div className={`${styles.grid2} ${styles.marginTopSm}`}>
           <FormInput
             label="Display Label"
             value={attr.label || ''}
@@ -326,7 +432,7 @@ const SchemaEditorPage: React.FC = () => {
           />
         </div>
 
-        <div style={{ marginTop: '0.5rem' }}>
+        <div className={styles.marginTopSm}>
           <FormInput
             label="Help Text"
             value={attr.helpText || ''}
@@ -335,20 +441,17 @@ const SchemaEditorPage: React.FC = () => {
           />
         </div>
 
-        <div style={{ marginTop: '0.5rem' }}>
-          <label className="admin-checkbox-label">
-            <input
-              type="checkbox"
-              checked={attr.isRequired}
-              onChange={(e) => updateAttr('isRequired', e.target.checked)}
-            />
-            <span>Required field</span>
-          </label>
+        <div className={styles.marginTopSm}>
+          <Checkbox
+            label="Required field"
+            checked={attr.isRequired}
+            onChange={(_e, data) => updateAttr('isRequired', !!data.checked)}
+          />
         </div>
 
         {/* Select options */}
         {attr.type === 'select' && (
-          <div style={{ marginTop: '1rem' }}>
+          <div className={styles.marginTopM}>
             <ArrayField
               label="Options"
               items={attr.options || []}
@@ -356,7 +459,7 @@ const SchemaEditorPage: React.FC = () => {
               createItem={() => ({ value: '', label: '' })}
               itemLabel={(item) => item.label || item.value || 'New Option'}
               renderItem={(item, idx, onItemChange) => (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                <div className={styles.optionsGrid}>
                   <FormInput
                     label="Value"
                     value={item.value}
@@ -377,7 +480,7 @@ const SchemaEditorPage: React.FC = () => {
 
         {/* Reference target entity */}
         {attr.type === 'reference' && (
-          <div style={{ marginTop: '0.5rem' }}>
+          <div className={styles.marginTopSm}>
             <FormInput
               label="Target Entity"
               value={attr.targetEntity || ''}
@@ -390,7 +493,7 @@ const SchemaEditorPage: React.FC = () => {
 
         {/* Nested children for array/object types */}
         {(attr.type === 'array' || attr.type === 'object') && depth < 2 && (
-          <div style={{ marginTop: '1rem' }}>
+          <div className={styles.marginTopM}>
             <ArrayField
               label={attr.type === 'array' ? 'Array Item Fields' : 'Object Fields'}
               items={attr.children || []}
@@ -409,42 +512,52 @@ const SchemaEditorPage: React.FC = () => {
 
   return (
     <AdminLayout>
-      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1>{isNew ? 'New Content Type' : `Edit: ${formData.displayName || formData.name}`}</h1>
-          <p>Define the schema for your content type</p>
-        </div>
-        <button
-          className="admin-btn admin-btn-secondary"
-          onClick={() => navigate('/admin/schema')}
-        >
-          Back to Content Types
-        </button>
-      </div>
+      <PageHeader
+        title={isNew ? 'New Content Type' : `Edit: ${formData.displayName || formData.name}`}
+        subtitle="Define the schema for your content type"
+        actions={
+          <Button
+            appearance="subtle"
+            size="small"
+            icon={<ArrowLeftRegular />}
+            onClick={() => navigate('/admin/schema')}
+          >
+            Back to Content Types
+          </Button>
+        }
+      />
 
       {error && (
-        <div className="admin-alert admin-alert-error">{error}</div>
+        <div className={styles.alert}>
+          <MessageBar intent="error">
+            <MessageBarBody>{error}</MessageBarBody>
+          </MessageBar>
+        </div>
       )}
 
       {success && (
-        <div className="admin-alert admin-alert-success">{success}</div>
+        <div className={styles.alert}>
+          <MessageBar intent="success">
+            <MessageBarBody>{success}</MessageBarBody>
+          </MessageBar>
+        </div>
       )}
 
       {isLoading ? (
-        <div className="admin-loading-container" style={{ minHeight: '400px' }}>
-          <div className="admin-loading-spinner"></div>
-          <p>Loading content type...</p>
+        <div className={styles.loadingContainer}>
+          <Spinner />
+          <Text>Loading content type...</Text>
         </div>
       ) : (
-        <div className="admin-editor-container">
-          <div className="admin-editor-main">
+        <div className={styles.editorContainer}>
+          <div className={styles.editorMain}>
             {/* Basic Info */}
-            <div className="admin-card">
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">Basic Information</h2>
+            <Card className={styles.card}>
+              <div className={styles.cardHeader}>
+                <Text className={styles.cardHeaderTitle}>Basic Information</Text>
               </div>
-              <div className="admin-card-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div className={styles.cardBody}>
+                <div className={styles.grid2}>
                   <FormInput
                     label="Name (slug)"
                     value={formData.name}
@@ -463,7 +576,7 @@ const SchemaEditorPage: React.FC = () => {
                   />
                 </div>
 
-                <div style={{ marginTop: '1rem' }}>
+                <div className={styles.marginTopM}>
                   <FormTextarea
                     label="Description"
                     value={formData.description}
@@ -473,7 +586,7 @@ const SchemaEditorPage: React.FC = () => {
                   />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginTop: '1rem' }}>
+                <div className={`${styles.grid3} ${styles.marginTopM}`}>
                   <FormInput
                     label="Icon"
                     value={formData.icon}
@@ -499,14 +612,14 @@ const SchemaEditorPage: React.FC = () => {
                   />
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Fields */}
-            <div className="admin-card" style={{ marginTop: '1.5rem' }}>
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">Fields</h2>
+            <Card className={styles.card}>
+              <div className={styles.cardHeader}>
+                <Text className={styles.cardHeaderTitle}>Fields</Text>
               </div>
-              <div className="admin-card-body">
+              <div className={styles.cardBody}>
                 <ArrayField
                   label=""
                   items={formData.attributes}
@@ -518,48 +631,43 @@ const SchemaEditorPage: React.FC = () => {
                   }
                 />
               </div>
-            </div>
+            </Card>
           </div>
 
-          <div className="admin-editor-sidebar">
+          <div className={styles.editorSidebar}>
             {/* Actions */}
-            <div className="admin-card">
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">Actions</h2>
+            <Card className={styles.card}>
+              <div className={styles.cardHeader}>
+                <Text className={styles.cardHeaderTitle}>Actions</Text>
               </div>
-              <div className="admin-card-body">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  <button
-                    className="admin-btn admin-btn-primary admin-btn-full"
+              <div className={styles.cardBody}>
+                <div className={styles.sidebarActions}>
+                  <Button
+                    appearance="primary"
+                    icon={<SaveRegular />}
                     onClick={handleSave}
                     disabled={isSaving}
                   >
                     {isSaving ? 'Saving...' : isNew ? 'Create Content Type' : 'Save Changes'}
-                  </button>
-                  <button
-                    className="admin-btn admin-btn-secondary admin-btn-full"
+                  </Button>
+                  <Button
+                    appearance="subtle"
+                    size="small"
                     onClick={() => navigate('/admin/schema')}
                   >
                     Cancel
-                  </button>
+                  </Button>
                 </div>
               </div>
-            </div>
+            </Card>
 
             {/* Preview */}
-            <div className="admin-card">
-              <div className="admin-card-header">
-                <h2 className="admin-card-title">Schema Preview</h2>
+            <Card className={styles.card}>
+              <div className={styles.cardHeader}>
+                <Text className={styles.cardHeaderTitle}>Schema Preview</Text>
               </div>
-              <div className="admin-card-body">
-                <pre style={{ 
-                  fontSize: '0.75rem', 
-                  background: 'var(--admin-bg)', 
-                  padding: '0.5rem', 
-                  borderRadius: '4px',
-                  overflow: 'auto',
-                  maxHeight: '300px'
-                }}>
+              <div className={styles.cardBody}>
+                <pre className={styles.schemaPreview}>
                   {JSON.stringify(
                     {
                       name: formData.name,
@@ -576,7 +684,7 @@ const SchemaEditorPage: React.FC = () => {
                   )}
                 </pre>
               </div>
-            </div>
+            </Card>
           </div>
         </div>
       )}

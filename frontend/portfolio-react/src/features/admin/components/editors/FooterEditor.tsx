@@ -1,5 +1,6 @@
 import React from 'react';
 import { ImagePicker } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface FooterData {
   logo: {
@@ -14,6 +15,7 @@ interface FooterEditorProps {
 }
 
 const FooterEditor: React.FC<FooterEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   const handleLogoChange = (logo: { url: string; alt: string }) => {
     onChange({ ...data, logo });
   };
@@ -24,7 +26,7 @@ const FooterEditor: React.FC<FooterEditorProps> = ({ data, onChange }) => {
   };
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <ImagePicker
         label="Footer Logo"
         value={safeData.logo}

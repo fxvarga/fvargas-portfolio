@@ -1,0 +1,1 @@
+type:ActualCost timeframe:Custom timePeriod:from:2026-02-16T00:00:00Z timePeriod:to:2026-03-18T00:00:00Z dataset:granularity:None dataset:aggregation:{totalCost:name:Cost} dataset:aggregation:{totalCost:function:Sum} dataset:grouping:[type:Dimension] dataset:grouping:[name:ResourceId]

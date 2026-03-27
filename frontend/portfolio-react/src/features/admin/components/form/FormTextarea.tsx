@@ -1,4 +1,5 @@
 import React from 'react';
+import { Field, Textarea } from '@fluentui/react-components';
 
 interface FormTextareaProps {
   label: string;
@@ -27,33 +28,28 @@ const FormTextarea: React.FC<FormTextareaProps> = ({
 }) => {
   const charCount = value?.length || 0;
 
+  const hintContent = maxLength
+    ? `${helpText ? helpText + ' | ' : ''}${charCount}/${maxLength}`
+    : helpText;
+
   return (
-    <div className="admin-form-group">
-      <label>
-        {label}
-        {required && <span className="admin-required">*</span>}
-      </label>
-      <textarea
+    <Field
+      label={label}
+      required={required}
+      hint={!error ? hintContent : undefined}
+      validationMessage={error}
+      validationState={error ? 'error' : undefined}
+    >
+      <Textarea
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(_e, data) => onChange(data.value)}
         placeholder={placeholder}
         rows={rows}
         maxLength={maxLength}
         disabled={disabled}
-        className={error ? 'admin-input-error' : ''}
+        resize="vertical"
       />
-      <div className="admin-textarea-footer">
-        {helpText && !error && (
-          <span className="admin-help-text">{helpText}</span>
-        )}
-        {error && <span className="admin-error-text">{error}</span>}
-        {maxLength && (
-          <span className="admin-char-count">
-            {charCount}/{maxLength}
-          </span>
-        )}
-      </div>
-    </div>
+    </Field>
   );
 };
 

@@ -1,5 +1,13 @@
 import React from 'react';
 import {
+  Checkbox,
+  Field,
+  Input,
+  Text,
+  makeStyles,
+  tokens,
+} from '@fluentui/react-components';
+import {
   FormInput,
   FormTextarea,
   FormSelect,
@@ -20,9 +28,17 @@ interface DynamicFieldRendererProps {
   attribute: AttributeDefinition;
   value: unknown;
   onChange: (value: unknown) => void;
-  path?: string; // For debugging/error messages
-  errors?: ValidationError[]; // Validation errors for this field
+  path?: string;
+  errors?: ValidationError[];
 }
+
+const useStyles = makeStyles({
+  arrayItemFields: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: tokens.spacingVerticalS,
+  },
+});
 
 const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   attribute,
@@ -31,24 +47,14 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   path = '',
   errors = [],
 }) => {
+  const styles = useStyles();
   const label = getAttributeLabel(attribute);
   const fieldPath = path ? `${path}.${attribute.name}` : attribute.name;
-  
+
   // Get direct errors for this field (exact match)
   const directErrors = errors.filter((e) => e.field === fieldPath);
   const hasError = directErrors.length > 0;
   const errorMessage = directErrors.map((e) => e.message).join('; ');
-
-  // Helper to wrap fields with error styling
-  const wrapWithError = (element: React.ReactNode) => {
-    if (!hasError) return element;
-    return (
-      <div className="admin-field-with-error">
-        {element}
-        <span className="admin-field-error">{errorMessage}</span>
-      </div>
-    );
-  };
 
   switch (attribute.type) {
     case 'string':
@@ -81,44 +87,34 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
     case 'number':
       return (
-        <div className={`admin-form-group ${hasError ? 'admin-form-group-error' : ''}`}>
-          <label>
-            {label}
-            {attribute.isRequired && <span className="admin-required">*</span>}
-          </label>
-          <input
+        <Field
+          label={label}
+          required={attribute.isRequired}
+          hint={!hasError ? attribute.helpText : undefined}
+          validationMessage={errorMessage || undefined}
+          validationState={hasError ? 'error' : undefined}
+        >
+          <Input
             type="number"
-            value={(value as number) ?? 0}
-            onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+            value={String((value as number) ?? 0)}
+            onChange={(_e, data) => onChange(parseFloat(data.value) || 0)}
             placeholder={attribute.placeholder}
-            className={hasError ? 'admin-input-error' : ''}
           />
-          {attribute.helpText && !hasError && (
-            <span className="admin-help-text">{attribute.helpText}</span>
-          )}
-          {hasError && <span className="admin-error-text">{errorMessage}</span>}
-        </div>
+        </Field>
       );
 
     case 'boolean':
-      return wrapWithError(
-        <div className="admin-form-group admin-checkbox-group">
-          <label className="admin-checkbox-label">
-            <input
-              type="checkbox"
-              checked={Boolean(value)}
-              onChange={(e) => onChange(e.target.checked)}
-            />
-            <span>{label}</span>
-          </label>
-          {attribute.helpText && (
-            <span className="admin-help-text">{attribute.helpText}</span>
-          )}
-        </div>
+      return (
+        <Field hint={attribute.helpText}>
+          <Checkbox
+            checked={Boolean(value)}
+            onChange={(_e, data) => onChange(data.checked)}
+            label={label}
+          />
+        </Field>
       );
 
     case 'image': {
-      // Handle both string values (legacy/simple) and object values { url, alt }
       let imageValue: { url: string; alt: string };
       if (!value) {
         imageValue = { url: '', alt: '' };
@@ -127,7 +123,7 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
       } else {
         imageValue = value as { url: string; alt: string };
       }
-      return wrapWithError(
+      return (
         <ImagePicker
           label={label}
           value={imageValue}
@@ -151,7 +147,7 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
       );
 
     case 'tags':
-      return wrapWithError(
+      return (
         <TagInput
           label={label}
           value={(value as string[]) || []}
@@ -164,14 +160,12 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
     case 'array': {
       const arrayValue = (value as unknown[]) || [];
       const isSimple = isSimpleArray(attribute.children);
-      
-      // Get errors for array items
-      const getItemErrors = (index: number) => 
+
+      const getItemErrors = (index: number) =>
         errors.filter((e) => e.field.startsWith(`${fieldPath}[${index}]`));
 
       if (isSimple && attribute.children?.[0]?.type === 'string') {
-        // Simple string array - use TagInput
-        return wrapWithError(
+        return (
           <TagInput
             label={label}
             value={(arrayValue as string[]) || []}
@@ -182,15 +176,13 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         );
       }
 
-      // Complex array - use ArrayField with recursive rendering
-      return wrapWithError(
+      return (
         <ArrayField
           label={label}
           items={arrayValue}
           onChange={onChange}
           createItem={() => createDefaultArrayItem(attribute.children)}
           itemLabel={(item, index) => {
-            // Try to find a title/name field in the item
             if (item && typeof item === 'object') {
               const obj = item as Record<string, unknown>;
               const titleField = obj.title || obj.name || obj.label || obj.id;
@@ -202,9 +194,8 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
           }}
           renderItem={(item, index, onItemChange) => {
             const itemErrors = getItemErrors(index);
-            
+
             if (isSimple) {
-              // Simple array of primitives
               const child = attribute.children?.[0];
               if (child) {
                 return (
@@ -220,10 +211,9 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
               return null;
             }
 
-            // Complex array of objects - render all children fields
             const itemObj = (item as Record<string, unknown>) || {};
             return (
-              <div className="admin-array-item-fields">
+              <div className={styles.arrayItemFields}>
                 {[...(attribute.children || [])]
                   .sort((a, b) => a.order - b.order)
                   .map((child) => (
@@ -248,12 +238,10 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
     case 'object': {
       const objectValue = (value as Record<string, unknown>) || {};
       const children = attribute.children || [];
-      
-      // Get errors for object children
+
       const childErrors = errors.filter((e) => e.field.startsWith(`${fieldPath}.`));
 
       if (children.length === 0) {
-        // No children defined - show as JSON editor
         return (
           <FormTextarea
             label={label}
@@ -276,7 +264,7 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
         <FieldGroup
           title={label}
           description={attribute.helpText}
-          defaultExpanded={childErrors.length > 0} // Expand if there are errors inside
+          defaultExpanded={childErrors.length > 0}
         >
           {[...children]
             .sort((a, b) => a.order - b.order)
@@ -297,7 +285,6 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
     }
 
     case 'reference':
-      // TODO: Implement entity reference picker
       return (
         <FormInput
           label={`${label} (Reference to ${attribute.targetEntity})`}
@@ -311,12 +298,9 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
 
     default:
       return (
-        <div className="admin-form-group">
-          <label>{label}</label>
-          <div className="admin-help-text">
-            Unknown field type: {attribute.type}
-          </div>
-        </div>
+        <Field label={label}>
+          <Text size={200}>Unknown field type: {attribute.type}</Text>
+        </Field>
       );
   }
 };

@@ -1,5 +1,6 @@
 import React from 'react';
 import { FormInput, FormTextarea, FieldGroup, ArrayField, ImagePicker, TagInput } from '../form';
+import { useEditorStyles } from './editorStyles';
 
 interface ServiceApproach {
   title: string;
@@ -42,6 +43,7 @@ interface ServicesEditorProps {
 }
 
 const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
+  const styles = useEditorStyles();
   // Ensure data has proper structure
   const safeData: ServicesData = {
     label: data?.label || '',
@@ -58,7 +60,7 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
   const generateId = () => `${Date.now()}`;
 
   return (
-    <div className="admin-editor-form">
+    <div className={styles.form}>
       <FieldGroup title="Section Header" defaultExpanded>
         <FormInput
           label="Label"
@@ -101,7 +103,7 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
           })}
           itemLabel={(item) => item.title || 'New Service'}
           renderItem={(item, _index, onItemChange) => (
-            <div className="admin-editor-nested-fields">
+            <div className={styles.nestedFields}>
               <FormInput
                 label="Service Title"
                 value={item.title}
@@ -124,8 +126,8 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
                 helpText="Flaticon icon class"
               />
 
-              <div className="admin-nested-section">
-                <h4>Service Image</h4>
+              <div className={styles.nestedSection}>
+                <h4 className={styles.nestedSectionTitle}>Service Image</h4>
                 <ImagePicker
                   label="Service Image"
                   value={item.image || { url: '', alt: '' }}
@@ -134,8 +136,8 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
                 />
               </div>
 
-              <div className="admin-nested-section">
-                <h4>Dialog Content</h4>
+              <div className={styles.nestedSection}>
+                <h4 className={styles.nestedSectionTitle}>Dialog Content</h4>
                 <FormInput
                   label="Dialog Title"
                   value={item.dialogTitle || ''}
@@ -151,8 +153,8 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
                 />
               </div>
 
-              <div className="admin-nested-section">
-                <h4>Technologies</h4>
+              <div className={styles.nestedSection}>
+                <h4 className={styles.nestedSectionTitle}>Technologies</h4>
                 <TagInput
                   label="Technologies Used"
                   value={item.technologies || []}
@@ -162,8 +164,8 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
                 />
               </div>
 
-              <div className="admin-nested-section">
-                <h4>Approach</h4>
+              <div className={styles.nestedSection}>
+                <h4 className={styles.nestedSectionTitle}>Approach</h4>
                 <ArrayField
                   label="Approach Steps"
                   items={item.approach || []}
@@ -171,7 +173,7 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
                   createItem={() => ({ title: '', content: '' })}
                   itemLabel={(approach) => approach.title || 'New Step'}
                   renderItem={(approach, _approachIndex, onApproachChange) => (
-                    <div className="admin-editor-nested-fields">
+                    <div className={styles.nestedFields}>
                       <FormInput
                         label="Step Title"
                         value={approach.title}
@@ -190,8 +192,8 @@ const ServicesEditor: React.FC<ServicesEditorProps> = ({ data, onChange }) => {
                 />
               </div>
 
-              <div className="admin-nested-section">
-                <h4>Call to Action</h4>
+              <div className={styles.nestedSection}>
+                <h4 className={styles.nestedSectionTitle}>Call to Action</h4>
                 <FormInput
                   label="CTA Title"
                   value={item.cta?.title || ''}

@@ -4,8 +4,16 @@ import { gql } from '@apollo/client';
 import { getClient } from '../../../api/apiProvider';
 import { getAuthToken } from '../auth/AuthContext';
 import AdminLayout from '../layout/AdminLayout';
+import PageHeader from '../components/PageHeader';
 import { EntityDefinition } from '../types/entityDefinition';
-import '../styles/admin.css';
+import {
+  Button, Badge, Card, Spinner, Text,
+  MessageBar, MessageBarBody,
+  DataGrid, DataGridHeader, DataGridRow, DataGridHeaderCell, DataGridBody, DataGridCell,
+  TableColumnDefinition, createTableColumn,
+  makeStyles, tokens,
+} from '@fluentui/react-components';
+import { AddRegular, EditRegular, DeleteRegular } from '@fluentui/react-icons';
 
 const GET_ALL_ENTITY_DEFINITIONS = gql`
   query GetAllEntityDefinitions {
@@ -35,8 +43,105 @@ const DELETE_ENTITY_DEFINITION = gql`
   }
 `;
 
+const useStyles = makeStyles({
+  loadingContainer: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '400px',
+    gap: '12px',
+  },
+  emptyStateCard: {
+    padding: '56px 48px',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(16, 24, 40, 0.02)',
+  },
+  emptyState: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    textAlign: 'center' as const,
+    gap: '6px',
+    padding: '24px',
+  },
+  emptyTitle: {
+    fontSize: '18px',
+    fontWeight: '600',
+    letterSpacing: '-0.02em',
+  },
+  emptySubtitle: {
+    color: tokens.colorNeutralForeground3,
+    fontSize: '14px',
+    lineHeight: '1.5',
+  },
+  emptyStateButton: {
+    marginTop: '20px',
+  },
+  categoryGroup: {
+    marginBottom: '32px',
+  },
+  categoryTitle: {
+    display: 'block',
+    marginBottom: '12px',
+    fontSize: '11px',
+    fontWeight: '600',
+    letterSpacing: '0.06em',
+    textTransform: 'uppercase' as const,
+    color: tokens.colorNeutralForeground3,
+  },
+  tableCard: {
+    padding: '0',
+    overflow: 'hidden',
+    borderRadius: '12px',
+    boxShadow: '0 1px 3px rgba(16, 24, 40, 0.04), 0 1px 2px rgba(16, 24, 40, 0.02)',
+  },
+  actionsCell: {
+    display: 'flex',
+    gap: tokens.spacingHorizontalXS,
+  },
+  codeName: {
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: '12px',
+    color: tokens.colorNeutralForeground2,
+    letterSpacing: '-0.01em',
+  },
+  displayName: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  iconSpan: {
+    fontSize: '16px',
+    lineHeight: 1,
+  },
+  dangerButton: {
+    backgroundColor: tokens.colorPaletteRedBackground3,
+    color: tokens.colorNeutralForegroundOnBrand,
+    ':hover': {
+      backgroundColor: tokens.colorPaletteRedForeground1,
+    },
+  },
+  errorBar: {
+    marginBottom: '16px',
+  },
+  dataGrid: {
+    width: '100%',
+  },
+  fieldCount: {
+    fontFamily: tokens.fontFamilyMonospace,
+    fontSize: '12px',
+  },
+  dateText: {
+    fontSize: '13px',
+    color: tokens.colorNeutralForeground3,
+  },
+});
+
 const SchemaListPage: React.FC = () => {
   const navigate = useNavigate();
+  const styles = useStyles();
   const [definitions, setDefinitions] = useState<EntityDefinition[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,125 +214,176 @@ const SchemaListPage: React.FC = () => {
     {}
   );
 
+  const columns: TableColumnDefinition<EntityDefinition>[] = [
+    createTableColumn<EntityDefinition>({
+      columnId: 'name',
+      compare: (a, b) => a.name.localeCompare(b.name),
+      renderHeaderCell: () => 'Name',
+      renderCell: (item) => (
+        <span className={styles.codeName}>{item.name}</span>
+      ),
+    }),
+    createTableColumn<EntityDefinition>({
+      columnId: 'displayName',
+      compare: (a, b) => (a.displayName || '').localeCompare(b.displayName || ''),
+      renderHeaderCell: () => 'Display Name',
+      renderCell: (item) => (
+        <div className={styles.displayName}>
+          {item.icon && <span className={styles.iconSpan}>{item.icon}</span>}
+          <Text weight="semibold">{item.displayName || '-'}</Text>
+        </div>
+      ),
+    }),
+    createTableColumn<EntityDefinition>({
+      columnId: 'fields',
+      compare: (a, b) => a.attributes.length - b.attributes.length,
+      renderHeaderCell: () => 'Fields',
+      renderCell: (item) => (
+        <Badge appearance="tint" color="informative">
+          <span className={styles.fieldCount}>{item.attributes.length}</span> fields
+        </Badge>
+      ),
+    }),
+    createTableColumn<EntityDefinition>({
+      columnId: 'type',
+      compare: (a, b) => Number(a.isSingleton) - Number(b.isSingleton),
+      renderHeaderCell: () => 'Type',
+      renderCell: (item) => (
+        <Badge appearance="tint" color={item.isSingleton ? 'warning' : 'success'}>
+          {item.isSingleton ? 'Singleton' : 'Collection'}
+        </Badge>
+      ),
+    }),
+    createTableColumn<EntityDefinition>({
+      columnId: 'updated',
+      compare: (a, b) => new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime(),
+      renderHeaderCell: () => 'Updated',
+      renderCell: (item) => (
+        <Text className={styles.dateText}>{formatDate(item.updatedAt)}</Text>
+      ),
+    }),
+    createTableColumn<EntityDefinition>({
+      columnId: 'actions',
+      renderHeaderCell: () => 'Actions',
+      renderCell: (item) => (
+        <div className={styles.actionsCell}>
+          {deleteConfirm === item.id ? (
+            <>
+              <Button
+                size="small"
+                className={styles.dangerButton}
+                onClick={() => handleDelete(item.id)}
+              >
+                Confirm
+              </Button>
+              <Button
+                size="small"
+                appearance="subtle"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<EditRegular />}
+                onClick={() => navigate(`/admin/schema/${item.id}`)}
+              >
+                Edit
+              </Button>
+              <Button
+                size="small"
+                appearance="subtle"
+                icon={<DeleteRegular />}
+                onClick={() => setDeleteConfirm(item.id)}
+              >
+                Delete
+              </Button>
+            </>
+          )}
+        </div>
+      ),
+    }),
+  ];
+
   return (
     <AdminLayout>
-      <div className="admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-        <div>
-          <h1>Content Types</h1>
-          <p>Manage your CMS content type schemas</p>
-        </div>
-        <button
-          className="admin-btn admin-btn-primary"
-          onClick={() => navigate('/admin/schema/new')}
-        >
-          + New Content Type
-        </button>
-      </div>
+      <PageHeader
+        title="Content Types"
+        subtitle={`Manage your CMS content type schemas${definitions.length > 0 ? ` \u00b7 ${definitions.length} type${definitions.length !== 1 ? 's' : ''}` : ''}`}
+        actions={
+          <Button
+            appearance="primary"
+            icon={<AddRegular />}
+            onClick={() => navigate('/admin/schema/new')}
+          >
+            New Content Type
+          </Button>
+        }
+      />
 
       {error && (
-        <div className="admin-alert admin-alert-error">{error}</div>
+        <MessageBar intent="error" className={styles.errorBar}>
+          <MessageBarBody>{error}</MessageBarBody>
+        </MessageBar>
       )}
 
       {isLoading ? (
-        <div className="admin-loading-container" style={{ minHeight: '400px' }}>
-          <div className="admin-loading-spinner"></div>
-          <p>Loading content types...</p>
+        <div className={styles.loadingContainer}>
+          <Spinner />
+          <Text>Loading content types...</Text>
         </div>
       ) : definitions.length === 0 ? (
-        <div className="admin-card">
-          <div className="admin-card-body">
-            <div className="admin-empty-state">
-              <h3>No Content Types</h3>
-              <p>Create your first content type to start building dynamic content.</p>
-              <button
-                className="admin-btn admin-btn-primary"
-                onClick={() => navigate('/admin/schema/new')}
-                style={{ marginTop: '1rem' }}
-              >
-                Create Content Type
-              </button>
-            </div>
+        <Card className={styles.emptyStateCard}>
+          <div className={styles.emptyState}>
+            <Text className={styles.emptyTitle}>No Content Types</Text>
+            <Text className={styles.emptySubtitle}>
+              Create your first content type to start building dynamic content.
+            </Text>
+            <Button
+              appearance="primary"
+              className={styles.emptyStateButton}
+              onClick={() => navigate('/admin/schema/new')}
+            >
+              Create Content Type
+            </Button>
           </div>
-        </div>
+        </Card>
       ) : (
         Object.entries(groupedDefinitions).map(([category, defs]) => (
-          <div key={category} style={{ marginBottom: '2rem' }}>
+          <div key={category} className={styles.categoryGroup}>
             {Object.keys(groupedDefinitions).length > 1 && (
-              <h2 style={{ fontSize: '1rem', marginBottom: '1rem', color: 'var(--admin-text-muted)' }}>
-                {category}
-              </h2>
+              <Text className={styles.categoryTitle}>{category}</Text>
             )}
-            <div className="admin-card">
-              <table className="admin-table">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Display Name</th>
-                    <th>Fields</th>
-                    <th>Type</th>
-                    <th>Updated</th>
-                    <th style={{ width: '150px' }}>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {defs.map((def) => (
-                    <tr key={def.id}>
-                      <td>
-                        <code style={{ fontSize: '0.875rem' }}>{def.name}</code>
-                      </td>
-                      <td>
-                        {def.icon && <span style={{ marginRight: '0.5rem' }}>{def.icon}</span>}
-                        {def.displayName || '-'}
-                      </td>
-                      <td>
-                        <span className="admin-badge admin-badge-info">
-                          {def.attributes.length} fields
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`admin-badge ${def.isSingleton ? 'admin-badge-warning' : 'admin-badge-success'}`}>
-                          {def.isSingleton ? 'Singleton' : 'Collection'}
-                        </span>
-                      </td>
-                      <td>{formatDate(def.updatedAt)}</td>
-                      <td>
-                        {deleteConfirm === def.id ? (
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <button
-                              className="admin-btn admin-btn-sm admin-btn-danger"
-                              onClick={() => handleDelete(def.id)}
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              className="admin-btn admin-btn-sm admin-btn-secondary"
-                              onClick={() => setDeleteConfirm(null)}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'flex', gap: '0.25rem' }}>
-                            <button
-                              className="admin-btn admin-btn-sm admin-btn-secondary"
-                              onClick={() => navigate(`/admin/schema/${def.id}`)}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              className="admin-btn admin-btn-sm admin-btn-danger"
-                              onClick={() => setDeleteConfirm(def.id)}
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Card className={styles.tableCard}>
+              <DataGrid
+                items={defs}
+                columns={columns}
+                getRowId={(item) => item.id}
+                sortable
+                className={styles.dataGrid}
+              >
+                <DataGridHeader>
+                  <DataGridRow>
+                    {({ renderHeaderCell }) => (
+                      <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>
+                    )}
+                  </DataGridRow>
+                </DataGridHeader>
+                <DataGridBody<EntityDefinition>>
+                  {({ item, rowId }) => (
+                    <DataGridRow<EntityDefinition> key={rowId}>
+                      {({ renderCell }) => (
+                        <DataGridCell>{renderCell(item)}</DataGridCell>
+                      )}
+                    </DataGridRow>
+                  )}
+                </DataGridBody>
+              </DataGrid>
+            </Card>
           </div>
         ))
       )}
