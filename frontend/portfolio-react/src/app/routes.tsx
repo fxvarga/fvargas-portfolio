@@ -5,6 +5,7 @@ import WorkDetailPage from '../features/public/work/WorkDetailPage';
 import { ConfigProvider } from './providers/ConfigProvider';
 import AppWithApollo from './providers/ApolloProvider';
 import { CMSProvider } from '../shared/hooks/useCMS';
+import { CmsAgentWrapper } from '../features/agent/CmsAgentWrapper';
 
 // Lazy load admin, OS experience, and blog for code splitting
 const AdminApp = lazy(() => import('../features/admin'));
@@ -19,6 +20,7 @@ const AllRoute = () => {
       <ConfigProvider>
         <AppWithApollo>
           <CMSProvider>
+            <CmsAgentWrapper>
             <BrowserRouter>
               <Routes>
                 {/* Public routes */}
@@ -65,6 +67,7 @@ const AllRoute = () => {
                 />
               </Routes>
             </BrowserRouter>
+            </CmsAgentWrapper>
           </CMSProvider>
         </AppWithApollo>
       </ConfigProvider>

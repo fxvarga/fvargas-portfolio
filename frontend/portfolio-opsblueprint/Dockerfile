@@ -1,18 +1,29 @@
-# Build stage
+# Build stage — workspace-aware build that includes @fvargas/cms-agent-panel
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package.json ./
+# Install pnpm v9 (v10 blocks build scripts by default, breaking esbuild)
+RUN npm install -g pnpm@9
 
-# Install dependencies (no lockfile yet, will be generated)
-RUN npm install
+# Copy workspace root config and lockfile
+COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 
-# Copy source code
-COPY . .
+# Copy package.json files for all workspace members (for dependency resolution)
+COPY packages/cms-agent-panel/package.json packages/cms-agent-panel/
+COPY frontend/portfolio-opsblueprint/package.json frontend/portfolio-opsblueprint/
+
+# Install all workspace dependencies from root
+RUN pnpm install --frozen-lockfile
+
+# Copy the cms-agent-panel source and build it first
+COPY packages/cms-agent-panel/ packages/cms-agent-panel/
+RUN pnpm --filter @fvargas/cms-agent-panel build
+
+# Copy portfolio-opsblueprint source
+COPY frontend/portfolio-opsblueprint/ frontend/portfolio-opsblueprint/
 
 # Build the app
-RUN npm run build
+RUN pnpm --filter portfolio-opsblueprint build
 
 # Runtime stage - serve with nginx
 FROM nginx:1.27-alpine AS runtime
@@ -22,10 +33,10 @@ RUN rm /etc/nginx/conf.d/default.conf
 RUN rm -rf /usr/share/nginx/html/*
 
 # Copy custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY frontend/portfolio-opsblueprint/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built files from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/frontend/portfolio-opsblueprint/dist /usr/share/nginx/html
 
 EXPOSE 80
 

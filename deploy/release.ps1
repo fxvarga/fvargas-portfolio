@@ -271,7 +271,7 @@ mkdir -p /opt/portfolio
 echo "Server setup complete!"
 '@
 
-    $setupScript | ssh -o StrictHostKeyChecking=no "root@$($script:DROPLET_IP)" "bash -s"
+    ($setupScript -replace "`r","") | ssh -o StrictHostKeyChecking=no "root@$($script:DROPLET_IP)" "bash -s"
     Assert-ExitCode "Server setup"
 
     Log-Success "Server setup complete"
@@ -297,29 +297,29 @@ function Build-AndPush {
     docker build -t "${backendImage}:${Tag}" -f "$ProjectRoot/backend/dotnet/Dockerfile" "$ProjectRoot/backend/dotnet"
     Assert-ExitCode "Backend build"
 
-    # Build frontend - Fernando (main site + admin)
+    # Build frontend - Fernando (main site + admin) — uses repo root for pnpm workspace
     Log-Info "Building frontend image (Fernando): $($script:FRONTEND_FERNANDO_IMAGE)"
-    docker build -t "$($script:FRONTEND_FERNANDO_IMAGE)" -f "$ProjectRoot/frontend/portfolio-react/Dockerfile" "$ProjectRoot/frontend/portfolio-react"
+    docker build -t "$($script:FRONTEND_FERNANDO_IMAGE)" -f "$ProjectRoot/frontend/portfolio-react/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend Fernando build"
 
-    # Build frontend - Jessica (photographer)
+    # Build frontend - Jessica (photographer) — uses repo root for pnpm workspace
     Log-Info "Building frontend image (Jessica): $($script:FRONTEND_JESSICA_IMAGE)"
-    docker build -t "$($script:FRONTEND_JESSICA_IMAGE)" -f "$ProjectRoot/frontend/portfolio-jessica/Dockerfile" "$ProjectRoot/frontend/portfolio-jessica"
+    docker build -t "$($script:FRONTEND_JESSICA_IMAGE)" -f "$ProjectRoot/frontend/portfolio-jessica/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend Jessica build"
 
-    # Build frontend - Busy Bee (marketing agency)
+    # Build frontend - Busy Bee (marketing agency) — uses repo root for pnpm workspace
     Log-Info "Building frontend image (Busy Bee): $($script:FRONTEND_BUSYBEE_IMAGE)"
-    docker build -t "$($script:FRONTEND_BUSYBEE_IMAGE)" -f "$ProjectRoot/frontend/portfolio-busybee/Dockerfile" "$ProjectRoot/frontend/portfolio-busybee"
+    docker build -t "$($script:FRONTEND_BUSYBEE_IMAGE)" -f "$ProjectRoot/frontend/portfolio-busybee/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend BusyBee build"
 
-    # Build frontend - Executive Catering (1stopwings + future executive catering)
+    # Build frontend - Executive Catering (1stopwings + future executive catering) — no workspace deps, uses own dir
     Log-Info "Building frontend image (Executive Catering): $($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
     docker build -t "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)" -f "$ProjectRoot/frontend/portfolio-executive-catering/Dockerfile" "$ProjectRoot/frontend/portfolio-executive-catering"
     Assert-ExitCode "Frontend Executive Catering build"
 
-    # Build frontend - OpsBlueprint (workflow automation consulting)
+    # Build frontend - OpsBlueprint (workflow automation consulting) — uses repo root for pnpm workspace
     Log-Info "Building frontend image (OpsBlueprint): $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
-    docker build -t "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)" -f "$ProjectRoot/frontend/portfolio-opsblueprint/Dockerfile" "$ProjectRoot/frontend/portfolio-opsblueprint"
+    docker build -t "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)" -f "$ProjectRoot/frontend/portfolio-opsblueprint/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend OpsBlueprint build"
 
     # Build n8n Python Helper
@@ -414,6 +414,20 @@ function Deploy-ToServer {
     $azureOpenaiApiVersion       = if ($script:AZURE_OPENAI_API_VERSION)        { $script:AZURE_OPENAI_API_VERSION }        else { "" }
     $emailCategoriesFileId       = if ($script:EMAIL_CATEGORIES_FILE_ID)       { $script:EMAIL_CATEGORIES_FILE_ID }       else { "" }
     $emailCategoriesTableName    = if ($script:EMAIL_CATEGORIES_TABLE_NAME)    { $script:EMAIL_CATEGORIES_TABLE_NAME }    else { "Categories" }
+
+    # OpsBlueprint-specific SharePoint vars
+    $obSharepointLeadsFolderId     = if ($script:OB_SHAREPOINT_LEADS_FOLDER_ID)     { $script:OB_SHAREPOINT_LEADS_FOLDER_ID }     else { "" }
+    $obSharepointProposalsFolderId = if ($script:OB_SHAREPOINT_PROPOSALS_FOLDER_ID) { $script:OB_SHAREPOINT_PROPOSALS_FOLDER_ID } else { "" }
+    $obLeadsTrackerFileId          = if ($script:OB_LEADS_TRACKER_FILE_ID)          { $script:OB_LEADS_TRACKER_FILE_ID }          else { "" }
+    $obEmailCategoriesFileId       = if ($script:OB_EMAIL_CATEGORIES_FILE_ID)       { $script:OB_EMAIL_CATEGORIES_FILE_ID }       else { "" }
+    $obEmailCategoriesTableName    = if ($script:OB_EMAIL_CATEGORIES_TABLE_NAME)    { $script:OB_EMAIL_CATEGORIES_TABLE_NAME }    else { "OBCategories" }
+    $obSharepointKbFileId          = if ($script:OB_SHAREPOINT_KB_FILE_ID)          { $script:OB_SHAREPOINT_KB_FILE_ID }          else { "" }
+
+    # Twilio SMS vars (for lead-intake workflows)
+    $twilioAccountSid    = if ($script:TWILIO_ACCOUNT_SID)    { $script:TWILIO_ACCOUNT_SID }    else { "" }
+    $twilioApiKeySid     = if ($script:TWILIO_API_KEY_SID)    { $script:TWILIO_API_KEY_SID }    else { "" }
+    $twilioApiKeySecret  = if ($script:TWILIO_API_KEY_SECRET) { $script:TWILIO_API_KEY_SECRET } else { "" }
+    $twilioPhoneNumber   = if ($script:TWILIO_PHONE_NUMBER)   { $script:TWILIO_PHONE_NUMBER }   else { "" }
 
     $fernandoImage          = $script:FRONTEND_FERNANDO_IMAGE
     $jessicaImage           = $script:FRONTEND_JESSICA_IMAGE
@@ -798,6 +812,18 @@ services:
       - AZURE_OPENAI_API_VERSION=$azureOpenaiApiVersion
       - EMAIL_CATEGORIES_FILE_ID=$emailCategoriesFileId
       - EMAIL_CATEGORIES_TABLE_NAME=$emailCategoriesTableName
+      # OpsBlueprint-specific SharePoint vars
+      - OB_SHAREPOINT_LEADS_FOLDER_ID=$obSharepointLeadsFolderId
+      - OB_SHAREPOINT_PROPOSALS_FOLDER_ID=$obSharepointProposalsFolderId
+      - OB_LEADS_TRACKER_FILE_ID=$obLeadsTrackerFileId
+      - OB_EMAIL_CATEGORIES_FILE_ID=$obEmailCategoriesFileId
+      - OB_EMAIL_CATEGORIES_TABLE_NAME=$obEmailCategoriesTableName
+      - OB_SHAREPOINT_KB_FILE_ID=$obSharepointKbFileId
+      # Twilio SMS vars (for lead-intake workflows)
+      - TWILIO_ACCOUNT_SID=$twilioAccountSid
+      - TWILIO_API_KEY_SID=$twilioApiKeySid
+      - TWILIO_API_KEY_SECRET=$twilioApiKeySecret
+      - TWILIO_PHONE_NUMBER=$twilioPhoneNumber
     volumes:
       - n8n-data:/home/node/.n8n
     sysctls:
@@ -907,9 +933,6 @@ www.$domainFernandoDisplay {
 
 # Jessica Sutherland Portfolio
 $domainJessicaDisplay {
-    handle /admin* {
-        redir https://$($domainFernandoDisplay){uri} permanent
-    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -930,9 +953,6 @@ www.$domainJessicaDisplay {
 
 # Busy Bee Marketing Agency
 $domainBusybeeDisplay {
-    handle /admin* {
-        redir https://$($domainFernandoDisplay){uri} permanent
-    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -985,7 +1005,15 @@ $domainExecutiveCateringDisplay {
 
 # OpsBlueprint (workflow automation consulting)
 $domainOpsblueprintDisplay {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
         reverse_proxy backend:5000
     }
 
@@ -1175,7 +1203,7 @@ echo ""
 echo "Deployment complete!"
 "@
 
-    $deployScript | ssh -o StrictHostKeyChecking=no "root@$($script:DROPLET_IP)" "bash -s"
+    ($deployScript -replace "`r","") | ssh -o StrictHostKeyChecking=no "root@$($script:DROPLET_IP)" "bash -s"
     Assert-ExitCode "Remote deployment"
 
     Log-Success "Deployment complete!"
@@ -1223,7 +1251,7 @@ docker compose up -d
 docker compose ps
 '@
 
-    $quickScript | ssh -o StrictHostKeyChecking=no "root@$($script:DROPLET_IP)" "bash -s"
+    ($quickScript -replace "`r","") | ssh -o StrictHostKeyChecking=no "root@$($script:DROPLET_IP)" "bash -s"
     Assert-ExitCode "Quick deploy"
 
     Log-Success "Quick deploy complete!"
@@ -1304,29 +1332,29 @@ function Build-Only {
     docker build -t "${backendImage}:${Tag}" -f "$ProjectRoot/backend/dotnet/Dockerfile" "$ProjectRoot/backend/dotnet"
     Assert-ExitCode "Backend build"
 
-    # Build frontend - Fernando
+    # Build frontend - Fernando — uses repo root for pnpm workspace
     Log-Info "Building frontend image (Fernando): $($script:FRONTEND_FERNANDO_IMAGE)"
-    docker build -t "$($script:FRONTEND_FERNANDO_IMAGE)" -f "$ProjectRoot/frontend/portfolio-react/Dockerfile" "$ProjectRoot/frontend/portfolio-react"
+    docker build -t "$($script:FRONTEND_FERNANDO_IMAGE)" -f "$ProjectRoot/frontend/portfolio-react/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend Fernando build"
 
-    # Build frontend - Jessica
+    # Build frontend - Jessica — uses repo root for pnpm workspace
     Log-Info "Building frontend image (Jessica): $($script:FRONTEND_JESSICA_IMAGE)"
-    docker build -t "$($script:FRONTEND_JESSICA_IMAGE)" -f "$ProjectRoot/frontend/portfolio-jessica/Dockerfile" "$ProjectRoot/frontend/portfolio-jessica"
+    docker build -t "$($script:FRONTEND_JESSICA_IMAGE)" -f "$ProjectRoot/frontend/portfolio-jessica/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend Jessica build"
 
-    # Build frontend - Busy Bee
+    # Build frontend - Busy Bee — uses repo root for pnpm workspace
     Log-Info "Building frontend image (Busy Bee): $($script:FRONTEND_BUSYBEE_IMAGE)"
-    docker build -t "$($script:FRONTEND_BUSYBEE_IMAGE)" -f "$ProjectRoot/frontend/portfolio-busybee/Dockerfile" "$ProjectRoot/frontend/portfolio-busybee"
+    docker build -t "$($script:FRONTEND_BUSYBEE_IMAGE)" -f "$ProjectRoot/frontend/portfolio-busybee/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend BusyBee build"
 
-    # Build frontend - Executive Catering
+    # Build frontend - Executive Catering — no workspace deps, uses own dir
     Log-Info "Building frontend image (Executive Catering): $($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
     docker build -t "$($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)" -f "$ProjectRoot/frontend/portfolio-executive-catering/Dockerfile" "$ProjectRoot/frontend/portfolio-executive-catering"
     Assert-ExitCode "Frontend Executive Catering build"
 
-    # Build frontend - OpsBlueprint
+    # Build frontend - OpsBlueprint — uses repo root for pnpm workspace
     Log-Info "Building frontend image (OpsBlueprint): $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
-    docker build -t "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)" -f "$ProjectRoot/frontend/portfolio-opsblueprint/Dockerfile" "$ProjectRoot/frontend/portfolio-opsblueprint"
+    docker build -t "$($script:FRONTEND_OPSBLUEPRINT_IMAGE)" -f "$ProjectRoot/frontend/portfolio-opsblueprint/Dockerfile" "$ProjectRoot"
     Assert-ExitCode "Frontend OpsBlueprint build"
 
     # Build n8n Python Helper

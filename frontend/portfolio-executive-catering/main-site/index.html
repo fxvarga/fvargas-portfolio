@@ -49,15 +49,15 @@
         <div class="hero-bg" style="background-image: url('assets/img/hero-bg.jpg');"></div>
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="hero-tagline">We Start<br>With Yes</h1>
-            <p class="hero-subtitle">
+            <h1 class="hero-tagline" data-cms="hero-tagline">We Start<br>With Yes</h1>
+            <p class="hero-subtitle" data-cms="hero-subtitle">
                 Full-service catering for weddings, corporate events,
                 and private gatherings across Connecticut.
             </p>
-            <a href="#hello" class="btn-ecct">Discover More</a>
+            <a href="#hello" class="btn-ecct" data-cms="hero-cta">Discover More</a>
         </div>
         <div class="scroll-indicator">
-            <span>Scroll</span>
+            <span data-cms="scroll-indicator">Scroll</span>
             <i class="arrow"></i>
         </div>
     </section>
@@ -69,44 +69,46 @@
         <div class="section-inner">
             <div class="hello-grid">
                 <div class="hello-text reveal">
-                    <h2 class="section-title">Hello</h2>
+                    <h2 class="section-title" data-cms="about-heading">Hello</h2>
                     <div class="divider" style="margin-left:0;"></div>
-                    <p>
-                        Executive Catering CT brings culinary excellence to every event.
-                        Whether you're planning an intimate gathering or a grand celebration,
-                        our team crafts menus tailored to your vision &mdash; using fresh,
-                        locally sourced ingredients whenever possible.
-                    </p>
-                    <p>
-                        With years of experience serving Connecticut, we understand that
-                        every event tells a story. From the first bite to the last,
-                        our goal is to make your occasion unforgettable.
-                    </p>
-                    <p>
-                        We believe great food brings people together. That's why we start
-                        every conversation with &ldquo;yes&rdquo; and work from there to
-                        build a custom experience you and your guests will love.
-                    </p>
+                    <div data-cms="about-paragraphs">
+                        <p>
+                            Executive Catering CT brings culinary excellence to every event.
+                            Whether you're planning an intimate gathering or a grand celebration,
+                            our team crafts menus tailored to your vision &mdash; using fresh,
+                            locally sourced ingredients whenever possible.
+                        </p>
+                        <p>
+                            With years of experience serving Connecticut, we understand that
+                            every event tells a story. From the first bite to the last,
+                            our goal is to make your occasion unforgettable.
+                        </p>
+                        <p>
+                            We believe great food brings people together. That's why we start
+                            every conversation with &ldquo;yes&rdquo; and work from there to
+                            build a custom experience you and your guests will love.
+                        </p>
+                    </div>
                 </div>
                 <aside class="hello-sidebar reveal">
-                    <h3>Get In Touch</h3>
+                    <h3 data-cms="sidebar-heading">Get In Touch</h3>
                     <div class="contact-item">
                         <strong>Phone</strong>
-                        <a href="tel:+12035551234">(203) 555-1234</a>
+                        <a href="tel:+12035551234" data-cms="contact-phone-link">(203) 555-1234</a>
                     </div>
                     <div class="contact-item">
                         <strong>Email</strong>
-                        <a href="mailto:info@executivecateringct.com">info@executivecateringct.com</a>
+                        <a href="mailto:info@executivecateringct.com" data-cms="contact-email-link">info@executivecateringct.com</a>
                     </div>
                     <div class="contact-item">
                         <strong>Location</strong>
-                        Wallingford, Connecticut
+                        <span data-cms="contact-location">Wallingford, Connecticut</span>
                     </div>
                     <div class="contact-item">
                         <strong>Hours</strong>
-                        Mon&ndash;Fri: 9am &ndash; 6pm<br>
+                        <span data-cms="contact-hours">Mon&ndash;Fri: 9am &ndash; 6pm<br>
                         Sat: By Appointment<br>
-                        Sun: Closed
+                        Sun: Closed</span>
                     </div>
                 </aside>
             </div>
@@ -116,7 +118,7 @@
     <!-- ============================================================
          PARALLAX BREAK 1
          ============================================================ -->
-    <div class="parallax-break parallax-1">
+    <div class="parallax-break parallax-1" data-cms="parallax-1">
         <div class="parallax-bg" style="background-image: url('assets/img/parallax-1.jpg');"></div>
         <div class="parallax-overlay"></div>
         <div class="parallax-text">
@@ -131,17 +133,17 @@
     <section class="section services-section" id="services">
         <div class="section-inner">
             <div class="services-intro reveal">
-                <h2 class="section-title">What We Do</h2>
-                <p class="section-subtitle">Crafted with care, served with pride</p>
+                <h2 class="section-title" data-cms="services-heading">What We Do</h2>
+                <p class="section-subtitle" data-cms="services-subtitle">Crafted with care, served with pride</p>
                 <div class="divider"></div>
-                <p>
+                <p data-cms="services-description">
                     From hors d'oeuvres to plated dinners, buffets to food stations &mdash;
                     we customize every menu to match your event's style and budget.
                 </p>
             </div>
 
             <!-- Gallery -->
-            <div class="gallery-row reveal">
+            <div class="gallery-row reveal" data-cms="gallery-row">
                 <div class="gallery-item">
                     <img src="assets/img/gallery-plated.jpg" alt="Beautifully plated dinner" loading="lazy" />
                 </div>
@@ -154,7 +156,7 @@
             </div>
 
             <!-- Service counters -->
-            <div class="services-grid reveal">
+            <div class="services-grid reveal" data-cms="services-grid">
                 <div class="service-card">
                     <div class="counter" data-count="500" data-suffix="+">0</div>
                     <h3>Events Catered</h3>
@@ -177,7 +179,7 @@
     <!-- ============================================================
          PARALLAX BREAK 2
          ============================================================ -->
-    <div class="parallax-break parallax-2">
+    <div class="parallax-break parallax-2" data-cms="parallax-2">
         <div class="parallax-bg" style="background-image: url('assets/img/parallax-2.jpg');"></div>
         <div class="parallax-overlay"></div>
         <div class="parallax-text">
@@ -192,12 +194,12 @@
     <section class="section capabilities-section" id="capabilities">
         <div class="section-inner">
             <div class="capabilities-intro reveal">
-                <h2 class="section-title">What We Bring</h2>
-                <p class="section-subtitle">Everything you need, nothing you don't</p>
+                <h2 class="section-title" data-cms="capabilities-heading">What We Bring</h2>
+                <p class="section-subtitle" data-cms="capabilities-subtitle">Everything you need, nothing you don't</p>
                 <div class="divider"></div>
             </div>
 
-            <div class="capabilities-grid reveal">
+            <div class="capabilities-grid reveal" data-cms="capabilities-grid">
                 <div class="capability-card">
                     <div class="capability-icon" aria-hidden="true">&#9733;</div>
                     <h3>Full-Service Catering</h3>
@@ -229,13 +231,13 @@
          ============================================================ -->
     <footer class="site-footer" id="contact">
         <div class="footer-cta">
-            <h2>Let's Create Together</h2>
-            <p>Tell us about your event and we'll start with yes</p>
-            <a href="inquiry/" class="btn-ecct">Get A Quote</a>
+            <h2 data-cms="footer-cta-heading">Let's Create Together</h2>
+            <p data-cms="footer-cta-subtext">Tell us about your event and we'll start with yes</p>
+            <a href="inquiry/" class="btn-ecct" data-cms="footer-cta-btn">Get A Quote</a>
         </div>
 
         <div class="footer-bottom">
-            <p>
+            <p data-cms="footer-copyright">
                 &copy; 2026 Executive Catering CT &middot; Wallingford, Connecticut
                 <br>
                 <a href="https://fernando-vargas.com" target="_blank" rel="noopener">
@@ -246,6 +248,33 @@
     </footer>
 
     <!-- Scripts -->
+    <script src="js/cms-client.js"></script>
+    <script src="js/cms-hydrate.js"></script>
     <script src="js/ecct-landing.js"></script>
+
+    <!-- CMS Agent Panel (only visible when logged in as admin) -->
+    <script src="js/cms-agent-panel.js"></script>
+    <script>
+      CmsAgentPanel.init({
+        graphqlUrl: '/graphql',
+        portfolioId: '55555555-5555-5555-5555-555555555555',
+        sections: [
+          { selector: '.site-nav',             entityType: 'navigation',    label: 'Navigation' },
+          { selector: '.hero',                 entityType: 'hero',          label: 'Hero Section' },
+          { selector: '#hello',                entityType: 'about',         label: 'About Section' },
+          { selector: '.parallax-1',           entityType: 'parallax-break', label: 'Parallax Break 1' },
+          { selector: '#services',             entityType: 'services',      label: 'Services Section' },
+          { selector: '.parallax-2',           entityType: 'parallax-break', label: 'Parallax Break 2' },
+          { selector: '#capabilities',         entityType: 'capabilities',  label: 'Capabilities Section' },
+          { selector: '.site-footer',          entityType: 'footer',        label: 'Footer' }
+        ],
+        onCommitted: function() {
+          // After commit, re-run CMS hydration instead of full page reload
+          if (window.CmsClient) {
+            window.location.reload();
+          }
+        }
+      });
+    </script>
 </body>
 </html>

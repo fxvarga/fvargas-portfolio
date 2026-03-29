@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.FeatureManagement;
 using FV.Api.Configurations;
+using FV.Api.Services.CmsAgent;
 using FV.Application;
+using FV.Application.Services.CmsAgent;
 using FV.Domain.Entities;
 using FV.Domain.Interfaces;
 using FV.Infrastructure;
@@ -12,6 +14,7 @@ using FV.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.SemanticKernel;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -67,6 +70,40 @@ services.AddApplicationServices();
 services.AddInfrastructureServices();
 services.AddSearchServices();
 
+// Register Semantic Kernel with Azure OpenAI Chat Completion
+var azureOpenAiEndpoint = !string.IsNullOrEmpty(config["AzureOpenAI:Endpoint"])
+    ? config["AzureOpenAI:Endpoint"]!
+    : Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? "";
+var azureOpenAiApiKey = !string.IsNullOrEmpty(config["AzureOpenAI:ApiKey"])
+    ? config["AzureOpenAI:ApiKey"]!
+    : Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? "";
+var chatDeploymentName = !string.IsNullOrEmpty(config["AzureOpenAI:ChatDeploymentName"])
+    ? config["AzureOpenAI:ChatDeploymentName"]!
+    : Environment.GetEnvironmentVariable("AZURE_OPENAI_CHAT_DEPLOYMENT") ?? "gpt-5.2-chat";
+var chatModelId = !string.IsNullOrEmpty(config["AzureOpenAI:ChatModelId"])
+    ? config["AzureOpenAI:ChatModelId"]!
+    : "gpt-5.2-chat";
+
+var useRealAgent = !string.IsNullOrEmpty(azureOpenAiEndpoint) && !string.IsNullOrEmpty(azureOpenAiApiKey);
+
+if (useRealAgent)
+{
+    services.AddKernel();
+    services.AddAzureOpenAIChatCompletion(
+        deploymentName: chatDeploymentName,
+        endpoint: azureOpenAiEndpoint,
+        apiKey: azureOpenAiApiKey,
+        modelId: chatModelId);
+
+    // Register real CMS Agent service (Phase 2: LLM-powered)
+    services.AddScoped<ICmsAgentService, CmsAgentService>();
+}
+else
+{
+    // Fallback to mock agent when Azure OpenAI is not configured
+    services.AddScoped<ICmsAgentService, MockCmsAgentService>();
+}
+
 // Register CORS services
 services.AddCors(options =>
 {
@@ -107,7 +144,9 @@ using (var scope = app.Services.CreateScope())
 
     if (!result.Success)
     {
-        throw new InvalidOperationException($"Content migration failed: {result.ErrorMessage}");
+        var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("Startup");
+        logger.LogWarning("Content migration failed (non-fatal): {Error}. Failed migration: {Migration}",
+            result.ErrorMessage, result.FailedMigration);
     }
 }
 

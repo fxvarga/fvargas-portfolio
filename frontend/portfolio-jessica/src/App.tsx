@@ -1,5 +1,21 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { BrowserRouter, Routes, Route, Link, useParams, useNavigate, useLocation } from 'react-router-dom';
+import { CmsAgentWrapper } from './agent/CmsAgentWrapper';
+import type {
+  SiteConfig,
+  Navigation,
+  AnimatedTitle,
+  SliderImage,
+  Hero,
+  About,
+  CaseStudies,
+  GalleryImage,
+  PortfolioCategory,
+  Portfolio,
+  Footer,
+  CaseStudyPage,
+  CMSContent,
+} from './types';
 
 // Search types
 interface SearchResultItem {
@@ -108,138 +124,6 @@ function SearchBox() {
       )}
     </div>
   );
-}
-
-// Types matching CMS data structure for Jessica's portfolio
-interface SiteConfig {
-  siteTitle: string;
-  email: string;
-  linkedIn: string;
-  location: string;
-  resumeUrl: string;
-}
-
-interface NavLink {
-  label: string;
-  href: string;
-}
-
-interface Navigation {
-  logoUrl: string;
-  links: NavLink[];
-}
-
-interface AnimatedTitle {
-  text: string;
-}
-
-interface SliderImage {
-  url: string;
-  alt: string;
-}
-
-interface Hero {
-  animatedTitles: AnimatedTitle[];
-  description: string;
-  sliderImages: SliderImage[];
-  resumeButtonText: string;
-  contactButtonText: string;
-}
-
-interface Skill {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-interface About {
-  preTitle: string;
-  headline: string;
-  bio: string;
-  imageUrl: string;
-  coverLetterUrl: string;
-  skills: Skill[];
-}
-
-interface CaseStudy {
-  number: string;
-  title: string;
-  description: string;
-  imageUrl: string;
-  linkUrl: string;
-  linkText: string;
-}
-
-interface CaseStudies {
-  preTitle: string;
-  title: string;
-  studies: CaseStudy[];
-}
-
-interface GalleryImage {
-  url: string;
-}
-
-interface PortfolioCategory {
-  title: string;
-  subtitle: string;
-  thumbnailUrl: string;
-  galleryImages: GalleryImage[];
-}
-
-interface Portfolio {
-  preTitle: string;
-  title: string;
-  categories: PortfolioCategory[];
-}
-
-interface Footer {
-  logoUrl: string;
-  thankYouMessage: string;
-  linkedInUrl: string;
-  copyright: string;
-  email: string;
-}
-
-// Case Study Page types
-interface CaseStudyLink {
-  text: string;
-  url: string;
-}
-
-interface CaseStudySection {
-  heading: string;
-  content: string;
-  imageUrl: string;
-  imagePosition: string;
-  links: CaseStudyLink[];
-}
-
-interface ValueBox {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-interface CaseStudyPage {
-  slug: string;
-  title: string;
-  headerTitle: string;
-  headerDescription: string;
-  headerBackgroundClass: string;
-  sections: CaseStudySection[];
-  valueBoxes: ValueBox[];
-}
-
-interface CMSContent {
-  siteConfig: SiteConfig;
-  navigation: Navigation;
-  hero: Hero;
-  about: About;
-  caseStudies: CaseStudies;
-  portfolio: Portfolio;
-  footer: Footer;
-  caseStudyPages: CaseStudyPage[];
 }
 
 // Default content (fallback)
@@ -896,11 +780,17 @@ function App() {
   const [content, setContent] = useState<CMSContent>(defaultContent);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCMSContent()
-      .then(setContent)
-      .finally(() => setLoading(false));
+  const loadContent = useCallback(() => {
+    return fetchCMSContent().then(setContent);
   }, []);
+
+  useEffect(() => {
+    loadContent().finally(() => setLoading(false));
+  }, [loadContent]);
+
+  const handleRefetch = useCallback(async () => {
+    await loadContent();
+  }, [loadContent]);
 
   if (loading) {
     return (
@@ -912,12 +802,14 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<HomePage content={content} />} />
-        <Route path="/case-study/:slug" element={<CaseStudyDetailPage content={content} />} />
-      </Routes>
-    </BrowserRouter>
+    <CmsAgentWrapper content={content} onContentChange={setContent} onRefetch={handleRefetch}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<HomePage content={content} />} />
+          <Route path="/case-study/:slug" element={<CaseStudyDetailPage content={content} />} />
+        </Routes>
+      </BrowserRouter>
+    </CmsAgentWrapper>
   );
 }
 

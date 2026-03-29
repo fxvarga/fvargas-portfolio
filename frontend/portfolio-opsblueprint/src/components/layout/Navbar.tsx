@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import Container from '../ui/Container';
 import Button from '../ui/Button';
+import type { SiteConfig, Navigation } from '../../cms';
 
-export default function Navbar() {
+interface NavbarProps {
+  siteConfig: SiteConfig;
+  navigation: Navigation;
+}
+
+export default function Navbar({ siteConfig, navigation }: NavbarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const links = [
-    { href: '#services', label: 'Services' },
-    { href: '#how-it-works', label: 'How It Works' },
-    { href: '#testimonials', label: 'Testimonials' },
-    { href: '#about', label: 'About' },
-  ];
 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100">
@@ -18,15 +17,15 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="#" className="flex items-center gap-2">
-            <img src="/logo.svg" alt="OpsBlueprint logo" className="w-8 h-8" />
+            <img src={siteConfig.logoSrc} alt={siteConfig.logoAlt} className="w-8 h-8" />
             <span className="font-heading font-bold text-xl text-gray-900">
-              Ops<span className="text-primary-600">Blueprint</span>
+              {siteConfig.brandName}<span className="text-primary-600">{siteConfig.brandHighlight}</span>
             </span>
           </a>
 
           {/* Desktop links */}
           <div className="hidden md:flex items-center gap-8">
-            {links.map((link) => (
+            {navigation.links.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -35,8 +34,11 @@ export default function Navbar() {
                 {link.label}
               </a>
             ))}
-            <Button size="sm" onClick={() => document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' })}>
-              Get Started
+            <Button size="sm" onClick={() => {
+              const target = navigation.ctaLink.replace('#', '');
+              document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
+            }}>
+              {navigation.ctaText}
             </Button>
           </div>
 
@@ -59,7 +61,7 @@ export default function Navbar() {
         {/* Mobile menu */}
         {mobileOpen && (
           <div className="md:hidden pb-4 border-t border-gray-100 pt-4">
-            {links.map((link) => (
+            {navigation.links.map((link) => (
               <a
                 key={link.href}
                 href={link.href}
@@ -74,10 +76,11 @@ export default function Navbar() {
               className="mt-3 w-full"
               onClick={() => {
                 setMobileOpen(false);
-                document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' });
+                const target = navigation.ctaLink.replace('#', '');
+                document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
               }}
             >
-              Get Started
+              {navigation.ctaText}
             </Button>
           </div>
         )}

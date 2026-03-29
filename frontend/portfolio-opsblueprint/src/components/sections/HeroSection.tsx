@@ -1,8 +1,13 @@
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
 import useScrollReveal from '../../hooks/useScrollReveal';
+import type { Hero } from '../../cms';
 
-export default function HeroSection() {
+interface HeroSectionProps {
+  hero: Hero;
+}
+
+export default function HeroSection({ hero }: HeroSectionProps) {
   const reveal = useScrollReveal({ threshold: 0.1 });
 
   return (
@@ -10,45 +15,44 @@ export default function HeroSection() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid md:grid-cols-2 gap-12 items-center" ref={reveal.ref} style={reveal.style}>
           <div>
-            <Badge>Automation for Small Businesses</Badge>
+            <Badge>{hero.badgeText}</Badge>
             <h1 className="font-heading font-extrabold text-4xl sm:text-5xl lg:text-6xl text-gray-900 mt-4 leading-tight">
-              Stop Doing{' '}
-              <span className="text-primary-600">Everything</span>{' '}
-              Yourself
+              {hero.headingLine1}{' '}
+              <span className="text-primary-600">{hero.headingHighlight}</span>{' '}
+              {hero.headingLine2}
             </h1>
             <p className="mt-6 text-lg text-gray-600 leading-relaxed max-w-lg">
-              You started your business to do what you love — not to spend nights
-              on data entry, chasing emails, and building spreadsheets.
-              We set up automations that handle the busywork, so you can get back
-              to running your business.
+              {hero.subheading}
             </p>
             <div className="mt-6 flex items-center gap-6 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Built for small teams</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                </svg>
-                <span>Up and running in weeks</span>
-              </div>
+              {hero.trustIndicators.map((indicator, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>{indicator.text}</span>
+                </div>
+              ))}
             </div>
             <div className="mt-8 flex flex-wrap gap-4">
               <Button
                 size="lg"
-                onClick={() => document.getElementById('lead-form')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => {
+                  const target = hero.primaryCtaLink.replace('#', '');
+                  document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                Get a Free Consultation
+                {hero.primaryCtaText}
               </Button>
               <Button
                 variant="outline"
                 size="lg"
-                onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => {
+                  const target = hero.secondaryCtaLink.replace('#', '');
+                  document.getElementById(target)?.scrollIntoView({ behavior: 'smooth' });
+                }}
               >
-                See How It Works
+                {hero.secondaryCtaText}
               </Button>
             </div>
           </div>
@@ -57,8 +61,8 @@ export default function HeroSection() {
           <div className="hidden md:flex items-center justify-center">
             <div className="relative w-full max-w-md">
               <img
-                src="/images/hero-workspace.jpg"
-                alt="Team collaborating on workflow automation in a modern office"
+                src={hero.heroImage.src}
+                alt={hero.heroImage.alt}
                 className="rounded-2xl shadow-2xl w-full object-cover aspect-[4/3]"
                 loading="eager"
               />
@@ -71,14 +75,14 @@ export default function HeroSection() {
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-semibold text-gray-900">20+ hrs saved</p>
-                    <p className="text-xs text-gray-500">per week, per business</p>
+                    <p className="text-sm font-semibold text-gray-900">{hero.floatingStatValue}</p>
+                    <p className="text-xs text-gray-500">{hero.floatingStatDescription}</p>
                   </div>
                 </div>
               </div>
               {/* Floating automation badge */}
               <div className="absolute -top-3 -right-3 bg-primary-600 text-white rounded-lg shadow-lg px-4 py-2 text-sm font-semibold">
-                AI-Powered
+                {hero.floatingBadgeText}
               </div>
             </div>
           </div>

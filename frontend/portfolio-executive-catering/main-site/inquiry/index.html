@@ -31,11 +31,11 @@
 
     <!-- Main content -->
     <div class="inq-landing-content">
-        <h1 class="inq-landing-title">Let's Plan Your Event</h1>
-        <p class="inq-landing-subtitle">Tell us what kind of event you're planning and we'll take it from there.</p>
+        <h1 class="inq-landing-title" data-cms="inquiry-heading">Let's Plan Your Event</h1>
+        <p class="inq-landing-subtitle" data-cms="inquiry-subtitle">Tell us what kind of event you're planning and we'll take it from there.</p>
         <div class="inq-landing-divider"></div>
 
-        <div class="inq-landing-cards">
+        <div class="inq-landing-cards" data-cms="inquiry-cards">
             <!-- Corporate Card -->
             <a href="../inquiry.html" class="inq-card">
                 <div class="inq-card-icon">
@@ -68,11 +68,67 @@
             </a>
         </div>
 
-        <p class="inq-landing-footer-text">
+        <p class="inq-landing-footer-text" data-cms="inquiry-help">
             Not sure which to choose? No worries &mdash; call us at
             <a href="tel:+12035551234">(203) 555-1234</a> and we'll help.
         </p>
     </div>
 
+    <!-- CMS hydration -->
+    <script src="../js/cms-client.js"></script>
+    <script>
+    (function () {
+      'use strict';
+      document.addEventListener('DOMContentLoaded', function () {
+        if (!window.CmsClient) return;
+
+        CmsClient.fetchContentSingle('inquiry-landing').then(function (record) {
+          if (!record || !record.data) return;
+          var d = record.data;
+
+          if (d.pageTitle) document.title = d.pageTitle;
+          var meta = document.querySelector('meta[name="description"]');
+          if (meta && d.pageDescription) meta.setAttribute('content', d.pageDescription);
+
+          var heading = document.querySelector('[data-cms="inquiry-heading"]');
+          if (heading && d.heading) heading.textContent = d.heading;
+
+          var subtitle = document.querySelector('[data-cms="inquiry-subtitle"]');
+          if (subtitle && d.subtitle) subtitle.textContent = d.subtitle;
+
+          var helpEl = document.querySelector('[data-cms="inquiry-help"]');
+          if (helpEl && d.helpText) helpEl.innerHTML = d.helpText;
+
+          // Update card titles, descriptions, CTAs, and links
+          if (d.cards && d.cards.length) {
+            var cardEls = document.querySelectorAll('.inq-card');
+            d.cards.forEach(function (card, i) {
+              if (!cardEls[i]) return;
+              var el = cardEls[i];
+              if (card.href) el.href = card.href;
+              var titleEl = el.querySelector('.inq-card-title');
+              if (titleEl && card.title) titleEl.textContent = card.title;
+              var descEl = el.querySelector('.inq-card-desc');
+              if (descEl && card.description) descEl.textContent = card.description;
+              var ctaEl = el.querySelector('.inq-card-cta');
+              if (ctaEl && card.ctaText) ctaEl.textContent = card.ctaText;
+            });
+          }
+        });
+      });
+    })();
+    </script>
+
+    <!-- CMS Agent Panel (only visible when logged in as admin) -->
+    <script src="../js/cms-agent-panel.js"></script>
+    <script>
+      CmsAgentPanel.init({
+        graphqlUrl: '/graphql',
+        portfolioId: '55555555-5555-5555-5555-555555555555',
+        sections: [
+          { selector: '.inq-landing-container', entityType: 'inquiry-landing', label: 'Inquiry Landing' }
+        ]
+      });
+    </script>
 </body>
 </html>

@@ -1,4 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { CmsAgentWrapper } from './agent/CmsAgentWrapper';
+import type {
+  Navigation,
+  Hero,
+  Stats,
+  Services,
+  About,
+  Testimonials,
+  Contact,
+  Footer,
+  CMSContent,
+} from './types';
 
 // Search types
 interface SearchResultItem {
@@ -18,7 +30,6 @@ function SearchBox() {
   const [isLoading, setIsLoading] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -29,7 +40,6 @@ function SearchBox() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Debounced search
   useEffect(() => {
     if (query.length < 2) {
       setResults([]);
@@ -68,7 +78,6 @@ function SearchBox() {
   const handleResultClick = useCallback((result: SearchResultItem) => {
     setIsOpen(false);
     setQuery('');
-    // Append section anchor if present and URL doesn't already have a hash
     let targetUrl = result.url;
     if (result.section && !targetUrl.includes('#')) {
       targetUrl = `${targetUrl}#${result.section}`;
@@ -106,113 +115,6 @@ function SearchBox() {
       )}
     </div>
   );
-}
-
-// Types matching CMS data structure
-interface NavLink {
-  label: string;
-  href: string;
-}
-
-interface Navigation {
-  logoIcon: string;
-  logoText: string;
-  links: NavLink[];
-  ctaText: string;
-  ctaLink: string;
-}
-
-interface Hero {
-  headline: string;
-  subheadline: string;
-  primaryCtaText: string;
-  primaryCtaLink: string;
-  secondaryCtaText: string;
-  secondaryCtaLink: string;
-}
-
-interface Stat {
-  value: string;
-  label: string;
-}
-
-interface Stats {
-  stats: Stat[];
-}
-
-interface ServiceItem {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-interface Services {
-  title: string;
-  subtitle: string;
-  services: ServiceItem[];
-}
-
-interface Feature {
-  text: string;
-}
-
-interface About {
-  title: string;
-  description: string;
-  features: Feature[];
-}
-
-interface Testimonial {
-  quote: string;
-  author: string;
-  role: string;
-}
-
-interface Testimonials {
-  title: string;
-  subtitle: string;
-  testimonials: Testimonial[];
-}
-
-interface Contact {
-  title: string;
-  subtitle: string;
-  email: string;
-  phone: string;
-}
-
-interface FooterLink {
-  label: string;
-  href: string;
-}
-
-interface SocialLink {
-  platform: string;
-  icon: string;
-  href: string;
-}
-
-interface Footer {
-  logoIcon: string;
-  logoText: string;
-  tagline: string;
-  serviceLinks: FooterLink[];
-  companyLinks: FooterLink[];
-  email: string;
-  phone: string;
-  socialLinks: SocialLink[];
-  copyright: string;
-}
-
-interface CMSContent {
-  navigation: Navigation;
-  hero: Hero;
-  stats: Stats;
-  services: Services;
-  about: About;
-  testimonials: Testimonials;
-  contact: Contact;
-  footer: Footer;
 }
 
 // Default content (fallback)
@@ -390,11 +292,17 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
-  useEffect(() => {
-    fetchCMSContent()
-      .then(setContent)
-      .finally(() => setLoading(false));
+  const loadContent = useCallback(() => {
+    return fetchCMSContent().then(setContent);
   }, []);
+
+  useEffect(() => {
+    loadContent().finally(() => setLoading(false));
+  }, [loadContent]);
+
+  const handleRefetch = useCallback(async () => {
+    await loadContent();
+  }, [loadContent]);
 
   if (loading) {
     return (
@@ -413,6 +321,7 @@ function App() {
   const { navigation, hero, stats, services, about, testimonials, contact, footer } = content;
 
   return (
+    <CmsAgentWrapper content={content} onContentChange={setContent} onRefetch={handleRefetch}>
     <div className="app">
       {/* Navigation */}
       <nav className="navbar">
@@ -619,6 +528,7 @@ function App() {
         </div>
       </footer>
     </div>
+    </CmsAgentWrapper>
   );
 }
 

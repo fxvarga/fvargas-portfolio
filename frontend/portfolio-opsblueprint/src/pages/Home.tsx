@@ -9,21 +9,26 @@ import TestimonialsSection from '../components/sections/TestimonialsSection';
 import AboutSection from '../components/sections/AboutSection';
 import LeadCaptureSection from '../components/sections/LeadCaptureSection';
 import CTASection from '../components/sections/CTASection';
+import type { CMSContent } from '../cms';
 
-export default function Home() {
+interface HomeProps {
+  content: CMSContent;
+}
+
+export default function Home({ content }: HomeProps) {
   return (
     <div className="min-h-screen">
-      <Navbar />
-      <HeroSection />
-      <ProblemSection />
-      <SolutionSection />
-      <ServicesSection />
-      <HowItWorksSection />
-      <TestimonialsSection />
-      <AboutSection />
-      <LeadCaptureSection />
-      <CTASection />
-      <Footer />
+      <Navbar siteConfig={content.siteConfig} navigation={content.navigation} />
+      <HeroSection hero={content.hero} />
+      <ProblemSection problem={content.problem} />
+      <SolutionSection solution={content.solution} />
+      <ServicesSection services={content.services} />
+      <HowItWorksSection howItWorks={content.howItWorks} />
+      <TestimonialsSection testimonials={content.testimonials} />
+      <AboutSection about={content.about} />
+      <LeadCaptureSection leadCapture={content.leadCapture} />
+      <CTASection cta={content.cta} />
+      <Footer siteConfig={content.siteConfig} footer={content.footer} />
     </div>
   );
 }

@@ -5,13 +5,17 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3001,
-    // Handle SPA routing in dev mode
-    historyApiFallback: true,
+    proxy: {
+      '/graphql': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        ws: true,
+      },
+    },
   },
   build: {
     outDir: 'dist',
   },
-  // For production preview
   preview: {
     port: 3001,
   },

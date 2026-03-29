@@ -4,6 +4,7 @@ import { CircularProgress } from '@mui/material';
 import { BlogPost as BlogPostType, fetchBlogPostBySlug } from '../../../api/blogApi';
 import { BlogDemo, hasDemo } from '../../../blog-components';
 import { MarkdownRenderer } from '../../../shared/components/MarkdownRenderer';
+import { useBlogPostPreview } from '../../../shared/hooks/useCMS';
 import Navbar from '../navigation/Navbar';
 import Footer from '../navigation/Footer';
 import './Blog.css';
@@ -11,10 +12,13 @@ import './Blog.css';
 const BlogPost: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const [post, setPost] = useState<BlogPostType | null>(null);
+  const [fetchedPost, setFetchedPost] = useState<BlogPostType | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [markdownContent, setMarkdownContent] = useState<string | null>(null);
   const [isLoadingContent, setIsLoadingContent] = useState(false);
+
+  // Merge any agent preview overrides onto the fetched post
+  const post = useBlogPostPreview(fetchedPost);
 
   // Fetch the blog post metadata
   useEffect(() => {
@@ -23,10 +27,10 @@ const BlogPost: React.FC = () => {
       setIsLoading(true);
       try {
         const data = await fetchBlogPostBySlug(slug);
-        setPost(data);
+        setFetchedPost(data);
       } catch (error) {
         console.error('Failed to load blog post:', error);
-        setPost(null);
+        setFetchedPost(null);
       } finally {
         setIsLoading(false);
       }
@@ -38,10 +42,10 @@ const BlogPost: React.FC = () => {
   // Fetch the markdown content if available
   useEffect(() => {
     const loadMarkdownContent = async () => {
-      if (!post?.mdxFile && !slug) return;
+      if (!fetchedPost?.mdxFile && !slug) return;
       
       // Try to load markdown from the public/content/blog folder
-      const contentPath = post?.mdxFile || `/content/blog/${slug}.md`;
+      const contentPath = fetchedPost?.mdxFile || `/content/blog/${slug}.md`;
       setIsLoadingContent(true);
       
       try {
@@ -60,10 +64,10 @@ const BlogPost: React.FC = () => {
       }
     };
     
-    if (post || slug) {
+    if (fetchedPost || slug) {
       loadMarkdownContent();
     }
-  }, [post, slug]);
+  }, [fetchedPost, slug]);
 
   if (isLoading) {
     return (

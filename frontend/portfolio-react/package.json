@@ -11,6 +11,7 @@
     "@fluentui/react-components": "^9.73.4",
     "@fluentui/react-icons": "^2.0.316",
     "@fluentui/react-nav": "^9.3.20",
+    "@fvargas/cms-agent-panel": "workspace:*",
     "@material-ui/icons": "^4.11.2",
     "@mui/icons-material": "^7.0.1",
     "@mui/material": "^7.0.1",

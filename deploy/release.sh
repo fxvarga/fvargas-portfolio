@@ -345,6 +345,12 @@ deploy() {
     local ob_email_categories_file_id="${OB_EMAIL_CATEGORIES_FILE_ID:-}"
     local ob_email_categories_table_name="${OB_EMAIL_CATEGORIES_TABLE_NAME:-OBCategories}"
     local ob_sharepoint_kb_file_id="${OB_SHAREPOINT_KB_FILE_ID:-}"
+
+    # Twilio SMS vars (for lead-intake workflows)
+    local twilio_account_sid="${TWILIO_ACCOUNT_SID:-}"
+    local twilio_api_key_sid="${TWILIO_API_KEY_SID:-}"
+    local twilio_api_key_secret="${TWILIO_API_KEY_SECRET:-}"
+    local twilio_phone_number="${TWILIO_PHONE_NUMBER:-}"
     
     log_info "Deploying to $DROPLET_IP..."
     log_info "Using images:"
@@ -845,6 +851,11 @@ services:
       - OB_EMAIL_CATEGORIES_FILE_ID=${ob_email_categories_file_id}
       - OB_EMAIL_CATEGORIES_TABLE_NAME=${ob_email_categories_table_name}
       - OB_SHAREPOINT_KB_FILE_ID=${ob_sharepoint_kb_file_id}
+      # Twilio SMS vars (for lead-intake workflows)
+      - TWILIO_ACCOUNT_SID=${twilio_account_sid}
+      - TWILIO_API_KEY_SID=${twilio_api_key_sid}
+      - TWILIO_API_KEY_SECRET=${twilio_api_key_secret}
+      - TWILIO_PHONE_NUMBER=${twilio_phone_number}
     volumes:
       - n8n-data:/home/node/.n8n
     sysctls:

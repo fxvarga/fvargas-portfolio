@@ -36,6 +36,7 @@ public static class ConfigureGraphQlServices
             .AddTypeExtension<EntityRecordMutations>()
             .AddTypeExtension<AuthMutations>()
             .AddTypeExtension<ContentMutations>()
+            .AddTypeExtension<AgentMutations>()
             .AddAuthorization()
             .AddHttpRequestInterceptor((context, executor, requestBuilder, ct) =>
             {
@@ -47,6 +48,7 @@ public static class ConfigureGraphQlServices
                 return ValueTask.CompletedTask;
             })
             .AddSubscriptionType<SessionSubscriptions>()
+            .AddTypeExtension<AgentSubscriptions>()
             .AddInMemorySubscriptions()
             .BindRuntimeType<IDictionary<string, object>, AnyType>()
             .InitializeOnStartup();

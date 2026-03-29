@@ -2,57 +2,17 @@ import Section from '../layout/Section';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import useScrollReveal from '../../hooks/useScrollReveal';
+import type { Services, ServicePackage } from '../../cms';
 
-const services = [
-  {
-    tier: 'Starter',
-    name: 'Workflow Audit',
-    price: '$500 - $1,500',
-    description: 'We map how your business actually runs today, find the time-wasters, and hand you a clear plan for what to automate first.',
-    features: [
-      'Process mapping & documentation',
-      'Bottleneck identification',
-      'Tool & integration assessment',
-      'Prioritized automation roadmap',
-      'ROI projections for your budget',
-    ],
-    badge: 'gray' as const,
-  },
-  {
-    tier: 'Professional',
-    name: 'Core Automation',
-    price: '$5,000 - $15,000',
-    description: 'We build the automations that give you your time back — lead follow-ups, invoicing, data syncing — so you can focus on customers.',
-    features: [
-      'Everything in Workflow Audit',
-      'Custom n8n/Zapier workflows',
-      'CRM & email integration',
-      'Lead intake automation',
-      'Proposal generation pipeline',
-      '30-day post-launch support',
-    ],
-    badge: 'blue' as const,
-    featured: true,
-  },
-  {
-    tier: 'Growth',
-    name: 'Advanced Systems',
-    price: '$15,000 - $40,000',
-    description: 'For growing businesses ready to scale operations — AI-powered triage, multi-step approvals, and dashboards that keep you in control.',
-    features: [
-      'Everything in Core Automation',
-      'AI-powered email triage',
-      'Multi-step approval workflows',
-      'Custom reporting dashboards',
-      'API integrations & webhooks',
-      'Dedicated support & training',
-    ],
-    badge: 'green' as const,
-  },
-];
+interface ServicesSectionProps {
+  services: Services;
+}
 
-function ServiceCard({ service, index }: { service: typeof services[number]; index: number }) {
+function ServiceCard({ service, index, featuredBadgeText }: { service: ServicePackage; index: number; featuredBadgeText: string }) {
   const reveal = useScrollReveal({ threshold: 0.15 });
+
+  // Map badge string to Badge variant
+  const badgeVariant = (service.badge || 'gray') as 'gray' | 'blue' | 'green';
 
   return (
     <div
@@ -68,10 +28,10 @@ function ServiceCard({ service, index }: { service: typeof services[number]; ind
       >
         {service.featured && (
           <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <Badge variant="blue">Most Popular</Badge>
+            <Badge variant="blue">{featuredBadgeText}</Badge>
           </div>
         )}
-        <Badge variant={service.badge}>{service.tier}</Badge>
+        <Badge variant={badgeVariant}>{service.tier}</Badge>
         <h3 className="font-heading font-bold text-xl text-gray-900 mt-3">
           {service.name}
         </h3>
@@ -96,24 +56,23 @@ function ServiceCard({ service, index }: { service: typeof services[number]; ind
   );
 }
 
-export default function ServicesSection() {
+export default function ServicesSection({ services }: ServicesSectionProps) {
   const headerReveal = useScrollReveal();
 
   return (
     <Section id="services">
       <div className="text-center mb-12" ref={headerReveal.ref} style={headerReveal.style}>
         <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-          Packages That Fit a Small Business Budget
+          {services.heading}
         </h2>
         <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Every dollar counts when you're growing. Pick the level that makes sense
-          for where you are — each one pays for itself in time saved.
+          {services.subheading}
         </p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-6">
-        {services.map((service, i) => (
-          <ServiceCard key={service.tier} service={service} index={i} />
+        {services.packages.map((service, i) => (
+          <ServiceCard key={service.tier} service={service} index={i} featuredBadgeText={services.featuredBadgeText} />
         ))}
       </div>
     </Section>

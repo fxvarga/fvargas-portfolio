@@ -1,27 +1,35 @@
-# Build stage
+# Build stage — workspace-aware build that includes @fvargas/cms-agent-panel
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install pnpm
-RUN npm install -g pnpm
+# Install pnpm v9 (v10 blocks build scripts by default, breaking esbuild)
+RUN npm install -g pnpm@9
 
-# Copy package files first for better layer caching
-COPY package.json pnpm-lock.yaml* ./
+# Copy workspace root config and lockfile
+COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 
-# Install dependencies
-RUN pnpm install --frozen-lockfile || pnpm install
+# Copy package.json files for all workspace members (for dependency resolution)
+COPY packages/cms-agent-panel/package.json packages/cms-agent-panel/
+COPY frontend/portfolio-busybee/package.json frontend/portfolio-busybee/
 
-# Copy source code
-COPY . .
+# Install all workspace dependencies from root
+RUN pnpm install --frozen-lockfile
+
+# Copy the cms-agent-panel source and build it first
+COPY packages/cms-agent-panel/ packages/cms-agent-panel/
+RUN pnpm --filter @fvargas/cms-agent-panel build
+
+# Copy portfolio-busybee source
+COPY frontend/portfolio-busybee/ frontend/portfolio-busybee/
 
 # Build the app
-RUN pnpm build
+RUN pnpm --filter portfolio-busybee build
 
 # Runtime stage - serve with nginx
 FROM nginx:alpine AS runtime
 
 # Copy built files (Vite outputs to 'dist' directory)
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/frontend/portfolio-busybee/dist /usr/share/nginx/html
 
 # Create nginx config for SPA routing
 RUN echo 'server { \
@@ -29,6 +37,9 @@ RUN echo 'server { \
     server_name localhost; \
     root /usr/share/nginx/html; \
     index index.html; \
+    location = /admin { \
+        try_files /admin.html =404; \
+    } \
     location / { \
         try_files $uri $uri/ /index.html; \
     } \

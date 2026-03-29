@@ -31,6 +31,8 @@ services:
       context: ./backend/dotnet
       dockerfile: Dockerfile
     container_name: portfolio-backend
+    env_file:
+      - deploy/.env
     volumes:
       # Persist SQLite database in a separate data directory
       - cms-data:/app/data
@@ -39,9 +41,6 @@ services:
       - ASPNETCORE_URLS=http://+:5000
       - CMS_DB_PATH=/app/data/cms.db
       - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT:-}
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY:-}
-      - AZURE_OPENAI_EMBEDDING_DEPLOYMENT=${AZURE_OPENAI_EMBEDDING_DEPLOYMENT:-text-embedding-ada-002}
     depends_on:
       elasticsearch:
         condition: service_healthy
@@ -58,8 +57,8 @@ services:
   # Fernando Vargas portfolio (main site + admin)
   frontend-fernando:
     build:
-      context: ./frontend/portfolio-react
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/portfolio-react/Dockerfile
     container_name: portfolio-frontend-fernando
     depends_on:
       backend:
@@ -77,8 +76,8 @@ services:
   # Jessica Sutherland portfolio (photographer)
   frontend-jessica:
     build:
-      context: ./frontend/portfolio-jessica
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/portfolio-jessica/Dockerfile
     container_name: portfolio-frontend-jessica
     depends_on:
       backend:
@@ -96,8 +95,8 @@ services:
   # Busy Bee marketing agency portfolio
   frontend-busybee:
     build:
-      context: ./frontend/portfolio-busybee
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/portfolio-busybee/Dockerfile
     container_name: portfolio-frontend-busybee
     depends_on:
       backend:
@@ -131,8 +130,8 @@ services:
   # OpsBlueprint workflow automation consulting
   frontend-opsblueprint:
     build:
-      context: ./frontend/portfolio-opsblueprint
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: frontend/portfolio-opsblueprint/Dockerfile
     container_name: portfolio-frontend-opsblueprint
     networks:
       - portfolio-network

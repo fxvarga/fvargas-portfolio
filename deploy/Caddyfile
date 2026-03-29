@@ -70,9 +70,6 @@ http://blog.homehost {
 
 # Jessica Sutherland Portfolio (LAN)
 http://jessica.homehost {
-    handle /admin* {
-        redir http://homehost{uri} permanent
-    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -89,9 +86,6 @@ http://jessica.homehost {
 
 # Busy Bee Marketing Agency (LAN)
 http://busybee.homehost {
-    handle /admin* {
-        redir http://homehost{uri} permanent
-    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -181,11 +175,6 @@ https://{$DOMAIN_BLOG:blog.localhost} {
 https://{$DOMAIN_JESSICA:jessica.localhost} {
     tls internal
 
-    # Redirect /admin to main Fernando admin
-    handle /admin* {
-        redir https://{$DOMAIN_FERNANDO:localhost}{uri} permanent
-    }
-
     # API and GraphQL routes to backend
     handle /graphql* {
         reverse_proxy backend:5000
@@ -208,11 +197,6 @@ https://{$DOMAIN_JESSICA:jessica.localhost} {
 # Busy Bee Marketing Agency Portfolio
 https://{$DOMAIN_BUSYBEE:busybee.localhost} {
     tls internal
-
-    # Redirect /admin to main Fernando admin
-    handle /admin* {
-        redir https://{$DOMAIN_FERNANDO:localhost}{uri} permanent
-    }
 
     # API and GraphQL routes to backend
     handle /graphql* {
@@ -274,6 +258,10 @@ https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
 https://{$DOMAIN_OPSBLUEPRINT:opsblueprint.localhost} {
     tls internal
 
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
     handle /api/* {
         reverse_proxy backend:5000
     }
@@ -285,6 +273,9 @@ https://{$DOMAIN_OPSBLUEPRINT:opsblueprint.localhost} {
 
 # OpsBlueprint (LAN)
 http://opsblueprint.homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
     handle /api/* {
         reverse_proxy backend:5000
     }

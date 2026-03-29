@@ -1,0 +1,29 @@
+# Root .dockerignore — used when build context is repo root
+# (e.g. frontend-fernando service in docker-compose.yml)
+
+# Git
+.git
+
+# All node_modules (will be installed inside container)
+**/node_modules
+**/build
+**/dist
+
+# Backend (not needed for frontend builds)
+# Note: backend has its own context in docker-compose so this doesn't affect it
+backend/
+
+# Other frontends not needed for the current build
+# (Docker COPY commands are explicit, so this is just for context size)
+frontend/portfolio-jessica/node_modules
+frontend/portfolio-busybee/node_modules
+frontend/portfolio-opsblueprint/node_modules
+frontend/portfolio-executive-catering/node_modules
+frontend/agent-chat-web/node_modules
+
+# Deploy configs, docs, etc.
+deploy/
+n8n-agent/
+*.md
+.env
+.env.*

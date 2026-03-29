@@ -1,6 +1,12 @@
 import Container from '../ui/Container';
+import type { SiteConfig, Footer as FooterType } from '../../cms';
 
-export default function Footer() {
+interface FooterProps {
+  siteConfig: SiteConfig;
+  footer: FooterType;
+}
+
+export default function Footer({ siteConfig, footer }: FooterProps) {
   return (
     <footer className="bg-gray-900 text-gray-400 py-12">
       <Container>
@@ -8,47 +14,43 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <img src="/logo.svg" alt="OpsBlueprint logo" className="w-8 h-8" />
+              <img src={siteConfig.logoSrc} alt={siteConfig.logoAlt} className="w-8 h-8" />
               <span className="font-heading font-bold text-xl text-white">
-                Ops<span className="text-primary-400">Blueprint</span>
+                {siteConfig.brandName}<span className="text-primary-400">{siteConfig.brandHighlight}</span>
               </span>
             </div>
             <p className="text-sm leading-relaxed">
-              Workflow automation built for small businesses.
-              We handle the busywork so you can focus on your customers.
+              {footer.tagline}
             </p>
           </div>
 
           {/* Services */}
           <div>
-            <h4 className="font-heading font-semibold text-white mb-4">Services</h4>
+            <h4 className="font-heading font-semibold text-white mb-4">{footer.servicesHeading}</h4>
             <ul className="space-y-2 text-sm">
-              <li><a href="#services" className="hover:text-white transition-colors">Workflow Audit</a></li>
-              <li><a href="#services" className="hover:text-white transition-colors">Core Automation</a></li>
-              <li><a href="#services" className="hover:text-white transition-colors">Advanced Systems</a></li>
+              {footer.serviceLinks.map((link, i) => (
+                <li key={i}><a href={link.href} className="hover:text-white transition-colors">{link.text}</a></li>
+              ))}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="font-heading font-semibold text-white mb-4">Get In Touch</h4>
+            <h4 className="font-heading font-semibold text-white mb-4">{footer.contactHeading}</h4>
             <ul className="space-y-2 text-sm">
-              <li>
-                <a href="#lead-form" className="hover:text-white transition-colors">
-                  Request a Consultation
-                </a>
-              </li>
-              <li>
-                <a href="mailto:fxvarga@gmail.com" className="hover:text-white transition-colors">
-                  fxvarga@gmail.com
-                </a>
-              </li>
+              {footer.contactLinks.map((link, i) => (
+                <li key={i}>
+                  <a href={link.href} className="hover:text-white transition-colors">
+                    {link.text}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm">
-          <p>&copy; {new Date().getFullYear()} OpsBlueprint. All rights reserved.</p>
+          <p>{footer.copyrightTemplate.replace('{year}', new Date().getFullYear().toString())}</p>
         </div>
       </Container>
     </footer>

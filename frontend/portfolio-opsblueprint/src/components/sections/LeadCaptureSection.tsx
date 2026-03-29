@@ -5,6 +5,7 @@ import Select from '../ui/Select';
 import Textarea from '../ui/Textarea';
 import Button from '../ui/Button';
 import useScrollReveal from '../../hooks/useScrollReveal';
+import type { LeadCapture } from '../../cms';
 
 declare global {
   interface Window {
@@ -12,17 +13,9 @@ declare global {
   }
 }
 
-const industries = [
-  { value: 'catering', label: 'Catering & Food Service' },
-  { value: 'events', label: 'Event Planning & Management' },
-  { value: 'accounting', label: 'Accounting & Finance' },
-  { value: 'property', label: 'Property Management' },
-  { value: 'healthcare', label: 'Healthcare Services' },
-  { value: 'professional', label: 'Professional Services' },
-  { value: 'retail', label: 'Retail & E-Commerce' },
-  { value: 'construction', label: 'Construction & Trades' },
-  { value: 'other', label: 'Other' },
-];
+interface LeadCaptureSectionProps {
+  leadCapture: LeadCapture;
+}
 
 interface FormData {
   fullName: string;
@@ -32,7 +25,7 @@ interface FormData {
   problemDescription: string;
 }
 
-export default function LeadCaptureSection() {
+export default function LeadCaptureSection({ leadCapture }: LeadCaptureSectionProps) {
   const [form, setForm] = useState<FormData>({
     fullName: '',
     email: '',
@@ -56,7 +49,7 @@ export default function LeadCaptureSection() {
     setErrorMsg('');
 
     try {
-      const res = await fetch('/api/leads', {
+      const res = await fetch(leadCapture.apiEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,7 +78,7 @@ export default function LeadCaptureSection() {
       setForm({ fullName: '', email: '', company: '', industry: '', problemDescription: '' });
     } catch (err) {
       setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Failed to submit. Please try again.');
+      setErrorMsg(err instanceof Error ? err.message : leadCapture.errorMessage);
     }
   };
 
@@ -98,11 +91,8 @@ export default function LeadCaptureSection() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="font-heading font-bold text-2xl text-gray-900">Thank you!</h2>
-          <p className="mt-2 text-gray-600">
-            We've received your request and will reach out within 24 hours to discuss
-            how we can help your business run on autopilot.
-          </p>
+          <h2 className="font-heading font-bold text-2xl text-gray-900">{leadCapture.successHeading}</h2>
+          <p className="mt-2 text-gray-600">{leadCapture.successMessage}</p>
         </div>
       </Section>
     );
@@ -113,11 +103,10 @@ export default function LeadCaptureSection() {
       <div className="max-w-xl mx-auto" ref={reveal.ref} style={reveal.style}>
         <div className="text-center mb-8">
           <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-            Tell Us What's Eating Up Your Time
+            {leadCapture.heading}
           </h2>
           <p className="mt-4 text-gray-600">
-            Describe the task you wish you could stop doing. We'll respond with a
-            free analysis and a plan to automate it — no strings attached.
+            {leadCapture.subheading}
           </p>
         </div>
 
@@ -125,17 +114,17 @@ export default function LeadCaptureSection() {
           <div className="grid sm:grid-cols-2 gap-4">
             <Input
               id="fullName"
-              label="Full Name"
-              placeholder="Jane Smith"
+              label={leadCapture.nameLabel}
+              placeholder={leadCapture.namePlaceholder}
               required
               value={form.fullName}
               onChange={handleChange('fullName')}
             />
             <Input
               id="email"
-              label="Email"
+              label={leadCapture.emailLabel}
               type="email"
-              placeholder="jane@mybusiness.com"
+              placeholder={leadCapture.emailPlaceholder}
               required
               value={form.email}
               onChange={handleChange('email')}
@@ -145,15 +134,15 @@ export default function LeadCaptureSection() {
           <div className="grid sm:grid-cols-2 gap-4">
             <Input
               id="company"
-              label="Company"
-              placeholder="My Business LLC"
+              label={leadCapture.companyLabel}
+              placeholder={leadCapture.companyPlaceholder}
               value={form.company}
               onChange={handleChange('company')}
             />
             <Select
               id="industry"
-              label="Industry"
-              options={industries}
+              label={leadCapture.industryLabel}
+              options={leadCapture.industries}
               value={form.industry}
               onChange={handleChange('industry')}
             />
@@ -161,8 +150,8 @@ export default function LeadCaptureSection() {
 
           <Textarea
             id="problemDescription"
-            label="What task do you wish you could stop doing?"
-            placeholder="e.g., I spend 2 hours every morning manually entering orders from email into our spreadsheet..."
+            label={leadCapture.problemLabel}
+            placeholder={leadCapture.problemPlaceholder}
             value={form.problemDescription}
             onChange={handleChange('problemDescription')}
           />
@@ -177,11 +166,11 @@ export default function LeadCaptureSection() {
             className="w-full"
             disabled={status === 'submitting'}
           >
-            {status === 'submitting' ? 'Submitting...' : 'Get Your Free Consultation'}
+            {status === 'submitting' ? leadCapture.submittingButtonText : leadCapture.submitButtonText}
           </Button>
 
           <p className="text-center text-xs text-gray-500">
-            No spam. No pressure. Just a free look at how we can save you time.
+            {leadCapture.privacyText}
           </p>
         </form>
       </div>

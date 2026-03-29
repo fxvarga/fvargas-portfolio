@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Login - 1 Stop Wings</title>
+  <meta name="robots" content="noindex, nofollow">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 40px 32px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    }
+    .header { text-align: center; margin-bottom: 28px; }
+    .header svg { color: #3b82f6; margin-bottom: 12px; }
+    .header h1 { font-size: 22px; font-weight: 700; margin-bottom: 6px; }
+    .header p { font-size: 13px; color: #94a3b8; }
+    .field { margin-bottom: 16px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #475569;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .field input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    }
+    .field input:disabled { opacity: 0.5; cursor: not-allowed; }
+    .field input::placeholder { color: #64748b; }
+    .error {
+      display: none;
+      padding: 10px 14px;
+      background: #451a22;
+      border: 1px solid #991b1b;
+      border-radius: 8px;
+      color: #fca5a5;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .submit {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #3b82f6;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .submit:hover:not(:disabled) { background: #2563eb; }
+    .submit:disabled { opacity: 0.5; cursor: not-allowed; }
+    .portfolios { display: none; }
+    .portfolio-btn {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 16px;
+      border: 1.5px solid #475569;
+      border-radius: 8px;
+      background: #0f172a;
+      color: #e2e8f0;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 14px;
+      margin-bottom: 8px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .portfolio-btn:hover { border-color: #3b82f6; background: #1e293b; }
+    .portfolio-name { font-weight: 600; }
+    .portfolio-slug { font-size: 12px; color: #94a3b8; font-style: italic; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+      </svg>
+      <h1>CMS Admin</h1>
+      <p>Sign in to manage 1 Stop Wings' portfolio</p>
+    </div>
+
+    <form id="loginForm">
+      <div class="field">
+        <label for="username">Username</label>
+        <input id="username" type="text" placeholder="admin" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="password">Password</label>
+        <input id="password" type="password" placeholder="Password" autocomplete="current-password" required>
+      </div>
+      <div class="error" id="error"></div>
+      <button class="submit" type="submit" id="submitBtn" disabled>Sign In</button>
+    </form>
+
+    <div class="portfolios" id="portfolios"></div>
+  </div>
+
+  <script>
+    (function() {
+      var PORTFOLIO_ID = '44444444-4444-4444-4444-444444444444';
+      var GRAPHQL_URL = '/graphql';
+
+      var LOGIN_MUTATION =
+        'mutation Login($input: LoginInput!) { login(input: $input) { success token user { id username role } portfolios { id slug name } errorMessage } }';
+
+      var form = document.getElementById('loginForm');
+      var usernameInput = document.getElementById('username');
+      var passwordInput = document.getElementById('password');
+      var submitBtn = document.getElementById('submitBtn');
+      var errorDiv = document.getElementById('error');
+      var portfoliosDiv = document.getElementById('portfolios');
+
+      function updateSubmit() {
+        submitBtn.disabled = !usernameInput.value.trim() || !passwordInput.value.trim();
+      }
+      usernameInput.addEventListener('input', updateSubmit);
+      passwordInput.addEventListener('input', updateSubmit);
+
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var uname = usernameInput.value.trim();
+        var pwd = passwordInput.value.trim();
+        if (!uname || !pwd) return;
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+        usernameInput.disabled = true;
+        passwordInput.disabled = true;
+        errorDiv.style.display = 'none';
+
+        fetch(GRAPHQL_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: LOGIN_MUTATION, variables: { input: { username: uname, password: pwd } } })
+        })
+          .then(function(res) {
+            if (!res.ok) throw new Error('Request failed: ' + res.status);
+            return res.json();
+          })
+          .then(function(json) {
+            if (json.errors && json.errors.length) throw new Error(json.errors.map(function(e) { return e.message; }).join('; '));
+            return json.data.login;
+          })
+          .then(function(result) {
+            if (!result.success || !result.token) {
+              showError(result.errorMessage || 'Login failed');
+              return;
+            }
+
+            // Store credentials
+            localStorage.setItem('cms_auth_token', result.token);
+            if (result.user) localStorage.setItem('cms_auth_user', JSON.stringify(result.user));
+            if (result.portfolios) localStorage.setItem('cms_auth_portfolios', JSON.stringify(result.portfolios));
+
+            // Auto-select the portfolio for this site
+            if (result.portfolios) {
+              var match = null;
+              for (var i = 0; i < result.portfolios.length; i++) {
+                if (result.portfolios[i].id === PORTFOLIO_ID) { match = result.portfolios[i]; break; }
+              }
+              if (match) {
+                localStorage.setItem('cms_selected_portfolio', JSON.stringify(match));
+                window.location.href = '/';
+                return;
+              }
+              // If no match and multiple portfolios, show picker
+              if (result.portfolios.length === 1) {
+                localStorage.setItem('cms_selected_portfolio', JSON.stringify(result.portfolios[0]));
+                window.location.href = '/';
+                return;
+              }
+              if (result.portfolios.length > 1) {
+                showPortfolioPicker(result.portfolios);
+                return;
+              }
+            }
+
+            window.location.href = '/';
+          })
+          .catch(function(err) {
+            showError(err.message || 'Login failed');
+          });
+      });
+
+      function showError(msg) {
+        errorDiv.textContent = msg;
+        errorDiv.style.display = 'block';
+        submitBtn.textContent = 'Sign In';
+        submitBtn.disabled = false;
+        usernameInput.disabled = false;
+        passwordInput.disabled = false;
+      }
+
+      function showPortfolioPicker(portfolios) {
+        form.style.display = 'none';
+        portfoliosDiv.style.display = 'block';
+        var html = '<div class="header"><h1>Select Portfolio</h1><p>Choose which site to manage</p></div>';
+        for (var i = 0; i < portfolios.length; i++) {
+          html += '<button class="portfolio-btn" data-idx="' + i + '">' +
+            '<span class="portfolio-name">' + esc(portfolios[i].name) + '</span>' +
+            '<span class="portfolio-slug">' + esc(portfolios[i].slug) + '</span>' +
+            '</button>';
+        }
+        portfoliosDiv.innerHTML = html;
+        var btns = portfoliosDiv.querySelectorAll('.portfolio-btn');
+        for (var i = 0; i < btns.length; i++) {
+          btns[i].addEventListener('click', function() {
+            var idx = parseInt(this.getAttribute('data-idx'), 10);
+            localStorage.setItem('cms_selected_portfolio', JSON.stringify(portfolios[idx]));
+            window.location.href = '/';
+          });
+        }
+      }
+
+      function esc(str) {
+        var d = document.createElement('div');
+        d.textContent = str;
+        return d.innerHTML;
+      }
+
+      // Auto-focus username
+      usernameInput.focus();
+
+      // If already authenticated, redirect immediately
+      var existing = localStorage.getItem('cms_auth_token');
+      if (existing) {
+        window.location.href = '/';
+      }
+    })();
+  </script>
+</body>
+</html>

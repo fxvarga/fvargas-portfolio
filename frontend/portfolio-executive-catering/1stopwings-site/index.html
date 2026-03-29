@@ -80,5 +80,19 @@
     <!-- CMS Hydration (enhances hardcoded HTML; fails gracefully) -->
     <script src="js/cms-client.js"></script>
     <script src="js/landing.js"></script>
+
+    <!-- CMS Agent Panel (only visible when logged in as admin) -->
+    <script src="js/cms-agent-panel.js"></script>
+    <script>
+      CmsAgentPanel.init({
+        graphqlUrl: '/graphql',
+        portfolioId: '44444444-4444-4444-4444-444444444444',
+        sections: [
+          { selector: 'header',        entityType: 'hero',              label: 'Header / Hero' },
+          { selector: '.hero-section', entityType: 'hero',              label: 'Hero Section' },
+          { selector: '.button-stack', entityType: 'ordering-platform', label: 'Ordering Platforms' }
+        ]
+      });
+    </script>
 </body>
 </html>

@@ -1,35 +1,13 @@
 import Section from '../layout/Section';
 import Card from '../ui/Card';
 import useScrollReveal from '../../hooks/useScrollReveal';
+import type { Testimonials, TestimonialItem } from '../../cms';
 
-const testimonials = [
-  {
-    quote:
-      "I was spending the first three hours of every morning sorting emails and updating our booking spreadsheet. Fernando automated the whole thing in two weeks. Now leads land in our CRM, clients get an instant reply, and I actually start my day with coffee instead of data entry.",
-    name: 'Sarah Mitchell',
-    title: 'Owner, Horizon Events (12 employees)',
-    metric: '3 hrs/day saved',
-    photo: '/images/testimonial-1.jpg',
-  },
-  {
-    quote:
-      "We tried setting up Zapier ourselves and gave up after a weekend. Fernando came in, mapped our entire order-to-invoice flow, and by week three we had zero manual data entry between our CRM and QuickBooks. The project paid for itself in the first month.",
-    name: 'Marcus Chen',
-    title: 'Founder, Pacific Coast Catering (8 employees)',
-    metric: '100% ROI in 30 days',
-    photo: '/images/testimonial-2.jpg',
-  },
-  {
-    quote:
-      "As a two-person sales team, we couldn't afford to spend 45 minutes building each proposal by hand. Now our intake form triggers a branded proposal automatically — accurate, professional, and delivered in seconds. It's like having an extra employee.",
-    name: 'Elena Rodriguez',
-    title: 'Co-Owner, Clearview Property Group (5 employees)',
-    metric: '45 min → seconds',
-    photo: '/images/testimonial-3.jpg',
-  },
-];
+interface TestimonialsSectionProps {
+  testimonials: Testimonials;
+}
 
-function TestimonialCard({ testimonial, index }: { testimonial: typeof testimonials[number]; index: number }) {
+function TestimonialCard({ testimonial, index }: { testimonial: TestimonialItem; index: number }) {
   const reveal = useScrollReveal({ threshold: 0.15 });
 
   return (
@@ -76,22 +54,22 @@ function TestimonialCard({ testimonial, index }: { testimonial: typeof testimoni
   );
 }
 
-export default function TestimonialsSection() {
+export default function TestimonialsSection({ testimonials }: TestimonialsSectionProps) {
   const headerReveal = useScrollReveal();
 
   return (
     <Section id="testimonials">
       <div className="text-center mb-12" ref={headerReveal.ref} style={headerReveal.style}>
         <h2 className="font-heading font-bold text-3xl sm:text-4xl text-gray-900">
-          What Our Clients Say
+          {testimonials.heading}
         </h2>
         <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-          Real results from small business owners who stopped doing everything manually.
+          {testimonials.subheading}
         </p>
       </div>
 
       <div className="grid md:grid-cols-3 gap-8">
-        {testimonials.map((testimonial, i) => (
+        {testimonials.testimonials.map((testimonial, i) => (
           <TestimonialCard key={testimonial.name} testimonial={testimonial} index={i} />
         ))}
       </div>

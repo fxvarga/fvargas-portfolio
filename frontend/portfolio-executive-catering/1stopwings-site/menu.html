@@ -167,5 +167,19 @@
     <!-- CMS Hydration (enhances hardcoded HTML; fails gracefully) -->
     <script src="js/cms-client.js"></script>
     <script src="js/menu.js"></script>
+
+    <!-- CMS Agent Panel (only visible when logged in as admin) -->
+    <script src="js/cms-agent-panel.js"></script>
+    <script>
+      CmsAgentPanel.init({
+        graphqlUrl: '/graphql',
+        portfolioId: '44444444-4444-4444-4444-444444444444',
+        sections: [
+          { selector: '.menu-header',  entityType: 'site-config',    label: 'Store Info' },
+          { selector: '.menu-grid',    entityType: 'menu-category',  label: 'Menu Grid' },
+          { selector: '.menu-footer',  entityType: 'footer',         label: 'Footer' }
+        ]
+      });
+    </script>
 </body>
 </html>
