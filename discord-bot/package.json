@@ -1,0 +1,17 @@
+{
+  "name": "portfolio-discord-bot",
+  "version": "1.0.0",
+  "description": "Discord bot for CMS agent editing and n8n workflow triggering",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  }
+}

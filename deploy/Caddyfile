@@ -308,3 +308,15 @@ https://{$DOMAIN_N8N:n8n.localhost} {
         header_up Upgrade {>Upgrade}
     }
 }
+
+# Discord Bot health/status page
+https://{$DOMAIN_BOT:bot.localhost} {
+    tls internal
+
+    reverse_proxy discord-bot:3100
+}
+
+# Discord Bot (LAN)
+http://bot.homehost {
+    reverse_proxy discord-bot:3100
+}

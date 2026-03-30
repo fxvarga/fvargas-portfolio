@@ -386,6 +386,33 @@ services:
       retries: 5
       start_period: 10s
 
+  # Discord Bot (CMS agent interface)
+  discord-bot:
+    build:
+      context: ./discord-bot
+      dockerfile: Dockerfile
+    container_name: portfolio-discord-bot
+    ports:
+      - "3100:3100"
+    env_file:
+      - deploy/.env
+    environment:
+      - CMS_API_URL=http://backend:5000/graphql
+      - CMS_ADMIN_USERNAME=${CMS_ADMIN_USERNAME:-admin}
+      - N8N_WEBHOOK_BASE_URL=http://n8n:5678/webhook
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   # Caddy reverse proxy for multi-domain routing (local dev)
   caddy:
     image: caddy:2-alpine
@@ -408,6 +435,7 @@ services:
       - DOMAIN_ANALYTICS=${DOMAIN_ANALYTICS:-analytics.localhost}
       - DOMAIN_GRAFANA=${DOMAIN_GRAFANA:-grafana.localhost}
       - DOMAIN_N8N=${DOMAIN_N8N:-n8n.localhost}
+      - DOMAIN_BOT=${DOMAIN_BOT:-bot.localhost}
     depends_on:
       frontend-fernando:
         condition: service_healthy
