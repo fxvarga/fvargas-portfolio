@@ -121,6 +121,7 @@ function Get-FrontendImages {
     $execCatName  = if ($script:IMAGE_FRONTEND_EXECUTIVE_CATERING){ $script:IMAGE_FRONTEND_EXECUTIVE_CATERING }else { "portfolio-frontend-executive-catering" }
     $opsblueprintName = if ($script:IMAGE_FRONTEND_OPSBLUEPRINT) { $script:IMAGE_FRONTEND_OPSBLUEPRINT } else { "portfolio-frontend-opsblueprint" }
     $n8nHelperName = if ($script:IMAGE_N8N_PYTHON_HELPER)         { $script:IMAGE_N8N_PYTHON_HELPER }          else { "portfolio-n8n-python-helper" }
+    $discordBotName = if ($script:IMAGE_DISCORD_BOT)              { $script:IMAGE_DISCORD_BOT }               else { "portfolio-discord-bot" }
 
     $script:FRONTEND_FERNANDO_IMAGE          = "$($script:DOCKER_USERNAME)/${fernandoName}:${Tag}"
     $script:FRONTEND_JESSICA_IMAGE           = "$($script:DOCKER_USERNAME)/${jessicaName}:${Tag}"
@@ -128,6 +129,7 @@ function Get-FrontendImages {
     $script:FRONTEND_EXECUTIVE_CATERING_IMAGE = "$($script:DOCKER_USERNAME)/${execCatName}:${Tag}"
     $script:FRONTEND_OPSBLUEPRINT_IMAGE      = "$($script:DOCKER_USERNAME)/${opsblueprintName}:${Tag}"
     $script:N8N_PYTHON_HELPER_IMAGE          = "$($script:DOCKER_USERNAME)/${n8nHelperName}:${Tag}"
+    $script:DISCORD_BOT_IMAGE                = "$($script:DOCKER_USERNAME)/${discordBotName}:${Tag}"
 }
 
 # ============================================
@@ -327,6 +329,11 @@ function Build-AndPush {
     docker build -t "$($script:N8N_PYTHON_HELPER_IMAGE)" -f "$ProjectRoot/n8n-agent/python-helper/Dockerfile" "$ProjectRoot/n8n-agent/python-helper"
     Assert-ExitCode "n8n Python Helper build"
 
+    # Build Discord Bot
+    Log-Info "Building Discord Bot image: $($script:DISCORD_BOT_IMAGE)"
+    docker build -t "$($script:DISCORD_BOT_IMAGE)" -f "$ProjectRoot/discord-bot/Dockerfile" "$ProjectRoot/discord-bot"
+    Assert-ExitCode "Discord Bot build"
+
     Log-Success "Images built successfully"
 
     # Push to registry
@@ -346,6 +353,8 @@ function Build-AndPush {
     Assert-ExitCode "Frontend OpsBlueprint push"
     docker push "$($script:N8N_PYTHON_HELPER_IMAGE)"
     Assert-ExitCode "n8n Python Helper push"
+    docker push "$($script:DISCORD_BOT_IMAGE)"
+    Assert-ExitCode "Discord Bot push"
 
     Log-Success "Images pushed to Docker Hub"
 
@@ -373,6 +382,7 @@ function Deploy-ToServer {
     $domainAnalytics         = if ($script:DOMAIN_ANALYTICS)          { $script:DOMAIN_ANALYTICS }          else { "" }
     $domainGrafana           = if ($script:DOMAIN_GRAFANA)            { $script:DOMAIN_GRAFANA }            else { "" }
     $domainN8n               = if ($script:DOMAIN_N8N)                { $script:DOMAIN_N8N }                else { "" }
+    $domainBot               = if ($script:DOMAIN_BOT)                { $script:DOMAIN_BOT }                else { "" }
 
     $jwtSecretKey      = $script:JWT_SECRET_KEY
     $cmsAdminPassword  = $script:CMS_ADMIN_PASSWORD
@@ -429,11 +439,17 @@ function Deploy-ToServer {
     $twilioApiKeySecret  = if ($script:TWILIO_API_KEY_SECRET) { $script:TWILIO_API_KEY_SECRET } else { "" }
     $twilioPhoneNumber   = if ($script:TWILIO_PHONE_NUMBER)   { $script:TWILIO_PHONE_NUMBER }   else { "" }
 
+    # Discord Bot vars
+    $discordBotToken     = if ($script:DISCORD_BOT_TOKEN)    { $script:DISCORD_BOT_TOKEN }    else { "" }
+    $discordGuildId      = if ($script:DISCORD_GUILD_ID)     { $script:DISCORD_GUILD_ID }     else { "" }
+    $discordCmsRoleName  = if ($script:DISCORD_CMS_ROLE_NAME){ $script:DISCORD_CMS_ROLE_NAME }else { "CMS Admin" }
+
     $fernandoImage          = $script:FRONTEND_FERNANDO_IMAGE
     $jessicaImage           = $script:FRONTEND_JESSICA_IMAGE
     $busybeeImage           = $script:FRONTEND_BUSYBEE_IMAGE
     $executiveCateringImage = $script:FRONTEND_EXECUTIVE_CATERING_IMAGE
     $opsblueprintImage      = $script:FRONTEND_OPSBLUEPRINT_IMAGE
+    $discordBotImage        = $script:DISCORD_BOT_IMAGE
 
     Log-Info "Deploying to $($script:DROPLET_IP)..."
     Log-Info "Using images:"
@@ -444,6 +460,7 @@ function Deploy-ToServer {
     Log-Info "  Frontend Executive Catering: $executiveCateringImage"
     Log-Info "  Frontend OpsBlueprint: $opsblueprintImage"
     Log-Info "  n8n Python Helper: $n8nPythonHelperImage"
+    Log-Info "  Discord Bot:   $discordBotImage"
 
     $domainFernandoDisplay          = if ($domainFernando)          { $domainFernando }          else { "localhost" }
     $domainJessicaDisplay           = if ($domainJessica)           { $domainJessica }           else { "jessica.localhost" }
@@ -454,6 +471,7 @@ function Deploy-ToServer {
     $domainAnalyticsDisplay         = if ($domainAnalytics)         { $domainAnalytics }         else { "analytics.localhost" }
     $domainGrafanaDisplay           = if ($domainGrafana)           { $domainGrafana }           else { "grafana.localhost" }
     $domainN8nDisplay               = if ($domainN8n)               { $domainN8n }               else { "n8n.localhost" }
+    $domainBotDisplay               = if ($domainBot)               { $domainBot }               else { "bot.localhost" }
 
     Log-Info "Domains:"
     Log-Info "  Fernando: $domainFernandoDisplay"
@@ -465,6 +483,7 @@ function Deploy-ToServer {
     Log-Info "  Analytics: $domainAnalyticsDisplay"
     Log-Info "  Grafana:   $domainGrafanaDisplay"
     Log-Info "  n8n:       $domainN8nDisplay"
+    Log-Info "  Bot:       $domainBotDisplay"
 
     # Build the docker-compose.yml content
     # NOTE: This uses single-quoted YAML inside the heredoc on the remote server.
@@ -853,6 +872,30 @@ services:
       retries: 5
       start_period: 10s
 
+  discord-bot:
+    image: $discordBotImage
+    container_name: portfolio-discord-bot
+    environment:
+      - DISCORD_BOT_TOKEN=$discordBotToken
+      - DISCORD_GUILD_ID=$discordGuildId
+      - DISCORD_CMS_ROLE_NAME=$discordCmsRoleName
+      - CMS_API_URL=http://backend:5000/graphql
+      - CMS_ADMIN_USERNAME=admin
+      - CMS_ADMIN_PASSWORD=$cmsAdminPassword
+      - N8N_WEBHOOK_BASE_URL=http://n8n:5678/webhook
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3100/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
   caddy:
     image: caddy:2-alpine
     container_name: portfolio-caddy
@@ -874,6 +917,7 @@ services:
       - plausible
       - grafana
       - n8n
+      - discord-bot
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -1040,6 +1084,11 @@ $domainN8nDisplay {
             keepalive 30s
         }
     }
+}
+
+# Discord Bot health/status page
+$domainBotDisplay {
+    reverse_proxy discord-bot:3100
 }
 "@
 
@@ -1219,6 +1268,7 @@ echo "Deployment complete!"
     if ($domainExecutiveCatering) { Write-Host "  Executive Catering: https://$domainExecutiveCatering" }
     if ($domainAnalytics)         { Write-Host "  Analytics: https://$domainAnalytics" }
     if ($domainGrafana)           { Write-Host "  Grafana: https://$domainGrafana" }
+    if ($domainBot)               { Write-Host "  Discord Bot: https://$domainBot" }
     Write-Host ""
     Log-Info "Make sure your DNS is configured for all domains to point to: $($script:DROPLET_IP)"
 }
@@ -1362,6 +1412,11 @@ function Build-Only {
     docker build -t "$($script:N8N_PYTHON_HELPER_IMAGE)" -f "$ProjectRoot/n8n-agent/python-helper/Dockerfile" "$ProjectRoot/n8n-agent/python-helper"
     Assert-ExitCode "n8n Python Helper build"
 
+    # Build Discord Bot
+    Log-Info "Building Discord Bot image: $($script:DISCORD_BOT_IMAGE)"
+    docker build -t "$($script:DISCORD_BOT_IMAGE)" -f "$ProjectRoot/discord-bot/Dockerfile" "$ProjectRoot/discord-bot"
+    Assert-ExitCode "Discord Bot build"
+
     Log-Success "Images built successfully"
     Write-Host ""
     Log-Info "Images:"
@@ -1372,6 +1427,7 @@ function Build-Only {
     Write-Host "  $($script:FRONTEND_EXECUTIVE_CATERING_IMAGE)"
     Write-Host "  $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
     Write-Host "  $($script:N8N_PYTHON_HELPER_IMAGE)"
+    Write-Host "  $($script:DISCORD_BOT_IMAGE)"
 }
 
 # ============================================
