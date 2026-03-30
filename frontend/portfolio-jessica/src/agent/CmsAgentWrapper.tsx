@@ -53,9 +53,6 @@ export function CmsAgentWrapper({ children, content, onContentChange, onRefetch 
   const token = getStoredToken();
   const portfolioId = getStoredPortfolioId();
 
-  // If no token, don't render the agent panel at all — FAB stays hidden
-  if (!token) return <>{children}</>;
-
   const refetchRef = useRef(onRefetch);
   refetchRef.current = onRefetch;
 
@@ -65,7 +62,7 @@ export function CmsAgentWrapper({ children, content, onContentChange, onRefetch 
   const agentConfig = useMemo<AgentPanelConfig>(() => ({
     graphqlUrl,
     wsUrl,
-    token,
+    token: token ?? '',
     portfolioId,
     sections: PORTFOLIO_SECTIONS,
     currentRoute: window.location.pathname,
@@ -90,6 +87,9 @@ export function CmsAgentWrapper({ children, content, onContentChange, onRefetch 
       console.log('[CmsAgent] Changes discarded');
     },
   }), []);
+
+  // If no token, don't render the agent panel at all — FAB stays hidden
+  if (!token) return <>{children}</>;
 
   return (
     <AgentProvider config={agentConfig} callbacks={callbacks}>

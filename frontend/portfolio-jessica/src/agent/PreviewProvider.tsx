@@ -144,31 +144,28 @@ export function PreviewProvider({ children, content, onContentChange }: PreviewP
 
   usePreviewHighlights(proposedChanges, isPreviewActive, config.sections ?? []);
 
-  const originalContentRef = useRef<CMSContent>(content);
-  const isShowingPreviewRef = useRef(false);
-
-  useEffect(() => {
-    if (!isShowingPreviewRef.current) {
-      originalContentRef.current = content;
-    }
-  }, [content]);
+  // `content` is always the REAL CMS content (never preview-tainted).
+  // We compute preview content and push it to the parent via onContentChange.
+  // When preview deactivates we restore the real content.
+  const prevPreviewActiveRef = useRef(false);
 
   const previewContent = useMemo(() => {
     if (!isPreviewActive || proposedChanges.length === 0) {
       return null;
     }
-    return applyChanges(originalContentRef.current, proposedChanges);
-  }, [isPreviewActive, proposedChanges]);
+    return applyChanges(content, proposedChanges);
+  }, [isPreviewActive, proposedChanges, content]);
 
   useEffect(() => {
     if (previewContent) {
-      isShowingPreviewRef.current = true;
+      prevPreviewActiveRef.current = true;
       onContentChange(previewContent);
-    } else if (isShowingPreviewRef.current) {
-      isShowingPreviewRef.current = false;
-      onContentChange(originalContentRef.current);
+    } else if (prevPreviewActiveRef.current) {
+      // Preview just deactivated — restore real content
+      prevPreviewActiveRef.current = false;
+      onContentChange(content);
     }
-  }, [previewContent, onContentChange]);
+  }, [previewContent, onContentChange, content]);
 
   return <>{children}</>;
 }

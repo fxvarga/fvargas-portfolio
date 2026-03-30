@@ -165,39 +165,28 @@ export function PreviewProvider({ children, content, onContentChange }: PreviewP
 
   usePreviewHighlights(proposedChanges, isPreviewActive, config.sections ?? []);
 
-  // Store the original (non-preview) content so we can restore it
-  const originalContentRef = useRef<CMSContent>(content);
+  // `content` is always the REAL CMS content (never preview-tainted).
+  // We compute preview content and push it to the parent via onContentChange.
+  // When preview deactivates we restore the real content.
+  const prevPreviewActiveRef = useRef(false);
 
-  // Track whether we're currently showing preview data
-  const isShowingPreviewRef = useRef(false);
-
-  // Update the original content ref when content changes from a real refetch
-  // (not from our own preview updates)
-  useEffect(() => {
-    if (!isShowingPreviewRef.current) {
-      originalContentRef.current = content;
-    }
-  }, [content]);
-
-  // Compute preview content
   const previewContent = useMemo(() => {
     if (!isPreviewActive || proposedChanges.length === 0) {
       return null;
     }
-    return applyChanges(originalContentRef.current, proposedChanges);
-  }, [isPreviewActive, proposedChanges]);
+    return applyChanges(content, proposedChanges);
+  }, [isPreviewActive, proposedChanges, content]);
 
-  // Push preview content to parent when it changes
   useEffect(() => {
     if (previewContent) {
-      isShowingPreviewRef.current = true;
+      prevPreviewActiveRef.current = true;
       onContentChange(previewContent);
-    } else if (isShowingPreviewRef.current) {
-      // Restore original content when preview is deactivated
-      isShowingPreviewRef.current = false;
-      onContentChange(originalContentRef.current);
+    } else if (prevPreviewActiveRef.current) {
+      // Preview just deactivated — restore real content
+      prevPreviewActiveRef.current = false;
+      onContentChange(content);
     }
-  }, [previewContent, onContentChange]);
+  }, [previewContent, onContentChange, content]);
 
   return <>{children}</>;
 }

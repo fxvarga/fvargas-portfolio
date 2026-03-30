@@ -288,12 +288,18 @@ async function fetchCMSContent(): Promise<CMSContent> {
 }
 
 function App() {
-  const [content, setContent] = useState<CMSContent>(defaultContent);
+  // realContent = source of truth from CMS (never preview-tainted)
+  // displayContent = what components render (may be preview-modified)
+  const [realContent, setRealContent] = useState<CMSContent>(defaultContent);
+  const [displayContent, setDisplayContent] = useState<CMSContent>(defaultContent);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
 
   const loadContent = useCallback(() => {
-    return fetchCMSContent().then(setContent);
+    return fetchCMSContent().then((data) => {
+      setRealContent(data);
+      setDisplayContent(data);
+    });
   }, []);
 
   useEffect(() => {
@@ -318,10 +324,10 @@ function App() {
     );
   }
 
-  const { navigation, hero, stats, services, about, testimonials, contact, footer } = content;
+  const { navigation, hero, stats, services, about, testimonials, contact, footer } = displayContent;
 
   return (
-    <CmsAgentWrapper content={content} onContentChange={setContent} onRefetch={handleRefetch}>
+    <CmsAgentWrapper content={realContent} onContentChange={setDisplayContent} onRefetch={handleRefetch}>
     <div className="app">
       {/* Navigation */}
       <nav className="navbar">

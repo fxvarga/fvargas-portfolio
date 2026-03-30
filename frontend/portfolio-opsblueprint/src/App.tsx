@@ -4,12 +4,18 @@ import { fetchCMSContent, defaultContent, type CMSContent } from './cms';
 import { CmsAgentWrapper } from './agent/CmsAgentWrapper';
 
 function App() {
-  const [content, setContent] = useState<CMSContent>(defaultContent);
+  // realContent = source of truth from CMS (never preview-tainted)
+  // displayContent = what components render (may be preview-modified)
+  const [realContent, setRealContent] = useState<CMSContent>(defaultContent);
+  const [displayContent, setDisplayContent] = useState<CMSContent>(defaultContent);
   const [loading, setLoading] = useState(true);
 
   const loadContent = useCallback(() => {
     return fetchCMSContent()
-      .then(setContent);
+      .then((data) => {
+        setRealContent(data);
+        setDisplayContent(data);
+      });
   }, []);
 
   useEffect(() => {
@@ -29,8 +35,8 @@ function App() {
   }
 
   return (
-    <CmsAgentWrapper content={content} onContentChange={setContent} onRefetch={handleRefetch}>
-      <Home content={content} />
+    <CmsAgentWrapper content={realContent} onContentChange={setDisplayContent} onRefetch={handleRefetch}>
+      <Home content={displayContent} />
     </CmsAgentWrapper>
   );
 }
