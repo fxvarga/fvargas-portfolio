@@ -1,0 +1,65 @@
+- generic [ref=e274]:
+  - banner [ref=e275]:
+    - heading "Monthly Journal" [level=1] [ref=e276]
+    - button "Settings" [ref=e278]:
+      - img [ref=e279]
+  - generic [ref=e283]:
+    - button "🥄 First Foods" [ref=e284]:
+      - generic [ref=e285]: 🥄
+      - generic [ref=e286]: First Foods
+    - button "🏆 Milestones" [ref=e287]:
+      - generic [ref=e288]: 🏆
+      - generic [ref=e289]: Milestones
+    - button "📖 Journal" [ref=e290]:
+      - generic [ref=e291]: 📖
+      - generic [ref=e292]: Journal
+    - button "📸 Memory Book" [ref=e293]:
+      - generic [ref=e294]: 📸
+      - generic [ref=e295]: Memory Book
+    - button "🎬 Year Recap" [ref=e296]:
+      - generic [ref=e297]: 🎬
+      - generic [ref=e298]: Year Recap
+  - generic [ref=e300]:
+    - generic [ref=e301]:
+      - generic [ref=e302]: "1"
+      - generic [ref=e303]: Months Recorded
+    - generic [ref=e304]:
+      - generic [ref=e305]: "2"
+      - generic [ref=e306]: Highlights
+    - generic [ref=e307]:
+      - generic [ref=e308]: "0"
+      - generic [ref=e309]: Photos
+  - button "Month 6 - The Smiling Month April 2026 This month was full of smiles and giggles. Tester started recognizing familiar faces and responding with the biggest grin. We also started introducing some solid foods! First giggle Started solid foods" [ref=e358]:
+    - generic [ref=e360]:
+      - generic [ref=e361]:
+        - heading "Month 6 - The Smiling Month" [level=3] [ref=e362]
+        - generic [ref=e363]: April 2026
+      - paragraph [ref=e364]: This month was full of smiles and giggles. Tester started recognizing familiar faces and responding with the biggest grin. We also started introducing some solid foods!
+      - generic [ref=e365]:
+        - generic [ref=e366]: First giggle
+        - generic [ref=e367]: Started solid foods
+  - button "Add Journal Entry" [ref=e315]:
+    - img [ref=e316]
+  - generic [ref=e370]:
+    - generic [ref=e373]:
+      - heading "Month 6 - The Smiling Month" [level=2] [ref=e374]
+      - button [ref=e375]:
+        - img [ref=e376]
+    - generic [ref=e380]:
+      - generic [ref=e382]:
+        - generic [ref=e383]: 📖
+        - generic [ref=e384]: April 2026
+      - generic [ref=e385]:
+        - text: Highlights
+        - generic [ref=e386]:
+          - generic [ref=e387]: First giggle
+          - generic [ref=e388]: Started solid foods
+      - generic [ref=e389]:
+        - text: Reflection
+        - paragraph [ref=e390]: This month was full of smiles and giggles. Tester started recognizing familiar faces and responding with the biggest grin. We also started introducing some solid foods!
+      - button "Edit Entry" [ref=e391]
+      - generic [ref=e393]:
+        - paragraph [ref=e394]: Delete this journal entry? This can't be undone.
+        - generic [ref=e395]:
+          - button "Cancel" [ref=e396]
+          - button "Delete" [ref=e397]

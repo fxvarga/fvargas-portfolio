@@ -2,10 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
+import { ModuleNavBar } from '@/components/ModuleNavBar';
 import { ProfileCard } from './ProfileCard';
 import { StatsBar } from './StatsBar';
 import { EntryCard } from './EntryCard';
-import { EntryFilter } from './EntryFilter';
 import { AddEntrySheet } from '@/features/entry/AddEntrySheet';
 import { EntryDetailView } from '@/features/entry/EntryDetailView';
 import { RestorePrompt } from '@/components/RestorePrompt';
@@ -30,20 +30,16 @@ export function HomePage() {
   const [selectedEntry, setSelectedEntry] = useState<FoodEntry | null>(null);
   const [showBackupNudge, setShowBackupNudge] = useState(false);
 
-  // Reload all data after a backup restore
   const handleRestored = useCallback(() => {
-    // Force a full page reload to pick up restored profile + entries
     window.location.reload();
   }, []);
 
-  // Redirect to onboarding if not completed
   useEffect(() => {
     if (!profileLoading && !profile.onboardingComplete) {
       navigate('/onboarding', { replace: true });
     }
   }, [profileLoading, profile.onboardingComplete, navigate]);
 
-  // Show backup nudge every 5 entries since last backup
   useEffect(() => {
     if (entriesLoading || stats.total === 0) return;
     const lastBackupCount = parseInt(localStorage.getItem('tinytoes-last-backup-count') || '0', 10);
@@ -70,7 +66,6 @@ export function HomePage() {
 
   return (
     <div className="min-h-screen pb-24" style={{ backgroundColor: 'var(--color-background)' }}>
-      {/* Restore prompt for standalone PWA with empty IDB */}
       <RestorePrompt onRestored={handleRestored} />
 
       {/* Backup nudge banner */}
@@ -104,20 +99,9 @@ export function HomePage() {
       {/* Header */}
       <header className="px-4 pt-6 pb-2 flex items-center justify-between no-print">
         <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
-          Baby First Bites
+          First Foods
         </h1>
         <div className="flex gap-2">
-          <button
-            onClick={() => navigate('/memory-book')}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
-            style={{ color: 'var(--color-muted)' }}
-            aria-label="Memory Book"
-          >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
-              <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
-            </svg>
-          </button>
           <button
             onClick={() => navigate('/settings')}
             className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
@@ -132,13 +116,14 @@ export function HomePage() {
         </div>
       </header>
 
+      {/* Module Navigation Bar */}
+      <ModuleNavBar activeSlug="first-foods" />
+
       {/* Content */}
       <div className="px-4 space-y-4">
         <ProfileCard profile={profile} />
-        <StatsBar {...stats} />
-        <EntryFilter value={filter} onChange={setFilter} />
+        <StatsBar {...stats} filter={filter} onFilter={setFilter} />
 
-        {/* Entry Grid */}
         {filteredEntries.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-4xl mb-3">

@@ -1,0 +1,11 @@
+- generic [ref=e115]:
+  - generic [ref=e116]:
+    - heading "Add a profile photo" [level=2] [ref=e117]
+    - paragraph [ref=e118]: A photo of your little one for their journal.
+    - button "Tap to add photo" [ref=e120]:
+      - generic [ref=e121]:
+        - img [ref=e122]
+        - generic [ref=e126]: Tap to add photo
+  - generic [ref=e127]:
+    - button "Back" [ref=e128]
+    - button "Skip" [ref=e129]

@@ -37,12 +37,17 @@ public static class StripeEndpoints
 
                     if (session?.CustomerDetails?.Email is not null)
                     {
+                        // Read the product slug from checkout session metadata
+                        var productSlug = session.Metadata?.GetValueOrDefault("product_slug") ?? "first-foods";
+
                         var code = await webhookService.HandleCheckoutCompletedAsync(
                             session.CustomerDetails.Email,
                             session.CustomerDetails.Name,
-                            session.CustomerId);
+                            session.CustomerId,
+                            productSlug);
 
-                        logger.LogInformation("Claim code generated: {Code} for {Email}", code, session.CustomerDetails.Email);
+                        logger.LogInformation("Claim code generated: {Code} for {Email}, product={Product}",
+                            code, session.CustomerDetails.Email, productSlug);
                         return Results.Ok(new { received = true, code });
                     }
                 }

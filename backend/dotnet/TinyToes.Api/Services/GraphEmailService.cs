@@ -29,7 +29,12 @@ public class GraphEmailService
         !string.IsNullOrEmpty(_configuration["MS_GRAPH_CLIENT_SECRET"]) &&
         !string.IsNullOrEmpty(_configuration["MAIL_USER_UPN"]);
 
-    public async Task SendClaimCodeEmailAsync(string recipientEmail, string recipientName, string claimCode, string appUrl)
+    public async Task SendClaimCodeEmailAsync(
+        string recipientEmail,
+        string recipientName,
+        string claimCode,
+        string appUrl,
+        string productName = "Baby First Bites")
     {
         if (!IsConfigured)
         {
@@ -37,8 +42,8 @@ public class GraphEmailService
             return;
         }
 
-        var subject = "Your Baby First Bites Journal is Ready!";
-        var htmlBody = BuildClaimCodeEmail(recipientName, claimCode, appUrl);
+        var subject = $"Your {productName} is Ready!";
+        var htmlBody = BuildClaimCodeEmail(recipientName, claimCode, appUrl, productName);
 
         await SendEmailAsync(recipientEmail, recipientName, subject, htmlBody);
     }
@@ -128,7 +133,7 @@ public class GraphEmailService
         return _cachedToken;
     }
 
-    private static string BuildClaimCodeEmail(string name, string claimCode, string appUrl)
+    private static string BuildClaimCodeEmail(string name, string claimCode, string appUrl, string productName)
     {
         var greeting = string.IsNullOrWhiteSpace(name) ? "Hi there" : $"Hi {name}";
         var claimUrl = $"{appUrl.TrimEnd('/')}/claim";
@@ -150,7 +155,7 @@ public class GraphEmailService
                     <td style="background-color:#26C6B5; padding:32px 24px; text-align:center;">
                       <div style="font-size:32px; margin-bottom:8px;">🦶</div>
                       <h1 style="margin:0; color:#FFFFFF; font-size:22px; font-weight:700;">TinyToesAndUs</h1>
-                      <p style="margin:4px 0 0; color:rgba(255,255,255,0.9); font-size:14px;">Baby First Bites</p>
+                      <p style="margin:4px 0 0; color:rgba(255,255,255,0.9); font-size:14px;">{{productName}}</p>
                     </td>
                   </tr>
                   <!-- Body -->
@@ -158,7 +163,7 @@ public class GraphEmailService
                     <td style="padding:32px 24px;">
                       <p style="margin:0 0 16px; font-size:16px; color:#1F2937;">{{greeting}},</p>
                       <p style="margin:0 0 24px; font-size:16px; color:#1F2937; line-height:1.5;">
-                        Thank you for your purchase! Your baby's first-food memory journal is ready. Use the claim code below to activate your journal.
+                        Thank you for your purchase! Your <strong>{{productName}}</strong> is ready. Use the claim code below to activate it in the TinyToesAndUs app.
                       </p>
                       <!-- Claim Code Box -->
                       <div style="background-color:#D1FAF5; border-radius:12px; padding:20px; text-align:center; margin:0 0 24px;">
@@ -168,11 +173,11 @@ public class GraphEmailService
                       <!-- CTA Button -->
                       <div style="text-align:center; margin:0 0 24px;">
                         <a href="{{claimUrl}}" style="display:inline-block; background-color:#26C6B5; color:#FFFFFF; text-decoration:none; font-weight:600; font-size:16px; padding:14px 32px; border-radius:12px;">
-                          Activate My Journal
+                          Activate Now
                         </a>
                       </div>
                       <p style="margin:0; font-size:14px; color:#6B7280; line-height:1.5;">
-                        Open the link above, enter your email and claim code, and you'll be journaling in under two minutes.
+                        Open the link above, enter your email and claim code, and you'll be up and running in under two minutes.
                       </p>
                     </td>
                   </tr>
@@ -180,7 +185,7 @@ public class GraphEmailService
                   <tr>
                     <td style="padding:16px 24px; border-top:1px solid #E5E7EB; text-align:center;">
                       <p style="margin:0; font-size:12px; color:#9CA3AF;">
-                        &copy; {{DateTime.UtcNow.Year}} TinyToesAndUs &middot; Baby First Bites
+                        &copy; {{DateTime.UtcNow.Year}} TinyToesAndUs
                       </p>
                     </td>
                   </tr>

@@ -1,7 +1,10 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
+import { ModuleNavBar } from '@/components/ModuleNavBar';
 import { Button } from '@/components/Button';
 import { REACTIONS, type FoodEntry } from '@/types';
 
@@ -36,38 +39,56 @@ function groupByMonth(entries: FoodEntry[]): MonthGroup[] {
 
 export function MemoryBookPage() {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+  const { hasProduct } = useEntitlements(isAuthenticated);
   const { profile } = useProfile();
   const { entries } = useEntries();
 
   const months = useMemo(() => groupByMonth(entries), [entries]);
+  const canPrint = hasProduct('memory-book');
 
   const handlePrint = () => {
     window.print();
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
+    <div className="min-h-screen pb-24" style={{ backgroundColor: 'var(--color-background)' }}>
       {/* Header */}
-      <header className="px-4 pt-6 pb-4 flex items-center gap-3 no-print">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
-          style={{ color: 'var(--color-text)' }}
-          aria-label="Go back"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <h1 className="text-xl font-bold flex-1" style={{ color: 'var(--color-text)' }}>
+      <header className="px-4 pt-6 pb-2 flex items-center justify-between no-print">
+        <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
           Memory Book
         </h1>
-        {entries.length > 0 && (
-          <Button variant="secondary" size="sm" onClick={handlePrint}>
-            Print
-          </Button>
-        )}
+        <div className="flex gap-2">
+          {entries.length > 0 && canPrint && (
+            <button
+              onClick={handlePrint}
+              className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
+              style={{ color: 'var(--color-muted)' }}
+              aria-label="Print"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="6 9 6 2 18 2 18 9" />
+                <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
+                <rect x="6" y="14" width="12" height="8" />
+              </svg>
+            </button>
+          )}
+          <button
+            onClick={() => navigate('/settings')}
+            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
+            style={{ color: 'var(--color-muted)' }}
+            aria-label="Settings"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z" />
+            </svg>
+          </button>
+        </div>
       </header>
+
+      {/* Module Navigation Bar */}
+      <ModuleNavBar activeSlug="memory-book" />
 
       {/* Print header (hidden on screen, shown on print) */}
       <div className="print-header hidden">
@@ -89,7 +110,7 @@ export function MemoryBookPage() {
               Start adding entries to see them beautifully collected here.
             </p>
             <Button onClick={() => navigate('/home')}>
-              Go Home
+              Go to First Foods
             </Button>
           </div>
         ) : (

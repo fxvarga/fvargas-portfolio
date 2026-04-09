@@ -1,0 +1,7 @@
+- generic [ref=e130]:
+  - img "sparkles" [ref=e132]: ✨
+  - heading "Tester's journal is ready!" [level=1] [ref=e133]
+  - paragraph [ref=e134]: Start capturing every adorable first bite and reaction. These memories are priceless.
+  - generic [ref=e135]:
+    - button "Start Tracking" [ref=e136]
+    - button "Go Back" [ref=e137]

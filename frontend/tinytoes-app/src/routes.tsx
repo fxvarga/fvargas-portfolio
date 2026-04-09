@@ -6,8 +6,12 @@ import { CheckoutSuccessPage } from '@/features/checkout/CheckoutSuccessPage';
 import { CheckoutCancelPage } from '@/features/checkout/CheckoutCancelPage';
 import { OnboardingLayout } from '@/features/onboarding/OnboardingLayout';
 import { HomePage } from '@/features/home/HomePage';
+import { MilestonesPage } from '@/features/milestones/MilestonesPage';
+import { JournalPage } from '@/features/journal/JournalPage';
 import { MemoryBookPage } from '@/features/memory-book/MemoryBookPage';
+import { YearRecapPage } from '@/features/year-recap/YearRecapPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
+import { StorePage } from '@/features/store/StorePage';
 
 export const router = createBrowserRouter([
   {
@@ -43,6 +47,22 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/milestones',
+    element: (
+      <RouteGuard>
+        <MilestonesPage />
+      </RouteGuard>
+    ),
+  },
+  {
+    path: '/journal',
+    element: (
+      <RouteGuard>
+        <JournalPage />
+      </RouteGuard>
+    ),
+  },
+  {
     path: '/memory-book',
     element: (
       <RouteGuard>
@@ -51,10 +71,26 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/year-recap',
+    element: (
+      <RouteGuard>
+        <YearRecapPage />
+      </RouteGuard>
+    ),
+  },
+  {
     path: '/settings',
     element: (
       <RouteGuard>
         <SettingsPage />
+      </RouteGuard>
+    ),
+  },
+  {
+    path: '/store',
+    element: (
+      <RouteGuard>
+        <StorePage />
       </RouteGuard>
     ),
   },

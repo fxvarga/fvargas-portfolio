@@ -43,6 +43,21 @@ public static class ClaimEndpoints
             return Results.Ok(new { email = session.Email, createdAt = session.CreatedAt });
         });
 
+        group.MapGet("/entitlements", async (ClaimService claimService, HttpContext context) =>
+        {
+            var token = context.Request.Cookies["tinytoes_session"];
+            if (string.IsNullOrEmpty(token))
+                return Results.Unauthorized();
+
+            var session = await claimService.ValidateSessionAsync(token);
+            if (session is null)
+                return Results.Unauthorized();
+
+            var products = await claimService.GetEntitlementsAsync(session.BuyerId);
+
+            return Results.Ok(new { products });
+        });
+
         group.MapPost("/logout", async (ClaimService claimService, HttpContext context) =>
         {
             var token = context.Request.Cookies["tinytoes_session"];

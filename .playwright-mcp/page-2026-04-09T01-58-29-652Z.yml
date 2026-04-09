@@ -1,0 +1,97 @@
+- generic [ref=e72]:
+  - banner [ref=e73]:
+    - heading "Milestones" [level=1] [ref=e74]
+    - button "Settings" [ref=e76]:
+      - img [ref=e77]
+  - generic [ref=e81]:
+    - button "🥄 First Foods" [ref=e82]:
+      - generic [ref=e83]: 🥄
+      - generic [ref=e84]: First Foods
+    - button "🏆 Milestones" [ref=e85]:
+      - generic [ref=e86]: 🏆
+      - generic [ref=e87]: Milestones
+    - button "📖 Journal" [ref=e88]:
+      - generic [ref=e89]: 📖
+      - generic [ref=e90]: Journal
+    - button "📸 Memory Book" [ref=e91]:
+      - generic [ref=e92]: 📸
+      - generic [ref=e93]: Memory Book
+    - button "🎬 Year Recap" [ref=e94]:
+      - generic [ref=e95]: 🎬
+      - generic [ref=e96]: Year Recap
+  - generic [ref=e98]:
+    - generic [ref=e99]:
+      - generic [ref=e100]: "1"
+      - generic [ref=e101]: Total
+    - generic [ref=e102]:
+      - generic [ref=e103]: "0"
+      - generic [ref=e104]: 🏃 Motor
+    - generic [ref=e105]:
+      - generic [ref=e106]: "1"
+      - generic [ref=e107]: 😊 Social
+    - generic [ref=e108]:
+      - generic [ref=e109]: "0"
+      - generic [ref=e110]: 🗣️ Language
+    - generic [ref=e111]:
+      - generic [ref=e112]: "0"
+      - generic [ref=e113]: 🧠 Cognitive
+  - generic [ref=e115]:
+    - button "All" [ref=e116]
+    - button "🏃 Motor" [ref=e117]
+    - button "😊 Social" [ref=e118]
+    - button "🗣️ Language" [ref=e119]
+    - button "🧠 Cognitive" [ref=e120]
+    - button "🍼 Feeding" [ref=e121]
+    - button "⭐ Other" [ref=e122]
+  - button "😊 First smile Social Apr 8, 2026 Tester smiled for the first time while playing peek-a-boo!" [ref=e170]:
+    - generic [ref=e172]:
+      - generic [ref=e173]:
+        - generic [ref=e174]: 😊
+        - heading "First smile" [level=3] [ref=e175]
+      - generic [ref=e176]:
+        - generic [ref=e177]: Social
+        - generic [ref=e178]: Apr 8, 2026
+      - paragraph [ref=e179]: Tester smiled for the first time while playing peek-a-boo!
+  - button "Add Milestone" [ref=e128]:
+    - img [ref=e129]
+  - generic [ref=e204]:
+    - generic [ref=e207]:
+      - heading "Edit Milestone" [level=2] [ref=e208]
+      - button [ref=e209]:
+        - img [ref=e210]
+    - generic [ref=e214]:
+      - button "Tap to add photo" [ref=e216]:
+        - generic [ref=e217]:
+          - img [ref=e218]
+          - generic [ref=e222]: Tap to add photo
+      - generic [ref=e223]:
+        - generic [ref=e224]: Milestone
+        - textbox "e.g. First smile, Sat up alone..." [active] [ref=e225]: First smile
+      - generic [ref=e226]:
+        - generic [ref=e227]: Date achieved
+        - textbox [ref=e228]: 2026-04-08
+      - generic [ref=e229]:
+        - generic [ref=e230]: Category
+        - generic [ref=e231]:
+          - button "🏃 Motor" [ref=e232]:
+            - text: 🏃
+            - text: Motor
+          - button "😊 Social" [ref=e233]:
+            - text: 😊
+            - text: Social
+          - button "🗣️ Language" [ref=e234]:
+            - text: 🗣️
+            - text: Language
+          - button "🧠 Cognitive" [ref=e235]:
+            - text: 🧠
+            - text: Cognitive
+          - button "🍼 Feeding" [ref=e236]:
+            - text: 🍼
+            - text: Feeding
+          - button "⭐ Other" [ref=e237]:
+            - text: ⭐
+            - text: Other
+      - generic [ref=e238]:
+        - generic [ref=e239]: Notes (optional)
+        - textbox "They were so excited! We were at the park..." [ref=e240]: Tester smiled for the first time while playing peek-a-boo!
+      - button "Save Changes" [ref=e241]

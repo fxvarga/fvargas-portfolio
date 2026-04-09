@@ -1,0 +1,16 @@
+- generic [ref=e25]:
+  - generic [ref=e26]:
+    - img "baby foot" [ref=e28]: 🦶
+    - heading "TinyToesAndUs" [level=1] [ref=e29]
+    - paragraph [ref=e30]: Baby First Bites
+  - generic [ref=e32]:
+    - paragraph [ref=e33]: Enter your email and claim code to activate your journal.
+    - generic [ref=e34]:
+      - generic [ref=e35]: Email
+      - textbox "you@example.com" [ref=e36]: test@test.com
+    - generic [ref=e37]:
+      - generic [ref=e38]: Claim Code
+      - textbox "TINY-XXXX-XXXX" [ref=e39]: TINY-DEV0-001
+    - paragraph [ref=e40]: Activation failed. Please check your code and try again.
+    - button "Activate" [ref=e41]
+  - paragraph [ref=e42]: Haven't received your code? Check your purchase confirmation email.

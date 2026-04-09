@@ -1,0 +1,8 @@
+- generic [ref=e59]:
+  - generic [ref=e60]:
+    - heading "What's your little one's name?" [level=2] [ref=e61]
+    - paragraph [ref=e62]: We'll personalize the journal just for them.
+    - textbox "Baby's name" [active] [ref=e64]
+  - generic [ref=e65]:
+    - button "Back" [ref=e66]
+    - button "Continue" [disabled]

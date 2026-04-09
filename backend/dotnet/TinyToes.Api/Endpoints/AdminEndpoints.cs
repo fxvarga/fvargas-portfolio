@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Stripe;
 using TinyToes.Api.Services;
 using TinyToes.Infrastructure;
 using TinyToes.Infrastructure.Entities;
@@ -25,6 +26,13 @@ public static class AdminEndpoints
 
         group.MapPost("/codes", async (GenerateCodesRequest request, TinyToesDbContext db) =>
         {
+            var productSlug = request.ProductSlug ?? "first-foods";
+
+            // Validate the product slug exists
+            var productExists = await db.Products.AnyAsync(p => p.Slug == productSlug);
+            if (!productExists)
+                return Results.BadRequest(new { error = $"Product '{productSlug}' not found." });
+
             var count = Math.Clamp(request.Count, 1, 100);
             var codes = new List<ClaimCode>();
 
@@ -38,6 +46,7 @@ public static class AdminEndpoints
                 {
                     Id = Guid.NewGuid(),
                     Code = code,
+                    ProductSlug = productSlug,
                     Status = ClaimCodeStatus.Unclaimed,
                     CreatedAt = DateTime.UtcNow
                 });
@@ -46,15 +55,22 @@ public static class AdminEndpoints
             db.ClaimCodes.AddRange(codes);
             await db.SaveChangesAsync();
 
-            return Results.Ok(new { generated = codes.Select(c => c.Code).ToList() });
+            return Results.Ok(new
+            {
+                productSlug,
+                generated = codes.Select(c => c.Code).ToList()
+            });
         });
 
-        group.MapGet("/codes", async (TinyToesDbContext db, string? status) =>
+        group.MapGet("/codes", async (TinyToesDbContext db, string? status, string? product) =>
         {
             var query = db.ClaimCodes.AsQueryable();
 
             if (Enum.TryParse<ClaimCodeStatus>(status, true, out var parsedStatus))
                 query = query.Where(c => c.Status == parsedStatus);
+
+            if (!string.IsNullOrEmpty(product))
+                query = query.Where(c => c.ProductSlug == product);
 
             var codes = await query
                 .OrderByDescending(c => c.CreatedAt)
@@ -62,6 +78,7 @@ public static class AdminEndpoints
                 {
                     c.Code,
                     status = c.Status.ToString(),
+                    c.ProductSlug,
                     c.BuyerEmail,
                     c.ClaimedAt,
                     c.CreatedAt
@@ -70,7 +87,115 @@ public static class AdminEndpoints
 
             return Results.Ok(codes);
         });
+
+        // Stripe product setup: creates Stripe products/prices for all products missing a StripePriceId
+        group.MapPost("/setup-stripe-products", async (TinyToesDbContext db, IConfiguration config, ILogger<TinyToesDbContext> logger) =>
+        {
+            var secretKey = config["STRIPE_SECRET_KEY"] ?? config["Stripe:SecretKey"];
+            if (string.IsNullOrEmpty(secretKey))
+                return Results.StatusCode(503);
+
+            StripeConfiguration.ApiKey = secretKey;
+
+            var products = await db.Products
+                .Where(p => p.IsActive && string.IsNullOrEmpty(p.StripePriceId))
+                .ToListAsync();
+
+            if (products.Count == 0)
+                return Results.Ok(new { message = "All products already have Stripe prices configured." });
+
+            var created = new List<object>();
+            var productService = new ProductService();
+            var priceService = new PriceService();
+
+            foreach (var product in products)
+            {
+                // Create the Stripe product
+                var stripeProduct = productService.Create(new ProductCreateOptions
+                {
+                    Name = product.Name,
+                    Description = product.Description,
+                    Metadata = new Dictionary<string, string>
+                    {
+                        ["slug"] = product.Slug,
+                        ["is_bundle"] = product.IsBundle.ToString()
+                    }
+                });
+
+                // Create the Stripe price
+                var stripePrice = priceService.Create(new PriceCreateOptions
+                {
+                    Product = stripeProduct.Id,
+                    UnitAmount = (long)(product.PriceUsd * 100), // cents
+                    Currency = "usd",
+                });
+
+                // Save the price ID back
+                product.StripePriceId = stripePrice.Id;
+
+                created.Add(new
+                {
+                    product.Slug,
+                    product.Name,
+                    product.PriceUsd,
+                    stripeProductId = stripeProduct.Id,
+                    stripePriceId = stripePrice.Id
+                });
+
+                logger.LogInformation("Created Stripe product/price for {Slug}: {PriceId}", product.Slug, stripePrice.Id);
+            }
+
+            await db.SaveChangesAsync();
+
+            return Results.Ok(new { created });
+        });
+
+        // List products with their Stripe status
+        group.MapGet("/products", async (TinyToesDbContext db) =>
+        {
+            var products = await db.Products
+                .OrderBy(p => p.SortOrder)
+                .Select(p => new
+                {
+                    p.Slug,
+                    p.Name,
+                    p.Description,
+                    p.PriceUsd,
+                    p.StripePriceId,
+                    p.IsBundle,
+                    p.BundleProductSlugs,
+                    p.IsActive,
+                    p.SortOrder,
+                    hasStripePrice = !string.IsNullOrEmpty(p.StripePriceId)
+                })
+                .ToListAsync();
+
+            return Results.Ok(products);
+        });
+
+        // List buyer entitlements
+        group.MapGet("/entitlements", async (TinyToesDbContext db, string? email) =>
+        {
+            var query = db.BuyerProducts
+                .Include(bp => bp.Buyer)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(email))
+                query = query.Where(bp => bp.Buyer.Email == email.Trim().ToLowerInvariant());
+
+            var entitlements = await query
+                .OrderByDescending(bp => bp.GrantedAt)
+                .Select(bp => new
+                {
+                    buyerEmail = bp.Buyer.Email,
+                    bp.ProductSlug,
+                    bp.GrantedAt
+                })
+                .ToListAsync();
+
+            return Results.Ok(entitlements);
+        });
     }
 }
 
-public record GenerateCodesRequest(int Count = 10);
+public record GenerateCodesRequest(int Count = 10, string? ProductSlug = null);

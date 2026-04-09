@@ -54,6 +54,9 @@ public class ClaimService
             claimCode.BuyerEmail = normalizedEmail;
             claimCode.BuyerId = buyer.BuyerId;
             claimCode.ClaimedAt = DateTime.UtcNow;
+
+            // Grant product entitlements
+            await GrantProductEntitlementsAsync(buyer.BuyerId, claimCode.ProductSlug, claimCode.Id);
         }
 
         // Create session
@@ -73,6 +76,48 @@ public class ClaimService
         return ClaimResult.Success(token, buyer.Email, session.ExpiresAt);
     }
 
+    private async Task GrantProductEntitlementsAsync(Guid buyerId, string productSlug, Guid claimCodeId)
+    {
+        // Resolve slugs — if it's a bundle, expand to all included products
+        var slugsToGrant = new List<string>();
+
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Slug == productSlug);
+        if (product is not null && product.IsBundle && !string.IsNullOrEmpty(product.BundleProductSlugs))
+        {
+            slugsToGrant.AddRange(product.BundleProductSlugs.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        }
+        else
+        {
+            slugsToGrant.Add(productSlug);
+        }
+
+        // Get existing entitlements to avoid duplicates
+        var existingSlugs = await _db.BuyerProducts
+            .Where(bp => bp.BuyerId == buyerId)
+            .Select(bp => bp.ProductSlug)
+            .ToListAsync();
+
+        foreach (var slug in slugsToGrant.Where(s => !existingSlugs.Contains(s)))
+        {
+            _db.BuyerProducts.Add(new BuyerProduct
+            {
+                BuyerProductId = Guid.NewGuid(),
+                BuyerId = buyerId,
+                ProductSlug = slug,
+                ClaimCodeId = claimCodeId,
+                GrantedAt = DateTime.UtcNow
+            });
+        }
+    }
+
+    public async Task<List<string>> GetEntitlementsAsync(Guid buyerId)
+    {
+        return await _db.BuyerProducts
+            .Where(bp => bp.BuyerId == buyerId)
+            .Select(bp => bp.ProductSlug)
+            .ToListAsync();
+    }
+
     public async Task<SessionInfo?> ValidateSessionAsync(string token)
     {
         var session = await _db.Sessions
@@ -81,7 +126,7 @@ public class ClaimService
 
         if (session is null) return null;
 
-        return new SessionInfo(session.Buyer.Email, session.Buyer.CreatedAt);
+        return new SessionInfo(session.Buyer.Email, session.Buyer.CreatedAt, session.Buyer.BuyerId);
     }
 
     public async Task LogoutAsync(string token)
@@ -103,4 +148,4 @@ public record ClaimResult(bool IsSuccess, string? Token, string? Email, DateTime
         new(false, null, null, null, error);
 }
 
-public record SessionInfo(string Email, DateTime CreatedAt);
+public record SessionInfo(string Email, DateTime CreatedAt, Guid BuyerId);

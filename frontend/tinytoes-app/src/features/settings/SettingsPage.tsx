@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useThemeContext } from '@/components/ThemeProvider';
 import { Card } from '@/components/Card';
@@ -18,11 +19,14 @@ import { AGE_RANGES } from '@/types';
 
 export function SettingsPage() {
   const navigate = useNavigate();
-  const { session, logout } = useAuth();
+  const { session, logout, isAuthenticated } = useAuth();
   const { profile, updateProfile, resetProfile } = useProfile();
   const { stats, loadEntries } = useEntries();
+  const { products: ownedProducts } = useEntitlements(isAuthenticated);
   const { isInstalled } = useInstallPrompt();
   const { theme, setTheme } = useThemeContext();
+
+  const ownsAll = ownedProducts.length >= 5;
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -227,6 +231,31 @@ export function SettingsPage() {
                 </p>
                 <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
                   Add to your home screen for quick access
+                </p>
+              </div>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-muted)' }}>
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </Card>
+        )}
+
+        {/* Get More Modules */}
+        {!ownsAll && (
+          <Card padding="md" hoverable onClick={() => navigate('/store')}>
+            <div className="flex items-center gap-3">
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
+                style={{ backgroundColor: 'var(--color-primary-light)' }}
+              >
+                <span>&#x1F6CD;&#xFE0F;</span>
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                  Get More Modules
+                </p>
+                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                  You own {ownedProducts.length} of 5 — explore the store
                 </p>
               </div>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-muted)' }}>

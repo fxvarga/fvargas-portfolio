@@ -1,0 +1,93 @@
+- generic [ref=e274]:
+  - banner [ref=e275]:
+    - heading "Monthly Journal" [level=1] [ref=e276]
+    - button "Settings" [ref=e278]:
+      - img [ref=e279]
+  - generic [ref=e283]:
+    - button "🥄 First Foods" [ref=e284]:
+      - generic [ref=e285]: 🥄
+      - generic [ref=e286]: First Foods
+    - button "🏆 Milestones" [ref=e287]:
+      - generic [ref=e288]: 🏆
+      - generic [ref=e289]: Milestones
+    - button "📖 Journal" [ref=e290]:
+      - generic [ref=e291]: 📖
+      - generic [ref=e292]: Journal
+    - button "📸 Memory Book" [ref=e293]:
+      - generic [ref=e294]: 📸
+      - generic [ref=e295]: Memory Book
+    - button "🎬 Year Recap" [ref=e296]:
+      - generic [ref=e297]: 🎬
+      - generic [ref=e298]: Year Recap
+  - generic [ref=e300]:
+    - generic [ref=e301]:
+      - generic [ref=e302]: "0"
+      - generic [ref=e303]: Months Recorded
+    - generic [ref=e304]:
+      - generic [ref=e305]: "0"
+      - generic [ref=e306]: Highlights
+    - generic [ref=e307]:
+      - generic [ref=e308]: "0"
+      - generic [ref=e309]: Photos
+  - generic [ref=e311]:
+    - generic [ref=e312]: 📖
+    - paragraph [ref=e313]: No journal entries yet
+    - paragraph [ref=e314]: Tap the + button to write about Tester's month!
+  - button "Add Journal Entry" [ref=e315]:
+    - img [ref=e316]
+  - generic [ref=e319]:
+    - generic [ref=e322]:
+      - heading "New Journal Entry" [level=2] [ref=e323]
+      - button [ref=e324]:
+        - img [ref=e325]
+    - generic [ref=e329]:
+      - button "Tap to add photo" [ref=e331]:
+        - generic [ref=e332]:
+          - img [ref=e333]
+          - generic [ref=e337]: Tap to add photo
+      - generic [ref=e338]:
+        - generic [ref=e339]: Month
+        - combobox [ref=e340]:
+          - option "April 2026" [selected]
+          - option "March 2026"
+          - option "February 2026"
+          - option "January 2026"
+          - option "December 2025"
+          - option "November 2025"
+          - option "October 2025"
+          - option "September 2025"
+          - option "August 2025"
+          - option "July 2025"
+          - option "June 2025"
+          - option "May 2025"
+          - option "April 2025"
+          - option "March 2025"
+          - option "February 2025"
+          - option "January 2025"
+          - option "December 2024"
+          - option "November 2024"
+          - option "October 2024"
+          - option "September 2024"
+          - option "August 2024"
+          - option "July 2024"
+          - option "June 2024"
+          - option "May 2024"
+      - generic [ref=e341]:
+        - generic [ref=e342]: Title (optional)
+        - textbox "e.g. Month 3, \"The Crawling Month\"..." [ref=e343]: Month 6 - The Smiling Month
+      - generic [ref=e344]:
+        - generic [ref=e345]: Reflection
+        - textbox "What was this month like? What moments stand out? How has your baby grown?" [ref=e346]: This month was full of smiles and giggles. Tester started recognizing familiar faces and responding with the biggest grin. We also started introducing some solid foods!
+      - generic [ref=e347]:
+        - generic [ref=e348]: Highlights
+        - generic [ref=e349]:
+          - textbox "e.g. First giggle, New tooth..." [ref=e350]
+          - button "Add" [active] [ref=e351]
+        - generic [ref=e353]:
+          - generic [ref=e354]:
+            - text: First giggle
+            - button "x" [ref=e355]
+          - generic [ref=e356]:
+            - text: Started solid foods
+            - button "x" [ref=e357]
+      - button "Save Entry" [ref=e352]

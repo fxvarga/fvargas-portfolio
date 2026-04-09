@@ -1,0 +1,10 @@
+- generic [ref=e185]:
+  - banner [ref=e186]:
+    - button "Go back" [ref=e187]:
+      - img [ref=e188]
+    - heading "Memory Book" [level=1] [ref=e190]
+  - generic [ref=e192]:
+    - img "book" [ref=e194]: 📖
+    - paragraph [ref=e195]: Your memory book is empty
+    - paragraph [ref=e196]: Start adding entries to see them beautifully collected here.
+    - button "Go Home" [ref=e197]

@@ -1,0 +1,20 @@
+- generic [ref=e68]:
+  - generic [ref=e69]:
+    - heading "How old is your baby?" [level=2] [ref=e70]
+    - paragraph [ref=e71]: This helps us tailor the experience.
+    - generic [ref=e72]:
+      - generic [ref=e73] [cursor=pointer]:
+        - generic [ref=e74]: 👶
+        - paragraph [ref=e75]: 4–6 months
+      - generic [ref=e76] [cursor=pointer]:
+        - generic [ref=e77]: 🍼
+        - paragraph [ref=e78]: 6–9 months
+      - generic [ref=e79] [cursor=pointer]:
+        - generic [ref=e80]: 🍌
+        - paragraph [ref=e81]: 9–12 months
+      - generic [ref=e82] [cursor=pointer]:
+        - generic [ref=e83]: 🎂
+        - paragraph [ref=e84]: 12+ months
+  - generic [ref=e85]:
+    - button "Back" [ref=e86]
+    - button "Continue" [ref=e87]

@@ -36,11 +36,6 @@ namespace TinyToes.Infrastructure.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
 
-                    b.Property<string>("Product")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
                     b.Property<string>("StripeCustomerId")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
@@ -51,6 +46,36 @@ namespace TinyToes.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Buyers");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.BuyerProduct", b =>
+                {
+                    b.Property<Guid>("BuyerProductId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("BuyerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ClaimCodeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("GrantedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("ProductSlug")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("BuyerProductId");
+
+                    b.HasIndex("ClaimCodeId");
+
+                    b.HasIndex("BuyerId", "ProductSlug")
+                        .IsUnique();
+
+                    b.ToTable("BuyerProducts");
                 });
 
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.ClaimCode", b =>
@@ -77,6 +102,11 @@ namespace TinyToes.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("ProductSlug")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -88,6 +118,59 @@ namespace TinyToes.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("ClaimCodes");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.Product", b =>
+                {
+                    b.Property<Guid>("ProductId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BundleProductSlugs")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsBundle")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("PriceUsd")
+                        .HasPrecision(10, 2)
+                        .HasColumnType("numeric(10,2)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("StripePriceId")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.HasKey("ProductId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.Session", b =>
@@ -120,6 +203,24 @@ namespace TinyToes.Infrastructure.Migrations
                     b.ToTable("Sessions");
                 });
 
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.BuyerProduct", b =>
+                {
+                    b.HasOne("TinyToes.Infrastructure.Entities.Buyer", "Buyer")
+                        .WithMany("Products")
+                        .HasForeignKey("BuyerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("TinyToes.Infrastructure.Entities.ClaimCode", "ClaimCode")
+                        .WithMany()
+                        .HasForeignKey("ClaimCodeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Buyer");
+
+                    b.Navigation("ClaimCode");
+                });
+
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.ClaimCode", b =>
                 {
                     b.HasOne("TinyToes.Infrastructure.Entities.Buyer", "Buyer")
@@ -144,6 +245,8 @@ namespace TinyToes.Infrastructure.Migrations
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.Buyer", b =>
                 {
                     b.Navigation("ClaimCodes");
+
+                    b.Navigation("Products");
 
                     b.Navigation("Sessions");
                 });

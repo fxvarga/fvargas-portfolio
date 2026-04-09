@@ -1,0 +1,92 @@
+- generic [ref=e72]:
+  - banner [ref=e73]:
+    - heading "Milestones" [level=1] [ref=e74]
+    - button "Settings" [ref=e76]:
+      - img [ref=e77]
+  - generic [ref=e81]:
+    - button "🥄 First Foods" [ref=e82]:
+      - generic [ref=e83]: 🥄
+      - generic [ref=e84]: First Foods
+    - button "🏆 Milestones" [ref=e85]:
+      - generic [ref=e86]: 🏆
+      - generic [ref=e87]: Milestones
+    - button "📖 Journal" [ref=e88]:
+      - generic [ref=e89]: 📖
+      - generic [ref=e90]: Journal
+    - button "📸 Memory Book" [ref=e91]:
+      - generic [ref=e92]: 📸
+      - generic [ref=e93]: Memory Book
+    - button "🎬 Year Recap" [ref=e94]:
+      - generic [ref=e95]: 🎬
+      - generic [ref=e96]: Year Recap
+  - generic [ref=e98]:
+    - generic [ref=e99]:
+      - generic [ref=e100]: "0"
+      - generic [ref=e101]: Total
+    - generic [ref=e102]:
+      - generic [ref=e103]: "0"
+      - generic [ref=e104]: 🏃 Motor
+    - generic [ref=e105]:
+      - generic [ref=e106]: "0"
+      - generic [ref=e107]: 😊 Social
+    - generic [ref=e108]:
+      - generic [ref=e109]: "0"
+      - generic [ref=e110]: 🗣️ Language
+    - generic [ref=e111]:
+      - generic [ref=e112]: "0"
+      - generic [ref=e113]: 🧠 Cognitive
+  - generic [ref=e115]:
+    - button "All" [ref=e116]
+    - button "🏃 Motor" [ref=e117]
+    - button "😊 Social" [ref=e118]
+    - button "🗣️ Language" [ref=e119]
+    - button "🧠 Cognitive" [ref=e120]
+    - button "🍼 Feeding" [ref=e121]
+    - button "⭐ Other" [ref=e122]
+  - generic [ref=e124]:
+    - generic [ref=e125]: 🏆
+    - paragraph [ref=e126]: No milestones yet
+    - paragraph [ref=e127]: Tap the + button to record Tester's first milestone!
+  - button "Add Milestone" [ref=e128]:
+    - img [ref=e129]
+  - generic [ref=e132]:
+    - generic [ref=e135]:
+      - heading "New Milestone" [level=2] [ref=e136]
+      - button [ref=e137]:
+        - img [ref=e138]
+    - generic [ref=e142]:
+      - button "Tap to add photo" [ref=e144]:
+        - generic [ref=e145]:
+          - img [ref=e146]
+          - generic [ref=e150]: Tap to add photo
+      - generic [ref=e151]:
+        - generic [ref=e152]: Milestone
+        - textbox "e.g. First smile, Sat up alone..." [ref=e153]: First smile
+      - generic [ref=e154]:
+        - generic [ref=e155]: Date achieved
+        - textbox [ref=e156]: 2026-04-08
+      - generic [ref=e157]:
+        - generic [ref=e158]: Category
+        - generic [ref=e159]:
+          - button "🏃 Motor" [ref=e160]:
+            - text: 🏃
+            - text: Motor
+          - button "😊 Social" [active] [ref=e161]:
+            - text: 😊
+            - text: Social
+          - button "🗣️ Language" [ref=e162]:
+            - text: 🗣️
+            - text: Language
+          - button "🧠 Cognitive" [ref=e163]:
+            - text: 🧠
+            - text: Cognitive
+          - button "🍼 Feeding" [ref=e164]:
+            - text: 🍼
+            - text: Feeding
+          - button "⭐ Other" [ref=e165]:
+            - text: ⭐
+            - text: Other
+      - generic [ref=e166]:
+        - generic [ref=e167]: Notes (optional)
+        - textbox "They were so excited! We were at the park..." [ref=e168]
+      - button "Save Milestone" [ref=e169]

@@ -12,9 +12,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: 'TinyToesAndUs — Baby First Bites',
+        name: 'TinyToesAndUs',
         short_name: 'TinyToes',
-        description: 'Your baby\'s first food memory journal',
+        description: 'Capture your baby\'s first year — milestones, memories, and keepsakes',
         theme_color: '#26C6B5',
         background_color: '#F3F6FB',
         display: 'standalone',

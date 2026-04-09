@@ -23,9 +23,17 @@ public class StripeWebhookService
         _logger = logger;
     }
 
-    public async Task<string> HandleCheckoutCompletedAsync(string customerEmail, string? customerName, string? stripeCustomerId)
+    public async Task<string> HandleCheckoutCompletedAsync(
+        string customerEmail,
+        string? customerName,
+        string? stripeCustomerId,
+        string productSlug = "first-foods")
     {
         var normalizedEmail = customerEmail.Trim().ToLowerInvariant();
+
+        // Look up product name for the email
+        var product = await _db.Products.FirstOrDefaultAsync(p => p.Slug == productSlug);
+        var productName = product?.Name ?? "Baby First Bites";
 
         // Generate claim code
         var code = CodeGenerator.Generate();
@@ -38,6 +46,7 @@ public class StripeWebhookService
         {
             Id = Guid.NewGuid(),
             Code = code,
+            ProductSlug = productSlug,
             Status = ClaimCodeStatus.Unclaimed,
             CreatedAt = DateTime.UtcNow
         };
@@ -55,7 +64,8 @@ public class StripeWebhookService
                 normalizedEmail,
                 customerName ?? "",
                 code,
-                frontendUrl);
+                frontendUrl,
+                productName);
         }
         catch (Exception ex)
         {

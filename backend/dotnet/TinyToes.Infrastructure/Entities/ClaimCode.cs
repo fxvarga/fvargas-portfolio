@@ -7,6 +7,7 @@ public class ClaimCode
     public ClaimCodeStatus Status { get; set; } = ClaimCodeStatus.Unclaimed;
     public string? BuyerEmail { get; set; }
     public Guid? BuyerId { get; set; }
+    public string ProductSlug { get; set; } = "first-foods";
     public DateTime? ClaimedAt { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

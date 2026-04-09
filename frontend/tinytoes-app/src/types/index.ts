@@ -39,6 +39,8 @@ export interface FoodEntry {
 export interface AppData {
   profile: BabyProfile;
   entries: FoodEntry[];
+  milestones?: Milestone[];
+  journal?: JournalEntry[];
 }
 
 export interface SessionInfo {
@@ -46,4 +48,68 @@ export interface SessionInfo {
   createdAt: string;
 }
 
+export type ProductSlug =
+  | 'first-foods'
+  | 'milestones'
+  | 'monthly-journal'
+  | 'memory-book'
+  | 'year-recap'
+  | 'first-year-bundle';
+
+export interface Product {
+  slug: ProductSlug;
+  name: string;
+  description: string;
+  priceUsd: number;
+  isBundle: boolean;
+  bundleIncludes: string | null;
+  isAvailable: boolean;
+}
+
+export interface EntitlementsResponse {
+  products: string[];
+}
+
 export type FilterType = 'all' | '😍' | '😐' | '😖';
+
+// --- Milestones ---
+
+export type MilestoneCategory =
+  | 'motor'
+  | 'social'
+  | 'language'
+  | 'cognitive'
+  | 'feeding'
+  | 'other';
+
+export const MILESTONE_CATEGORIES: { value: MilestoneCategory; label: string; icon: string }[] = [
+  { value: 'motor', label: 'Motor', icon: '🏃' },
+  { value: 'social', label: 'Social', icon: '😊' },
+  { value: 'language', label: 'Language', icon: '🗣️' },
+  { value: 'cognitive', label: 'Cognitive', icon: '🧠' },
+  { value: 'feeding', label: 'Feeding', icon: '🍼' },
+  { value: 'other', label: 'Other', icon: '⭐' },
+];
+
+export interface Milestone {
+  id: string;
+  title: string;
+  category: MilestoneCategory;
+  achievedAt: number; // timestamp
+  notes: string;
+  image: string | null;
+  createdAt: number;
+}
+
+// --- Monthly Journal ---
+
+export interface JournalEntry {
+  id: string;
+  monthKey: string; // "2026-01", "2026-02", etc.
+  monthLabel: string; // "Month 1", "Month 2", etc.
+  text: string;
+  highlights: string[]; // short highlight items
+  image: string | null;
+  createdAt: number;
+  updatedAt: number;
+}

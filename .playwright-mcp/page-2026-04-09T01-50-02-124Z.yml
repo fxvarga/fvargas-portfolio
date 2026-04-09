@@ -1,0 +1,15 @@
+- generic [ref=e88]:
+  - generic [ref=e89]:
+    - heading "Choose a theme" [level=2] [ref=e90]
+    - paragraph [ref=e91]: Set the mood for your journal.
+    - generic [ref=e92]:
+      - button "Neutral ✓" [ref=e93]:
+        - generic [ref=e98]: Neutral
+        - generic [ref=e99]: ✓
+      - button "Soft Pastel" [ref=e100]:
+        - generic [ref=e105]: Soft Pastel
+      - button "Playful" [ref=e106]:
+        - generic [ref=e111]: Playful
+  - generic [ref=e112]:
+    - button "Back" [ref=e113]
+    - button "Continue" [ref=e114]
