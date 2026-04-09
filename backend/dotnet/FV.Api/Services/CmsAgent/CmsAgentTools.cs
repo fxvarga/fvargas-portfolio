@@ -367,6 +367,64 @@ public class CmsAgentTools
         return JsonSerializer.Serialize(records, new JsonSerializerOptions { WriteIndented = true });
     }
 
+    [KernelFunction("list_media")]
+    [Description("List recently uploaded media assets (images) for this portfolio. Returns file names, URLs, alt text, and upload dates. Use this to see what images are available before proposing image changes.")]
+    public async Task<string> ListMedia(
+        [Description("Maximum number of results to return (default 20)")] int? limit = 20)
+    {
+        var take = Math.Clamp(limit ?? 20, 1, 50);
+
+        var assets = await _dbContext.MediaAssets
+            .Where(m => m.PortfolioId == _portfolioId)
+            .OrderByDescending(m => m.UploadedAt)
+            .Take(take)
+            .Select(m => new
+            {
+                m.Id,
+                m.FileName,
+                Url = m.FilePath,
+                m.MimeType,
+                m.AltText,
+                m.UploadedAt
+            })
+            .ToListAsync();
+
+        if (assets.Count == 0)
+            return "No media assets found for this portfolio. The user needs to upload images first before they can be used in content.";
+
+        return JsonSerializer.Serialize(assets, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    [KernelFunction("search_media_library")]
+    [Description("Search the media library for images matching a query. Searches file names and alt text. Use this to find a specific uploaded image to use in a content update.")]
+    public async Task<string> SearchMediaLibrary(
+        [Description("Search term to match against file names and alt text")] string query)
+    {
+        var term = query.Trim().ToLower();
+
+        var assets = await _dbContext.MediaAssets
+            .Where(m => m.PortfolioId == _portfolioId
+                     && (m.FileName.ToLower().Contains(term)
+                         || (m.AltText != null && m.AltText.ToLower().Contains(term))))
+            .OrderByDescending(m => m.UploadedAt)
+            .Take(20)
+            .Select(m => new
+            {
+                m.Id,
+                m.FileName,
+                Url = m.FilePath,
+                m.MimeType,
+                m.AltText,
+                m.UploadedAt
+            })
+            .ToListAsync();
+
+        if (assets.Count == 0)
+            return $"No media assets found matching '{query}'. The user may need to upload a new image first.";
+
+        return JsonSerializer.Serialize(assets, new JsonSerializerOptions { WriteIndented = true });
+    }
+
     [KernelFunction("propose_content_update")]
     [Description("Propose a change to a specific field in a content type. This does NOT save the change — it queues it for the user to preview and approve. Always call get_page_content first to see current values, and get_entity_schema to understand valid field types. The newValue must be a valid JSON value (strings must be quoted, e.g. '\"Hello World\"'). For collection items (blog posts, work items), you MUST provide the recordId to target the correct record.")]
     public async Task<string> ProposeContentUpdate(

@@ -130,6 +130,12 @@ function Get-FrontendImages {
     $script:FRONTEND_OPSBLUEPRINT_IMAGE      = "$($script:DOCKER_USERNAME)/${opsblueprintName}:${Tag}"
     $script:N8N_PYTHON_HELPER_IMAGE          = "$($script:DOCKER_USERNAME)/${n8nHelperName}:${Tag}"
     $script:DISCORD_BOT_IMAGE                = "$($script:DOCKER_USERNAME)/${discordBotName}:${Tag}"
+
+    # TinyToes images
+    $tinytoesApiName = if ($script:IMAGE_TINYTOES_API) { $script:IMAGE_TINYTOES_API } else { "tinytoes-api" }
+    $tinytoesWebName = if ($script:IMAGE_TINYTOES_WEB) { $script:IMAGE_TINYTOES_WEB } else { "tinytoes-web" }
+    $script:TINYTOES_API_IMAGE = "$($script:DOCKER_USERNAME)/${tinytoesApiName}:${Tag}"
+    $script:TINYTOES_WEB_IMAGE = "$($script:DOCKER_USERNAME)/${tinytoesWebName}:${Tag}"
 }
 
 # ============================================
@@ -334,6 +340,16 @@ function Build-AndPush {
     docker build -t "$($script:DISCORD_BOT_IMAGE)" -f "$ProjectRoot/discord-bot/Dockerfile" "$ProjectRoot/discord-bot"
     Assert-ExitCode "Discord Bot build"
 
+    # Build TinyToes API (standalone .NET project — context is backend/dotnet)
+    Log-Info "Building TinyToes API image: $($script:TINYTOES_API_IMAGE)"
+    docker build -t "$($script:TINYTOES_API_IMAGE)" -f "$ProjectRoot/backend/dotnet/TinyToes.Api/Dockerfile" "$ProjectRoot/backend/dotnet"
+    Assert-ExitCode "TinyToes API build"
+
+    # Build TinyToes Web (standalone — NOT in pnpm workspace)
+    Log-Info "Building TinyToes Web image: $($script:TINYTOES_WEB_IMAGE)"
+    docker build -t "$($script:TINYTOES_WEB_IMAGE)" -f "$ProjectRoot/frontend/tinytoes-app/Dockerfile" "$ProjectRoot/frontend/tinytoes-app"
+    Assert-ExitCode "TinyToes Web build"
+
     Log-Success "Images built successfully"
 
     # Push to registry
@@ -355,6 +371,10 @@ function Build-AndPush {
     Assert-ExitCode "n8n Python Helper push"
     docker push "$($script:DISCORD_BOT_IMAGE)"
     Assert-ExitCode "Discord Bot push"
+    docker push "$($script:TINYTOES_API_IMAGE)"
+    Assert-ExitCode "TinyToes API push"
+    docker push "$($script:TINYTOES_WEB_IMAGE)"
+    Assert-ExitCode "TinyToes Web push"
 
     Log-Success "Images pushed to Docker Hub"
 
@@ -444,6 +464,18 @@ function Deploy-ToServer {
     $discordGuildId      = if ($script:DISCORD_GUILD_ID)     { $script:DISCORD_GUILD_ID }     else { "" }
     $discordCmsRoleName  = if ($script:DISCORD_CMS_ROLE_NAME){ $script:DISCORD_CMS_ROLE_NAME }else { "CMS Admin" }
 
+    # TinyToes vars
+    $domainTinytoes          = if ($script:DOMAIN_TINYTOES)          { $script:DOMAIN_TINYTOES }          else { "" }
+    $tinytoesDbPassword      = if ($script:TINYTOES_DB_PASSWORD)     { $script:TINYTOES_DB_PASSWORD }     else { "tinytoes" }
+    $tinytoesAllowedOrigins  = if ($script:TINYTOES_ALLOWED_ORIGINS) { $script:TINYTOES_ALLOWED_ORIGINS } else { "" }
+    $tinytoesAdminApiKey     = if ($script:TINYTOES_ADMIN_API_KEY)   { $script:TINYTOES_ADMIN_API_KEY }   else { "" }
+    $stripeSecretKey         = if ($script:STRIPE_SECRET_KEY)        { $script:STRIPE_SECRET_KEY }        else { "" }
+    $stripePriceId           = if ($script:STRIPE_PRICE_ID)          { $script:STRIPE_PRICE_ID }          else { "" }
+    $stripeWebhookSecret     = if ($script:STRIPE_WEBHOOK_SECRET)    { $script:STRIPE_WEBHOOK_SECRET }    else { "" }
+
+    $tinytoesApiImage  = $script:TINYTOES_API_IMAGE
+    $tinytoesWebImage  = $script:TINYTOES_WEB_IMAGE
+
     $fernandoImage          = $script:FRONTEND_FERNANDO_IMAGE
     $jessicaImage           = $script:FRONTEND_JESSICA_IMAGE
     $busybeeImage           = $script:FRONTEND_BUSYBEE_IMAGE
@@ -461,7 +493,10 @@ function Deploy-ToServer {
     Log-Info "  Frontend OpsBlueprint: $opsblueprintImage"
     Log-Info "  n8n Python Helper: $n8nPythonHelperImage"
     Log-Info "  Discord Bot:   $discordBotImage"
+    Log-Info "  TinyToes API:  $tinytoesApiImage"
+    Log-Info "  TinyToes Web:  $tinytoesWebImage"
 
+    $domainTinytoesDisplay          = if ($domainTinytoes)          { $domainTinytoes }          else { "tinytoes.localhost" }
     $domainFernandoDisplay          = if ($domainFernando)          { $domainFernando }          else { "localhost" }
     $domainJessicaDisplay           = if ($domainJessica)           { $domainJessica }           else { "jessica.localhost" }
     $domainBusybeeDisplay           = if ($domainBusybee)           { $domainBusybee }           else { "busybee.localhost" }
@@ -484,6 +519,7 @@ function Deploy-ToServer {
     Log-Info "  Grafana:   $domainGrafanaDisplay"
     Log-Info "  n8n:       $domainN8nDisplay"
     Log-Info "  Bot:       $domainBotDisplay"
+    Log-Info "  TinyToes:  $domainTinytoesDisplay"
 
     # Build the docker-compose.yml content
     # NOTE: This uses single-quoted YAML inside the heredoc on the remote server.
@@ -896,6 +932,72 @@ services:
       retries: 3
       start_period: 15s
 
+  # TinyToes — Baby First Bites
+  tinytoes-db:
+    image: postgres:16-alpine
+    container_name: portfolio-tinytoes-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=tinytoes
+      - POSTGRES_PASSWORD=$tinytoesDbPassword
+      - POSTGRES_DB=tinytoes
+    volumes:
+      - tinytoes-pgdata:/var/lib/postgresql/data
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tinytoes"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  tinytoes-api:
+    image: $tinytoesApiImage
+    container_name: portfolio-tinytoes-api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__TinyToes=Host=tinytoes-db;Port=5432;Database=tinytoes;Username=tinytoes;Password=$tinytoesDbPassword
+      - Cors__AllowedOrigins=$tinytoesAllowedOrigins
+      - FRONTEND_ORIGIN=https://$domainTinytoesDisplay
+      - STRIPE_SECRET_KEY=$stripeSecretKey
+      - STRIPE_PRICE_ID=$stripePriceId
+      - STRIPE_WEBHOOK_SECRET=$stripeWebhookSecret
+      - MS_GRAPH_TENANT_ID=$msGraphTenantId
+      - MS_GRAPH_CLIENT_ID=$msGraphClientId
+      - MS_GRAPH_CLIENT_SECRET=$msGraphClientSecret
+      - MAIL_USER_UPN=$mailUserUpn
+      - ADMIN_API_KEY=$tinytoesAdminApiKey
+    depends_on:
+      tinytoes-db:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  tinytoes-web:
+    image: $tinytoesWebImage
+    container_name: portfolio-tinytoes-web
+    restart: unless-stopped
+    depends_on:
+      tinytoes-api:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
   caddy:
     image: caddy:2-alpine
     container_name: portfolio-caddy
@@ -918,6 +1020,7 @@ services:
       - grafana
       - n8n
       - discord-bot
+      - tinytoes-web
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -950,6 +1053,8 @@ volumes:
   n8n-db-data:
     driver: local
   n8n-data:
+    driver: local
+  tinytoes-pgdata:
     driver: local
 "@
 
@@ -1089,6 +1194,16 @@ $domainN8nDisplay {
 # Discord Bot health/status page
 $domainBotDisplay {
     reverse_proxy discord-bot:3100
+}
+
+# TinyToes — Baby First Bites
+$domainTinytoesDisplay {
+    handle /api/* {
+        reverse_proxy tinytoes-api:8080
+    }
+    handle {
+        reverse_proxy tinytoes-web:80
+    }
 }
 "@
 
@@ -1266,6 +1381,7 @@ echo "Deployment complete!"
     if ($domainBusybee)           { Write-Host "  BusyBee: https://$domainBusybee" }
     if ($domain1stopwings)        { Write-Host "  1StopWings: https://$domain1stopwings" }
     if ($domainExecutiveCatering) { Write-Host "  Executive Catering: https://$domainExecutiveCatering" }
+    if ($domainTinytoes)          { Write-Host "  TinyToes: https://$domainTinytoes" }
     if ($domainAnalytics)         { Write-Host "  Analytics: https://$domainAnalytics" }
     if ($domainGrafana)           { Write-Host "  Grafana: https://$domainGrafana" }
     if ($domainBot)               { Write-Host "  Discord Bot: https://$domainBot" }
@@ -1417,6 +1533,16 @@ function Build-Only {
     docker build -t "$($script:DISCORD_BOT_IMAGE)" -f "$ProjectRoot/discord-bot/Dockerfile" "$ProjectRoot/discord-bot"
     Assert-ExitCode "Discord Bot build"
 
+    # Build TinyToes API (standalone .NET project — context is backend/dotnet)
+    Log-Info "Building TinyToes API image: $($script:TINYTOES_API_IMAGE)"
+    docker build -t "$($script:TINYTOES_API_IMAGE)" -f "$ProjectRoot/backend/dotnet/TinyToes.Api/Dockerfile" "$ProjectRoot/backend/dotnet"
+    Assert-ExitCode "TinyToes API build"
+
+    # Build TinyToes Web (standalone — NOT in pnpm workspace)
+    Log-Info "Building TinyToes Web image: $($script:TINYTOES_WEB_IMAGE)"
+    docker build -t "$($script:TINYTOES_WEB_IMAGE)" -f "$ProjectRoot/frontend/tinytoes-app/Dockerfile" "$ProjectRoot/frontend/tinytoes-app"
+    Assert-ExitCode "TinyToes Web build"
+
     Log-Success "Images built successfully"
     Write-Host ""
     Log-Info "Images:"
@@ -1428,6 +1554,8 @@ function Build-Only {
     Write-Host "  $($script:FRONTEND_OPSBLUEPRINT_IMAGE)"
     Write-Host "  $($script:N8N_PYTHON_HELPER_IMAGE)"
     Write-Host "  $($script:DISCORD_BOT_IMAGE)"
+    Write-Host "  $($script:TINYTOES_API_IMAGE)"
+    Write-Host "  $($script:TINYTOES_WEB_IMAGE)"
 }
 
 # ============================================

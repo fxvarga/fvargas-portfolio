@@ -18,6 +18,8 @@ COPY AgentChat.FinanceKnowledge/AgentChat.FinanceKnowledge.csproj AgentChat.Fina
 COPY AgentChat.FinanceDataLake/AgentChat.FinanceDataLake.csproj AgentChat.FinanceDataLake/
 COPY AgentChat.FinanceApi/AgentChat.FinanceApi.csproj AgentChat.FinanceApi/
 COPY AgentChat.PortfolioAgent/AgentChat.PortfolioAgent.csproj AgentChat.PortfolioAgent/
+COPY TinyToes.Infrastructure/TinyToes.Infrastructure.csproj TinyToes.Infrastructure/
+COPY TinyToes.Api/TinyToes.Api.csproj TinyToes.Api/
 
 # Restore dependencies
 RUN dotnet restore Portfolio.sln

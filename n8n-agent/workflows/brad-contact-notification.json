@@ -1,0 +1,179 @@
+{
+  "id": "brad-contact-notification",
+  "name": "Brad: Contact Form Notification",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "brad-contact",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook: Brad Contact",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "brad-contact"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"tenantId\": \"{{ $env.MS_GRAPH_TENANT_ID }}\",\n  \"clientId\": \"{{ $env.MS_GRAPH_CLIENT_ID }}\",\n  \"clientSecret\": \"{{ $env.MS_GRAPH_CLIENT_SECRET }}\",\n  \"mailUserUpn\": \"{{ $env.MAIL_USER_UPN }}\"\n}",
+        "options": {}
+      },
+      "id": "node-setup",
+      "name": "Setup Variables",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://login.microsoftonline.com/{{ $json.tenantId }}/oauth2/v2.0/token",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "grant_type",
+              "value": "client_credentials"
+            },
+            {
+              "name": "client_id",
+              "value": "={{ $json.clientId }}"
+            },
+            {
+              "name": "client_secret",
+              "value": "={{ $json.clientSecret }}"
+            },
+            {
+              "name": "scope",
+              "value": "https://graph.microsoft.com/.default"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-get-token",
+      "name": "Get Graph Token",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const webhook = $('Webhook: Brad Contact').first().json;\nconst setup = $('Setup Variables').first().json;\nconst tokenResp = $input.first().json;\n\nconst body = webhook.body || webhook;\n\nconst fullName = body.fullName || 'Unknown';\nconst email = body.email || 'Unknown';\nconst company = body.company || 'Not provided';\nconst problemDescription = body.problemDescription || 'No message provided';\nconst source = body.source || 'brad.fernando-vargas.com';\nconst createdAt = body.createdAt || new Date().toISOString();\n\nconst emailBody = `\n<h2>New Contact Form Submission</h2>\n<p>A new inquiry has been received from Brad Earnhardt's portfolio website.</p>\n<hr/>\n<table style=\"border-collapse: collapse; width: 100%;\">\n  <tr><td style=\"padding: 8px; font-weight: bold; width: 150px;\">Name:</td><td style=\"padding: 8px;\">${fullName}</td></tr>\n  <tr><td style=\"padding: 8px; font-weight: bold;\">Email:</td><td style=\"padding: 8px;\"><a href=\"mailto:${email}\">${email}</a></td></tr>\n  <tr><td style=\"padding: 8px; font-weight: bold;\">Company:</td><td style=\"padding: 8px;\">${company}</td></tr>\n  <tr><td style=\"padding: 8px; font-weight: bold;\">Message:</td><td style=\"padding: 8px;\">${problemDescription}</td></tr>\n  <tr><td style=\"padding: 8px; font-weight: bold;\">Source:</td><td style=\"padding: 8px;\">${source}</td></tr>\n  <tr><td style=\"padding: 8px; font-weight: bold;\">Received:</td><td style=\"padding: 8px;\">${createdAt}</td></tr>\n</table>\n<hr/>\n<p style=\"color: #666; font-size: 12px;\">This notification was sent automatically by the portfolio CMS system.</p>\n`;\n\nreturn [{\n  json: {\n    accessToken: tokenResp.access_token,\n    mailUserUpn: setup.mailUserUpn,\n    emailBody,\n    subject: `New Contact: ${fullName} — Brad Earnhardt Portfolio`,\n    toEmail: 'fxvarga@gmail.com'\n  }\n}];"
+      },
+      "id": "node-build-email",
+      "name": "Build Email Body",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.microsoft.com/v1.0/users/{{ $json.mailUserUpn }}/sendMail",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.accessToken }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": {\n    \"subject\": \"{{ $json.subject }}\",\n    \"body\": {\n      \"contentType\": \"HTML\",\n      \"content\": {{ JSON.stringify($json.emailBody) }}\n    },\n    \"toRecipients\": [\n      {\n        \"emailAddress\": {\n          \"address\": \"{{ $json.toEmail }}\"\n        }\n      }\n    ]\n  },\n  \"saveToSentItems\": false\n}",
+        "options": {}
+      },
+      "id": "node-send-email",
+      "name": "Send Email via Graph",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1080,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: Brad Contact": {
+      "main": [
+        [
+          {
+            "node": "Setup Variables",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Setup Variables": {
+      "main": [
+        [
+          {
+            "node": "Get Graph Token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Graph Token": {
+      "main": [
+        [
+          {
+            "node": "Build Email Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email Body": {
+      "main": [
+        [
+          {
+            "node": "Send Email via Graph",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "brad"
+    },
+    {
+      "name": "contact"
+    }
+  ],
+  "triggerCount": 1,
+  "active": true
+}

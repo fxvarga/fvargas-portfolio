@@ -13,6 +13,8 @@ using FV.Infrastructure.Persistence;
 using FV.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.SemanticKernel;
 using System.Text;
@@ -169,6 +171,16 @@ else
 }
 app.UseCors();
 app.UseRouting();
+
+// Serve uploaded media files from /uploads/ path
+var uploadsPath = System.IO.Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads");
+Directory.CreateDirectory(uploadsPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads",
+    ContentTypeProvider = new FileExtensionContentTypeProvider()
+});
 
 // Tenant resolution must happen before authentication/authorization
 // so that tenant context is available for the request
@@ -383,29 +395,40 @@ app.MapPost("/api/leads", async (
         lead.FullName, lead.Email, lead.PortfolioId, lead.Industry, lead.Source);
 
     // Fire-and-forget: notify n8n workflow of new lead
-    _ = Task.Run(async () =>
+    // Route to portfolio-specific webhook based on the resolved portfolio
+    var webhookSlug = portfolioId switch
     {
-        try
+        var id when id == ContentMigrationContext.OpsBlueprintPortfolioId => "opsblueprint-lead",
+        var id when id == ContentMigrationContext.BradPortfolioId => "brad-contact",
+        _ => null
+    };
+
+    if (webhookSlug is not null)
+    {
+        _ = Task.Run(async () =>
         {
-            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
-            await http.PostAsJsonAsync("http://n8n:5678/webhook/opsblueprint-lead", new
+            try
             {
-                leadId = lead.Id,
-                fullName = lead.FullName,
-                email = lead.Email,
-                company = lead.Company,
-                industry = lead.Industry,
-                problemDescription = lead.ProblemDescription,
-                serviceTier = lead.ServiceTier,
-                source = lead.Source,
-                createdAt = lead.CreatedAt
-            });
-        }
-        catch (Exception ex)
-        {
-            logger.LogWarning(ex, "Failed to notify n8n of new lead {LeadId}", lead.Id);
-        }
-    });
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                await http.PostAsJsonAsync($"http://n8n:5678/webhook/{webhookSlug}", new
+                {
+                    leadId = lead.Id,
+                    fullName = lead.FullName,
+                    email = lead.Email,
+                    company = lead.Company,
+                    industry = lead.Industry,
+                    problemDescription = lead.ProblemDescription,
+                    serviceTier = lead.ServiceTier,
+                    source = lead.Source,
+                    createdAt = lead.CreatedAt
+                });
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to notify n8n of new lead {LeadId}", lead.Id);
+            }
+        });
+    }
 
     return Results.Created($"/api/leads/{lead.Id}", new
     {
@@ -414,6 +437,180 @@ app.MapPost("/api/leads", async (
     });
 })
 .AllowAnonymous();
+
+// ---------------------------------------------------------------
+// REST API: Media upload, list, delete for CMS image management
+// ---------------------------------------------------------------
+var allowedImageTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+{
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml"
+};
+const long maxFileSize = 10 * 1024 * 1024; // 10 MB
+
+app.MapPost("/api/media", async (
+    HttpContext httpContext,
+    CmsDbContext dbContext,
+    ITenantContext tenantContext,
+    ILogger<Program> logger) =>
+{
+    if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+    {
+        return Results.BadRequest(new { error = "Portfolio context could not be resolved" });
+    }
+
+    var portfolioId = tenantContext.PortfolioId.Value;
+    var form = await httpContext.Request.ReadFormAsync();
+    var file = form.Files.GetFile("file");
+
+    if (file is null || file.Length == 0)
+    {
+        return Results.BadRequest(new { error = "No file provided. Include a 'file' field in multipart form data." });
+    }
+
+    if (file.Length > maxFileSize)
+    {
+        return Results.BadRequest(new { error = $"File exceeds maximum size of {maxFileSize / 1024 / 1024} MB" });
+    }
+
+    if (!allowedImageTypes.Contains(file.ContentType))
+    {
+        return Results.BadRequest(new { error = $"Unsupported file type '{file.ContentType}'. Allowed: {string.Join(", ", allowedImageTypes)}" });
+    }
+
+    var altText = form.TryGetValue("altText", out var alt) ? alt.ToString() : null;
+
+    // Generate a unique file name to prevent collisions
+    var fileExt = System.IO.Path.GetExtension(file.FileName);
+    var safeFileName = $"{Guid.NewGuid():N}{fileExt}";
+    var portfolioDir = System.IO.Path.Combine(app.Environment.ContentRootPath, "wwwroot", "uploads", portfolioId.ToString());
+    Directory.CreateDirectory(portfolioDir);
+
+    var filePath = System.IO.Path.Combine(portfolioDir, safeFileName);
+    await using (var stream = new FileStream(filePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+    {
+        await file.CopyToAsync(stream);
+    }
+
+    var relativeUrl = $"/uploads/{portfolioId}/{safeFileName}";
+
+    var mediaAsset = new MediaAsset
+    {
+        Id = Guid.NewGuid(),
+        PortfolioId = portfolioId,
+        FileName = file.FileName,
+        FilePath = relativeUrl,
+        MimeType = file.ContentType,
+        FileSize = file.Length,
+        UploadedAt = DateTime.UtcNow,
+        UploadedBy = httpContext.User?.Identity?.Name,
+        AltText = altText
+    };
+
+    dbContext.MediaAssets.Add(mediaAsset);
+    await dbContext.SaveChangesAsync();
+
+    logger.LogInformation(
+        "Media uploaded: {FileName} ({MimeType}, {FileSize} bytes) for portfolio {PortfolioId}",
+        mediaAsset.FileName, mediaAsset.MimeType, mediaAsset.FileSize, portfolioId);
+
+    return Results.Created($"/api/media/{mediaAsset.Id}", new MediaAssetDto(
+        mediaAsset.Id,
+        mediaAsset.FileName,
+        relativeUrl,
+        mediaAsset.MimeType,
+        mediaAsset.FileSize,
+        mediaAsset.AltText,
+        mediaAsset.UploadedAt
+    ));
+})
+.RequireAuthorization()
+.DisableAntiforgery();
+
+app.MapGet("/api/media", async (
+    HttpContext httpContext,
+    CmsDbContext dbContext,
+    ITenantContext tenantContext,
+    string? search,
+    int? page,
+    int? pageSize) =>
+{
+    if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+    {
+        return Results.BadRequest(new { error = "Portfolio context could not be resolved" });
+    }
+
+    var portfolioId = tenantContext.PortfolioId.Value;
+    var take = Math.Clamp(pageSize ?? 50, 1, 100);
+    var skip = ((page ?? 1) - 1) * take;
+
+    IQueryable<MediaAsset> query = dbContext.MediaAssets
+        .Where(m => m.PortfolioId == portfolioId)
+        .OrderByDescending(m => m.UploadedAt);
+
+    if (!string.IsNullOrWhiteSpace(search))
+    {
+        var term = search.Trim().ToLower();
+        query = query.Where(m =>
+            m.FileName.ToLower().Contains(term) ||
+            (m.AltText != null && m.AltText.ToLower().Contains(term)));
+    }
+
+    var total = await query.CountAsync();
+    var items = await query
+        .Skip(skip)
+        .Take(take)
+        .Select(m => new MediaAssetDto(
+            m.Id,
+            m.FileName,
+            m.FilePath,
+            m.MimeType,
+            m.FileSize,
+            m.AltText,
+            m.UploadedAt
+        ))
+        .ToListAsync();
+
+    return Results.Ok(new { items, total, page = (skip / take) + 1, pageSize = take });
+})
+.RequireAuthorization();
+
+app.MapDelete("/api/media/{id:guid}", async (
+    Guid id,
+    CmsDbContext dbContext,
+    ITenantContext tenantContext,
+    ILogger<Program> logger) =>
+{
+    if (!tenantContext.IsResolved || !tenantContext.PortfolioId.HasValue)
+    {
+        return Results.BadRequest(new { error = "Portfolio context could not be resolved" });
+    }
+
+    var portfolioId = tenantContext.PortfolioId.Value;
+    var asset = await dbContext.MediaAssets
+        .FirstOrDefaultAsync(m => m.Id == id && m.PortfolioId == portfolioId);
+
+    if (asset is null)
+    {
+        return Results.NotFound(new { error = "Media asset not found" });
+    }
+
+    // Delete physical file
+    var physicalPath = System.IO.Path.Combine(app.Environment.ContentRootPath, "wwwroot", asset.FilePath.TrimStart('/'));
+    if (File.Exists(physicalPath))
+    {
+        File.Delete(physicalPath);
+    }
+
+    dbContext.MediaAssets.Remove(asset);
+    await dbContext.SaveChangesAsync();
+
+    logger.LogInformation(
+        "Media deleted: {FileName} (ID: {Id}) for portfolio {PortfolioId}",
+        asset.FileName, id, portfolioId);
+
+    return Results.Ok(new { message = "Media asset deleted successfully" });
+})
+.RequireAuthorization();
 
 await app.RunAsync();
 
@@ -448,4 +645,17 @@ public record LeadRequest(
     string? ServiceTier,
     DateTime? SubmittedAt,
     string? Source
+);
+
+// ---------------------------------------------------------------
+// DTO for media asset responses
+// ---------------------------------------------------------------
+public record MediaAssetDto(
+    Guid Id,
+    string FileName,
+    string Url,
+    string MimeType,
+    long FileSize,
+    string? AltText,
+    DateTime UploadedAt
 );

@@ -284,6 +284,36 @@ http://opsblueprint.homehost {
     }
 }
 
+# Brad Earnhardt Portfolio (UI/UX designer)
+https://{$DOMAIN_BRAD:brad.localhost} {
+    tls internal
+
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle {
+        reverse_proxy frontend-brad:80
+    }
+}
+
+# Brad Earnhardt (LAN)
+http://brad.homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-brad:80
+    }
+}
+
 # Plausible Analytics dashboard
 https://{$DOMAIN_ANALYTICS:analytics.localhost} {
     tls internal
@@ -319,4 +349,41 @@ https://{$DOMAIN_BOT:bot.localhost} {
 # Discord Bot (LAN)
 http://bot.homehost {
     reverse_proxy discord-bot:3100
+}
+
+# ── TinyToes — Baby First Bites ──────────────────────────────
+
+# TinyToes (HTTPS)
+https://{$DOMAIN_TINYTOES:tinytoes.localhost} {
+    tls internal
+
+    # API routes → .NET backend
+    handle /api/* {
+        reverse_proxy tinytoes-api:8080
+    }
+
+    # Health check
+    handle /healthz {
+        reverse_proxy tinytoes-api:8080
+    }
+
+    # Everything else → SPA frontend
+    handle {
+        reverse_proxy tinytoes-web:80
+    }
+}
+
+# TinyToes (LAN)
+http://tinytoes.homehost {
+    handle /api/* {
+        reverse_proxy tinytoes-api:8080
+    }
+
+    handle /healthz {
+        reverse_proxy tinytoes-api:8080
+    }
+
+    handle {
+        reverse_proxy tinytoes-web:80
+    }
 }

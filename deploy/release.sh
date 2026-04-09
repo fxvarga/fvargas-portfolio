@@ -95,6 +95,7 @@ get_frontend_images() {
     FRONTEND_BUSYBEE_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BUSYBEE:-portfolio-frontend-busybee}:${tag}"
     FRONTEND_EXECUTIVE_CATERING_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_EXECUTIVE_CATERING:-portfolio-frontend-executive-catering}:${tag}"
     FRONTEND_OPSBLUEPRINT_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_OPSBLUEPRINT:-portfolio-frontend-opsblueprint}:${tag}"
+    FRONTEND_BRAD_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BRAD:-portfolio-frontend-brad}:${tag}"
     N8N_PYTHON_HELPER_IMAGE="${DOCKER_USERNAME}/${IMAGE_N8N_PYTHON_HELPER:-portfolio-n8n-python-helper}:${tag}"
 }
 
@@ -263,6 +264,10 @@ build_and_push() {
     log_info "Building frontend image (OpsBlueprint): ${FRONTEND_OPSBLUEPRINT_IMAGE}"
     docker build -t "${FRONTEND_OPSBLUEPRINT_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-opsblueprint/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-opsblueprint"
     
+    # Build frontend - Brad Earnhardt (UI/UX designer)
+    log_info "Building frontend image (Brad): ${FRONTEND_BRAD_IMAGE}"
+    docker build -t "${FRONTEND_BRAD_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-brad/Dockerfile" "$PROJECT_ROOT"
+    
     # Build n8n Python Helper
     log_info "Building n8n Python Helper image: ${N8N_PYTHON_HELPER_IMAGE}"
     docker build -t "${N8N_PYTHON_HELPER_IMAGE}" -f "$PROJECT_ROOT/n8n-agent/python-helper/Dockerfile" "$PROJECT_ROOT/n8n-agent/python-helper"
@@ -278,6 +283,7 @@ build_and_push() {
     docker push "${FRONTEND_BUSYBEE_IMAGE}"
     docker push "${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     docker push "${FRONTEND_OPSBLUEPRINT_IMAGE}"
+    docker push "${FRONTEND_BRAD_IMAGE}"
     docker push "${N8N_PYTHON_HELPER_IMAGE}"
     
     log_success "Images pushed to Docker Hub"
@@ -301,6 +307,7 @@ deploy() {
     local domain_1stopwings="${DOMAIN_1STOPWINGS:-}"
     local domain_executive_catering="${DOMAIN_EXECUTIVE_CATERING:-}"
     local domain_opsblueprint="${DOMAIN_OPSBLUEPRINT:-}"
+    local domain_brad="${DOMAIN_BRAD:-}"
     local domain_analytics="${DOMAIN_ANALYTICS:-}"
     local domain_grafana="${DOMAIN_GRAFANA:-}"
     local domain_n8n="${DOMAIN_N8N:-}"
@@ -360,6 +367,7 @@ deploy() {
     log_info "  Frontend BusyBee:  $FRONTEND_BUSYBEE_IMAGE"
     log_info "  Frontend Executive Catering: $FRONTEND_EXECUTIVE_CATERING_IMAGE"
     log_info "  Frontend OpsBlueprint: $FRONTEND_OPSBLUEPRINT_IMAGE"
+    log_info "  Frontend Brad: $FRONTEND_BRAD_IMAGE"
     log_info "  n8n Python Helper: $N8N_PYTHON_HELPER_IMAGE"
     
     log_info "Domains:"
@@ -369,6 +377,7 @@ deploy() {
     log_info "  1StopWings: ${domain_1stopwings:-1stopwings.localhost}"
     log_info "  Executive Catering: ${domain_executive_catering:-executivecatering.localhost}"
     log_info "  OpsBlueprint: ${domain_opsblueprint:-opsblueprint.localhost}"
+    log_info "  Brad: ${domain_brad:-brad.localhost}"
     log_info "  Analytics: ${domain_analytics:-analytics.localhost}"
     log_info "  Grafana:   ${domain_grafana:-grafana.localhost}"
     log_info "  n8n:       ${domain_n8n:-n8n.localhost}"
@@ -622,6 +631,19 @@ services:
   frontend-opsblueprint:
     image: ${FRONTEND_OPSBLUEPRINT_IMAGE}
     container_name: portfolio-frontend-opsblueprint
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-brad:
+    image: ${FRONTEND_BRAD_IMAGE}
+    container_name: portfolio-frontend-brad
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -902,6 +924,7 @@ services:
       - frontend-busybee
       - frontend-executive-catering
       - frontend-opsblueprint
+      - frontend-brad
       - backend
       - plausible
       - grafana
@@ -1052,6 +1075,21 @@ ${domain_opsblueprint:-opsblueprint.localhost} {
     }
 }
 
+# Brad Earnhardt (UI/UX designer portfolio)
+${domain_brad:-brad.localhost} {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle {
+        reverse_proxy frontend-brad:80
+    }
+}
+
 # Plausible Analytics
 ${domain_analytics:-analytics.localhost} {
     reverse_proxy plausible:8000
@@ -1114,6 +1152,9 @@ DEPLOY_SCRIPT
     fi
     if [[ -n "$domain_opsblueprint" ]]; then
         echo "  OpsBlueprint: https://$domain_opsblueprint"
+    fi
+    if [[ -n "$domain_brad" ]]; then
+        echo "  Brad: https://$domain_brad"
     fi
     if [[ -n "$domain_analytics" ]]; then
         echo "  Analytics: https://$domain_analytics"
@@ -1249,6 +1290,10 @@ build_only() {
     log_info "Building frontend image (OpsBlueprint): ${FRONTEND_OPSBLUEPRINT_IMAGE}"
     docker build -t "${FRONTEND_OPSBLUEPRINT_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-opsblueprint/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-opsblueprint"
     
+    # Build frontend - Brad Earnhardt (UI/UX designer)
+    log_info "Building frontend image (Brad): ${FRONTEND_BRAD_IMAGE}"
+    docker build -t "${FRONTEND_BRAD_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-brad/Dockerfile" "$PROJECT_ROOT"
+    
     # Build n8n Python Helper
     log_info "Building n8n Python Helper image: ${N8N_PYTHON_HELPER_IMAGE}"
     docker build -t "${N8N_PYTHON_HELPER_IMAGE}" -f "$PROJECT_ROOT/n8n-agent/python-helper/Dockerfile" "$PROJECT_ROOT/n8n-agent/python-helper"
@@ -1262,6 +1307,7 @@ build_only() {
     echo "  ${FRONTEND_BUSYBEE_IMAGE}"
     echo "  ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     echo "  ${FRONTEND_OPSBLUEPRINT_IMAGE}"
+    echo "  ${FRONTEND_BRAD_IMAGE}"
     echo "  ${N8N_PYTHON_HELPER_IMAGE}"
 }
 

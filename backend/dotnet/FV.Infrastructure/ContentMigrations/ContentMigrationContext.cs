@@ -42,6 +42,9 @@ public class ContentMigrationContext
     /// <summary>OpsBlueprint portfolio ID</summary>
     public static readonly Guid OpsBlueprintPortfolioId = Guid.Parse("66666666-6666-6666-6666-666666666666");
 
+    /// <summary>Brad Earnhardt portfolio ID</summary>
+    public static readonly Guid BradPortfolioId = Guid.Parse("77777777-7777-7777-7777-777777777777");
+
     #endregion
 
     #region Deterministic ID Generation (Flyway-inspired)

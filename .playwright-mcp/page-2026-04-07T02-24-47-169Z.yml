@@ -1,0 +1,8 @@
+- generic [ref=e4]:
+  - generic [ref=e5]: 🤔
+  - heading "Changed your mind?" [level=1] [ref=e6]
+  - paragraph [ref=e7]: No worries — your journal will be here when you're ready. No pressure, no rush.
+  - button "Back to Home" [ref=e8]
+  - paragraph [ref=e9]:
+    - text: Already have a code?
+    - button "Activate here" [ref=e10]

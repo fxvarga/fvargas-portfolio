@@ -1,0 +1,122 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: 🦶
+        - generic [ref=e8]: TinyToesAndUs
+      - generic [ref=e9]:
+        - button "I have a code" [ref=e10]
+        - button "Get Started" [ref=e11]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: ✨
+      - generic [ref=e17]: A keepsake for every first bite
+    - heading "Remember Every First Bite" [level=1] [ref=e18]:
+      - text: Remember Every
+      - text: First Bite
+    - paragraph [ref=e19]: The sweetest moments happen at mealtime. Capture your baby's food journey — every reaction, every photo, every memory — in a beautiful journal you'll cherish forever.
+    - generic [ref=e20]:
+      - button "Get Baby First Bites — $9.99" [ref=e21]
+      - paragraph [ref=e22]: One-time purchase. No subscriptions.
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: 🦶
+        - generic [ref=e28]:
+          - generic [ref=e29]: Emma's Journal
+          - generic [ref=e30]: 6–9 months
+      - generic [ref=e31]:
+        - generic [ref=e32]:
+          - generic [ref=e33]: 😍
+          - generic [ref=e34]: 🥑 Avocado
+        - generic [ref=e35]:
+          - generic [ref=e36]: 😍
+          - generic [ref=e37]: 🍌 Banana
+        - generic [ref=e38]:
+          - generic [ref=e39]: 😐
+          - generic [ref=e40]: 🥕 Carrots
+        - generic [ref=e41]:
+          - generic [ref=e42]: 😍
+          - generic [ref=e43]: 🍠 Sweet Potato
+      - generic [ref=e44]:
+        - generic [ref=e45]: 4 foods tried
+        - generic [ref=e46]: 3 loved!
+  - generic [ref=e48]:
+    - generic [ref=e49]:
+      - heading "Everything you need to capture the journey" [level=2] [ref=e50]:
+        - text: Everything you need to capture
+        - text: the journey
+      - paragraph [ref=e51]: Simple enough to use between bites. Beautiful enough to keep forever.
+    - generic [ref=e52]:
+      - generic [ref=e53]:
+        - generic [ref=e54]: 📸
+        - heading "Photo Memories" [level=3] [ref=e55]
+        - paragraph [ref=e56]: Capture every first bite with beautiful photo entries that you'll treasure forever.
+      - generic [ref=e57]:
+        - generic [ref=e58]: 😍
+        - heading "Reaction Tracking" [level=3] [ref=e59]
+        - paragraph [ref=e60]: Record whether your little one loved it, was unsure, or said "no thanks" — every reaction is a memory.
+      - generic [ref=e61]:
+        - generic [ref=e62]: 📖
+        - heading "Memory Book" [level=3] [ref=e63]
+        - paragraph [ref=e64]: A gorgeous, printable memory book organized by month. Frame it, gift it, keep it forever.
+      - generic [ref=e65]:
+        - generic [ref=e66]: 🎨
+        - heading "Beautiful Themes" [level=3] [ref=e67]
+        - paragraph [ref=e68]: Choose from Neutral, Soft Pastel, or Playful — each one designed to match your style.
+      - generic [ref=e69]:
+        - generic [ref=e70]: 📱
+        - heading "Works Offline" [level=3] [ref=e71]
+        - paragraph [ref=e72]: Install on your phone like a real app. Works without internet — perfect for mealtime.
+      - generic [ref=e73]:
+        - generic [ref=e74]: 🔒
+        - heading "Private & Secure" [level=3] [ref=e75]
+        - paragraph [ref=e76]: Your data stays on your device. No accounts, no cloud uploads, no tracking. Just you and baby.
+  - generic [ref=e78]:
+    - generic [ref=e79]:
+      - heading "Ready in 2 minutes" [level=2] [ref=e80]
+      - paragraph [ref=e81]: No app store. No accounts. Just a code and you're in.
+    - generic [ref=e82]:
+      - generic [ref=e83]:
+        - generic [ref=e84]: "1"
+        - heading "Purchase" [level=3] [ref=e85]
+        - paragraph [ref=e86]: Get Baby First Bites for a one-time $9.99. You'll receive your claim code by email.
+      - generic [ref=e87]:
+        - generic [ref=e88]: "2"
+        - heading "Activate" [level=3] [ref=e89]
+        - paragraph [ref=e90]: Open the app, enter your email and claim code. Set up your baby's profile.
+      - generic [ref=e91]:
+        - generic [ref=e92]: "3"
+        - heading "Journal" [level=3] [ref=e93]
+        - paragraph [ref=e94]: Start capturing every first bite — photos, reactions, notes. Build your memory book.
+  - generic [ref=e96]:
+    - heading "Parents love it" [level=2] [ref=e98]
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - paragraph [ref=e101]: "\"I wish I had this when my first was starting solids. Now I have every single moment captured for baby #2.\""
+        - generic [ref=e102]:
+          - paragraph [ref=e103]: Sarah M.
+          - paragraph [ref=e104]: Mom of two
+      - generic [ref=e105]:
+        - paragraph [ref=e106]: "\"The memory book feature made me cry — in the best way. Printed it for the grandparents and they loved it.\""
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: Jessica R.
+          - paragraph [ref=e109]: First-time mom
+      - generic [ref=e110]:
+        - paragraph [ref=e111]: "\"So simple to use. I can add an entry in 30 seconds between bites. And the themes are adorable.\""
+        - generic [ref=e112]:
+          - paragraph [ref=e113]: Priya K.
+          - paragraph [ref=e114]: Mom of one
+  - generic [ref=e116]:
+    - generic [ref=e117]: 🍼
+    - heading "These moments won't wait" [level=2] [ref=e118]
+    - paragraph [ref=e119]: Every first bite is a milestone. Start capturing them today — before they're gone.
+    - button "Get Baby First Bites — $9.99" [ref=e120]
+    - paragraph [ref=e121]: One-time purchase · Instant delivery · Works on any device
+  - contentinfo [ref=e122]:
+    - generic [ref=e123]:
+      - generic [ref=e124]:
+        - generic [ref=e125]: 🦶
+        - generic [ref=e126]: TinyToesAndUs
+      - generic [ref=e127]:
+        - button "Activate Code" [ref=e128]
+        - generic [ref=e129]: © 2026 TinyToesAndUs

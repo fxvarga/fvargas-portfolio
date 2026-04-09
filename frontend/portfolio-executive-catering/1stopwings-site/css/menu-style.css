@@ -1,143 +1,199 @@
 /* ==============================================================
-   PAGE STYLE: Classic Americana Menu (menu.html)
-   DESCRIPTION: High-contrast 4-column layout for a traditional vibe.
+   1 STOP WINGS - BRAND COMPLIANT HIGH-DENSITY MENU
+   REVISION: Footer Centering & SVG Logo Upscaled (150px)
+   FILE LOCATION: /1stopwings-site/css/menu-style.css
    ============================================================== */
 
-body {
-    background-color: #ffffff;
-    color: #1a1a1a;
-    padding: 40px 20px;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    line-height: 1.5;
+:root {
+    /* OFFICIAL BRAND PALETTE */
+    --wing-blue: #1E2D5B; 
+    --wing-red:  #CE2B29; 
+    --border-light: #dddddd;
+    --font-heading: 'Impact', sans-serif;
 }
 
-/* HEADER SECTION */
+/* Page Wrapper */
+.menu-page-wrapper {
+    padding: 30px;
+    max-width: 1100px; 
+    margin: 0 auto;
+    background-color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+/* Header Section */
 .menu-header {
     text-align: center;
-    margin-bottom: 50px;
-    border-bottom: 4px solid var(--wing-red); /* Bold brand red line */
-    padding-bottom: 20px;
+    margin-bottom: 30px;
+    border-bottom: 4px solid var(--wing-blue); 
+    padding-bottom: 15px;
 }
 
 .menu-header h1 {
-    font-size: 5rem;
-    color: var(--wing-blue); /* Bold brand navy */
-    margin-bottom: 5px;
+    font-family: var(--font-heading);
+    font-size: 5.5rem; 
+    margin: 0;
+    color: var(--wing-red);
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-/* GRID SYSTEM 
-   4 Columns on Desktop | 2 on Tablet | 1 on Mobile */
+.header-details address {
+    font-style: normal;
+    font-size: 1.1rem;
+    color: var(--wing-blue);
+    margin: 10px 0;
+}
+
+.header-hours {
+    font-weight: bold;
+    font-size: 1rem;
+    color: #444; 
+}
+
+.header-hours .days {
+    color: var(--wing-red) !important;
+}
+
+/* COLUMN SYSTEM (Masonry Flow) */
 .menu-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 40px;
-    max-width: 1400px;
-    margin: 0 auto;
+    display: block; 
+    column-count: 1;
+    column-gap: 50px;
+}
+
+@media (min-width: 1024px) {
+    .menu-grid {
+        column-count: 2;
+    }
 }
 
 .menu-column {
-    display: flex;
-    flex-direction: column;
-}
-
-/* TYPOGRAPHY & HEADERS */
-.blue-text { color: var(--wing-blue); } 
-.red-text  { color: var(--wing-red); }
-
-.underline {
-    border-bottom: 3px solid var(--wing-blue);
-    padding-bottom: 5px;
-    margin-bottom: 20px;
     display: inline-block;
     width: 100%;
+    break-inside: avoid;
+    margin-bottom: 40px;
 }
 
-/* ITEM STYLING */
-.menu-item, .menu-group { 
-    margin-bottom: 22px; 
+/* Section Headings */
+.menu-column h2 {
+    font-family: var(--font-heading);
+    font-size: 2.2rem;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-light);
+    padding-bottom: 5px;
+}
+
+.blue-text { color: var(--wing-blue) !important; }
+.red-text { color: var(--wing-red) !important; }
+
+/* MENU ITEM LOGIC */
+.menu-item {
+    margin-bottom: 18px;
+}
+
+.menu-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
 }
 
 .item-name {
-    display: block;
     font-family: var(--font-heading);
-    font-size: 1.4rem;
+    font-size: 1.15rem;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    color: #1a1a1a;
+}
+
+.item-name.soup-highlight {
     color: #000000;
+}
+
+.item-price {
+    font-family: var(--font-heading);
+    color: var(--wing-red); 
+    font-size: 1.15rem;
 }
 
 .item-desc {
-    font-size: 1rem;
-    color: #333333;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: #555;
+    margin: 4px 0;
+}
+
+.item-pricing {
+    font-family: var(--font-heading);
+    font-size: 1.1rem;
     margin-top: 4px;
 }
 
-/* FLAVORS BOX (Traditional Border Style) */
+.extra-info {
+    font-size: 0.75rem;
+    font-style: italic;
+    color: #888;
+}
+
+/* Flavors Box */
 .flavor-list {
-    background: #f9f9f9;
-    padding: 18px;
-    border: 2px solid var(--wing-blue);
-    font-size: 1rem;
-    font-weight: bold;
-    line-height: 1.6;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border: 1px solid #eee;
+    font-size: 0.85rem;
+    line-height: 1.5;
     margin: 15px 0;
-    color: #000000;
 }
 
 .warning-text {
     color: var(--wing-red);
-    text-transform: uppercase;
-    text-decoration: underline;
+    font-weight: bold;
 }
 
-/* FOOTER BRANDING */
+/* FOOTER - High-Contrast Precision Stamp */
 .menu-footer {
-    margin-top: 80px;
-    text-align: center;
-    border-top: 4px solid var(--wing-red);
-    padding-top: 50px;
-}
-
-.branding-group {
+    margin-top: 50px;
+    padding: 40px 0;
+    border-top: 1px solid var(--border-light);
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 40px;
+    align-items: center; 
+    text-align: center;
 }
 
 .footer-logo {
-    height: 90px;
+    height: 150px; /* Increased by 50% from 100px */
     width: auto;
     display: block;
-    margin: 0 auto;
+    margin-bottom: 20px;
+}
+
+.menu-footer p {
+    margin-bottom: 25px;
+    color: #666;
 }
 
 .back-link {
     display: inline-block;
-    background-color: var(--wing-blue);
-    color: #ffffff;
+    color: var(--wing-blue);
     text-decoration: none;
+    font-weight: bold;
+    text-transform: uppercase;
     font-family: var(--font-heading);
-    font-size: 1.1rem;
-    padding: 12px 30px;
-    border-radius: 4px;
-    transition: background 0.2s;
+    border: 2px solid var(--wing-blue);
+    padding: 12px 24px;
+    transition: all 0.2s ease-in-out;
 }
 
 .back-link:hover {
-    background-color: var(--wing-red);
+    background-color: var(--wing-blue);
+    color: #ffffff;
 }
 
-/* MOBILE ADJUSTMENTS */
-@media (max-width: 600px) {
-    .menu-header h1 {
-        font-size: 3rem;
-    }
-    .menu-grid {
-        gap: 30px;
-    }
-    body {
-        padding: 30px 15px;
-    }
+/* MOBILE FIXES */
+@media (max-width: 1023px) {
+    .menu-header h1 { font-size: 3.5rem; }
+    .header-hours .divider { display: none; }
+    .header-hours .days { display: block; margin-top: 5px; }
 }

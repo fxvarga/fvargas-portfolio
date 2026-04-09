@@ -1,0 +1,425 @@
+- main [ref=e2]:
+  - generic [ref=e5]:
+    - link "logo" [ref=e7] [cursor=pointer]:
+      - /url: index.html
+      - img "logo" [ref=e8]
+    - navigation [ref=e10]:
+      - list [ref=e11]:
+        - listitem [ref=e12]:
+          - link "Home" [ref=e13] [cursor=pointer]:
+            - /url: "#home"
+        - listitem [ref=e14]:
+          - link "About" [ref=e15] [cursor=pointer]:
+            - /url: "#about"
+        - listitem [ref=e16]:
+          - link "Services" [ref=e17] [cursor=pointer]:
+            - /url: "#services"
+        - listitem [ref=e18]:
+          - link "Resume" [ref=e19] [cursor=pointer]:
+            - /url: "#resume"
+        - listitem [ref=e20]:
+          - link "Portfolio" [ref=e21] [cursor=pointer]:
+            - /url: "#portfolio"
+        - listitem [ref=e22]:
+          - link "Testimonial" [ref=e23] [cursor=pointer]:
+            - /url: "#testimonial"
+        - listitem [ref=e24]:
+          - link "Blog" [ref=e25] [cursor=pointer]:
+            - /url: "#blog"
+    - link "contact us" [ref=e27] [cursor=pointer]:
+      - /url: "#contact"
+  - generic [ref=e32]:
+    - generic [ref=e33]:
+      - img "banner-image" [ref=e34]
+      - img "banner badge" [ref=e35]
+    - generic [ref=e36]:
+      - paragraph [ref=e38]: I'm glad you're here.
+      - heading "Hi i’m Michael Capturing helps people to see beautiful world" [level=1] [ref=e39]
+      - generic [ref=e40]:
+        - paragraph [ref=e41]: Nam libero tempore, cum soluta nobis est eligendi optio cumque nihil impedit quo minus id quod maxime placeat facere possimus, omnis voluptas assumenda est, omnis dolor repellendus. Temporibus autem quibusdam et.
+        - link "Let’s Chat" [ref=e42] [cursor=pointer]:
+          - /url: resume.html
+          - generic [ref=e44]:
+            - generic [ref=e45]: Let’s Chat
+            - img [ref=e46]: 
+  - generic [ref=e53]:
+    - generic [ref=e54]:
+      - generic [ref=e55]:
+        - generic [ref=e56]:
+          - generic [ref=e57]:
+            - img "orange-dot" [ref=e58]
+            - paragraph [ref=e59]: About Me
+          - heading "I’m making photographs & videography." [level=2] [ref=e60]
+        - paragraph [ref=e61]: Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years old. Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature from 45 BC, making it over 2000 years .
+      - link "Contact Us" [ref=e62] [cursor=pointer]:
+        - /url: contact.html
+    - generic [ref=e65]:
+      - img "about image" [ref=e66]
+      - img "circle shape" [ref=e67]
+      - img "about three line bg" [ref=e68]
+      - generic [ref=e69]:
+        - heading "Michael Lewin" [level=3] [ref=e70]
+        - list [ref=e71]:
+          - listitem [ref=e72]: Age 46 years
+          - listitem [ref=e73]: years of experience 20
+          - listitem [ref=e74]: Based on Canada
+          - listitem [ref=e75]: Language English
+  - generic [ref=e80]:
+    - generic [ref=e81]:
+      - generic [ref=e82]:
+        - img "orange-dot" [ref=e83]
+        - paragraph [ref=e84]: Resume
+      - heading "Education & Experience" [level=2] [ref=e85]
+    - generic [ref=e86]:
+      - generic [ref=e87]:
+        - heading "Education" [level=3] [ref=e88]
+        - separator [ref=e89]
+        - generic [ref=e91]:
+          - heading "University of Toronto" [level=5] [ref=e92]
+          - paragraph [ref=e93]: "Bachelor Degree of Design in Advertising; GPA: 3.80, anticipated in May 2018"
+        - generic [ref=e95]:
+          - heading "University of Toronto" [level=5] [ref=e96]
+          - paragraph [ref=e97]: "Bachelor Degree of Design in Advertising; GPA: 3.85, anticipated in May 2012"
+        - generic [ref=e99]:
+          - heading "University of Toronto" [level=5] [ref=e100]
+          - paragraph [ref=e101]: "Bachelor Degree of Design in Advertising; GPA: 3.85, anticipated in May 2012"
+        - separator [ref=e102]
+      - generic [ref=e103]:
+        - heading "Professional Experience" [level=3] [ref=e104]
+        - separator [ref=e105]
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - paragraph [ref=e108]: 2021 - 2022
+            - heading "Toronto Fashion" [level=5] [ref=e109]
+            - paragraph [ref=e110]: Photographer
+          - generic [ref=e111]:
+            - paragraph [ref=e112]: 2016 - 2017
+            - heading "Toronto Fashion" [level=5] [ref=e113]
+            - paragraph [ref=e114]: Director of Photography
+        - generic [ref=e115]:
+          - generic [ref=e116]:
+            - paragraph [ref=e117]: 2018 - 2021
+            - heading "Daily Fashion" [level=5] [ref=e118]
+            - paragraph [ref=e119]: Fashion Photographer
+          - generic [ref=e120]:
+            - paragraph [ref=e121]: 2015 - 2016
+            - heading "Daily Fashion" [level=5] [ref=e122]
+            - paragraph [ref=e123]: Lead Photographer
+        - generic [ref=e124]:
+          - generic [ref=e125]:
+            - paragraph [ref=e126]: 2017 - 2018
+            - heading "Techpark" [level=5] [ref=e127]
+            - paragraph [ref=e128]: Product Photgraphy
+          - generic [ref=e129]:
+            - paragraph [ref=e130]: 2010 - 2014
+            - heading "Fashion world CA" [level=5] [ref=e131]
+            - paragraph [ref=e132]: Director of Photography
+  - generic [ref=e137]:
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - img "orange-dot" [ref=e140]
+        - paragraph [ref=e141]: Services
+      - heading "My Services" [level=2] [ref=e142]
+    - generic [ref=e143]:
+      - generic [ref=e146]:
+        - generic [ref=e148]:
+          - img "service slide image" [ref=e151]
+          - img "service slide image" [ref=e154]
+          - img "service slide image" [ref=e157]
+          - img "service slide image" [ref=e160]
+          - img "service slide image" [ref=e163]
+          - img "service slide image" [ref=e166]
+          - img "service slide image" [ref=e169]
+        - generic [ref=e170]:
+          - button [ref=e171] [cursor=pointer]
+          - button [ref=e173] [cursor=pointer]
+          - button [ref=e175] [cursor=pointer]
+      - generic [ref=e177]:
+        - generic [ref=e178]:
+          - generic [ref=e180]:
+            - heading "Weeding" [level=4] [ref=e181]
+            - heading "1" [level=5] [ref=e182]
+          - generic [ref=e183]:
+            - heading "Wedding Photography" [level=4] [ref=e184]
+            - paragraph [ref=e185]: Sugary sweet lorem ipsum? You got it with Cup cake Ipsum, the only text generator
+        - generic [ref=e186]:
+          - generic [ref=e188]:
+            - heading "Videography" [level=4] [ref=e189]
+            - heading "2" [level=5] [ref=e190]
+          - generic [ref=e191]:
+            - heading "Videography" [level=4] [ref=e192]
+            - paragraph [ref=e193]: Sugary sweet lorem ipsum? You got it with Cup cake Ipsum.
+        - generic [ref=e194]:
+          - generic [ref=e196]:
+            - heading "Fashion" [level=4] [ref=e197]
+            - heading "3" [level=5] [ref=e198]
+          - generic [ref=e199]:
+            - heading "Fashion Photography" [level=4] [ref=e200]
+            - paragraph [ref=e201]: Sugary sweet lorem ipsum? You got it with Cup cake Ipsum, the only text generator
+  - generic [ref=e202]:
+    - generic [ref=e204]:
+      - generic [ref=e205]:
+        - img "orange-dot" [ref=e206]
+        - paragraph [ref=e207]: Portfolio
+      - heading "Our Recent Photography" [level=2] [ref=e208]
+    - generic [ref=e210]:
+      - generic [ref=e212]:
+        - generic [ref=e214]:
+          - img "portfolio image" [ref=e215]
+          - link "Indoor Photography" [ref=e217] [cursor=pointer]:
+            - /url: "#portfolioModalFive"
+        - generic [ref=e219]:
+          - img "portfolio image" [ref=e220]
+          - link "Wedding" [ref=e222] [cursor=pointer]:
+            - /url: "#portfolioModalSix"
+        - generic [ref=e224]:
+          - img "portfolio image" [ref=e225]
+          - link "Portrait Photography" [ref=e227] [cursor=pointer]:
+            - /url: "#portfolioModalSeven"
+        - generic [ref=e229]:
+          - img "portfolio image" [ref=e230]
+          - link "Indoor Photography" [ref=e232] [cursor=pointer]:
+            - /url: "#portfolioModalEight"
+        - generic [ref=e234]:
+          - img "portfolio image" [ref=e235]
+          - link "Food Photography" [ref=e237] [cursor=pointer]:
+            - /url: "#portfolioModalOne"
+        - generic [ref=e239]:
+          - img "portfolio image" [ref=e240]
+          - link "Horror Photography" [ref=e242] [cursor=pointer]:
+            - /url: "#portfolioModalTwo"
+        - generic [ref=e244]:
+          - img "portfolio image" [ref=e245]
+          - link "Portrait Photography" [ref=e247] [cursor=pointer]:
+            - /url: "#portfolioModalThree"
+        - generic [ref=e249]:
+          - img "portfolio image" [ref=e250]
+          - link "Fashion Photography" [ref=e252] [cursor=pointer]:
+            - /url: "#portfolioModalFour"
+        - generic [ref=e254]:
+          - img "portfolio image" [ref=e255]
+          - link "Indoor Photography" [ref=e257] [cursor=pointer]:
+            - /url: "#portfolioModalFive"
+        - generic [ref=e259]:
+          - img "portfolio image" [ref=e260]
+          - link "Wedding" [ref=e262] [cursor=pointer]:
+            - /url: "#portfolioModalSix"
+        - generic [ref=e264]:
+          - img "portfolio image" [ref=e265]
+          - link "Portrait Photography" [ref=e267] [cursor=pointer]:
+            - /url: "#portfolioModalSeven"
+        - generic [ref=e269]:
+          - img "portfolio image" [ref=e270]
+          - link "Indoor Photography" [ref=e272] [cursor=pointer]:
+            - /url: "#portfolioModalEight"
+        - generic [ref=e274]:
+          - img "portfolio image" [ref=e275]
+          - link "Food Photography" [ref=e277] [cursor=pointer]:
+            - /url: "#portfolioModalOne"
+        - generic [ref=e279]:
+          - img "portfolio image" [ref=e280]
+          - link "Horror Photography" [ref=e282] [cursor=pointer]:
+            - /url: "#portfolioModalTwo"
+        - generic [ref=e284]:
+          - img "portfolio image" [ref=e285]
+          - link "Portrait Photography" [ref=e287] [cursor=pointer]:
+            - /url: "#portfolioModalThree"
+        - generic [ref=e289]:
+          - img "portfolio image" [ref=e290]
+          - link "Fashion Photography" [ref=e292] [cursor=pointer]:
+            - /url: "#portfolioModalFour"
+      - generic [ref=e293]:
+        - button [ref=e294] [cursor=pointer]:
+          - img [ref=e295]
+        - button [ref=e296] [cursor=pointer]:
+          - img [ref=e297]
+  - generic [ref=e302]:
+    - generic [ref=e303]:
+      - heading "9+" [level=2] [ref=e304]
+      - heading "Years Experience" [level=5] [ref=e305]
+    - generic [ref=e306]:
+      - heading "1400+" [level=2] [ref=e307]
+      - heading "Project Done" [level=5] [ref=e308]
+    - generic [ref=e309]:
+      - heading "245+" [level=2] [ref=e310]
+      - heading "Happy Client" [level=5] [ref=e311]
+    - generic [ref=e312]:
+      - heading "26+" [level=2] [ref=e313]
+      - heading "Award Wining" [level=5] [ref=e314]
+  - generic [ref=e319]:
+    - generic [ref=e320]:
+      - generic [ref=e321]:
+        - img "orange-dot" [ref=e322]
+        - paragraph [ref=e323]: Testimonial
+      - heading "Client Feedback" [level=2] [ref=e324]
+    - generic [ref=e326]:
+      - generic [ref=e328]:
+        - generic [ref=e331]:
+          - generic [ref=e332]:
+            - img "testimonial-image" [ref=e333]
+            - generic [ref=e334]:
+              - heading "Robert E. Wolf" [level=3] [ref=e335]
+              - paragraph [ref=e336]: Director, Techso
+          - paragraph [ref=e337]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e340]:
+          - generic [ref=e341]:
+            - img "testimonial-image" [ref=e342]
+            - generic [ref=e343]:
+              - heading "Robert E. Wolf" [level=3] [ref=e344]
+              - paragraph [ref=e345]: Director, Techso
+          - paragraph [ref=e346]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e349]:
+          - generic [ref=e350]:
+            - img "testimonial-image" [ref=e351]
+            - generic [ref=e352]:
+              - heading "John K. Meraz" [level=3] [ref=e353]
+              - paragraph [ref=e354]: CTO, Xyz Group
+          - paragraph [ref=e355]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e358]:
+          - generic [ref=e359]:
+            - img "testimonial-image" [ref=e360]
+            - generic [ref=e361]:
+              - heading "Johan Smith" [level=3] [ref=e362]
+              - paragraph [ref=e363]: CEO, Abc Agency
+          - paragraph [ref=e364]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e367]:
+          - generic [ref=e368]:
+            - img "testimonial-image" [ref=e369]
+            - generic [ref=e370]:
+              - heading "Robert E. Wolf" [level=3] [ref=e371]
+              - paragraph [ref=e372]: Director, Techso
+          - paragraph [ref=e373]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e376]:
+          - generic [ref=e377]:
+            - img "testimonial-image" [ref=e378]
+            - generic [ref=e379]:
+              - heading "Robert E. Wolf" [level=3] [ref=e380]
+              - paragraph [ref=e381]: Director, Techso
+          - paragraph [ref=e382]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e385]:
+          - generic [ref=e386]:
+            - img "testimonial-image" [ref=e387]
+            - generic [ref=e388]:
+              - heading "John K. Meraz" [level=3] [ref=e389]
+              - paragraph [ref=e390]: CTO, Xyz Group
+          - paragraph [ref=e391]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+        - generic [ref=e394]:
+          - generic [ref=e395]:
+            - img "testimonial-image" [ref=e396]
+            - generic [ref=e397]:
+              - heading "Johan Smith" [level=3] [ref=e398]
+              - paragraph [ref=e399]: CEO, Abc Agency
+          - paragraph [ref=e400]: “Contrary to popular belief, Lorem Ipsum is not simply random text. It has roots in a piece of classical Latin literature fr45 BC, mak it over 2000 years old.
+      - generic [ref=e401]:
+        - button [ref=e402] [cursor=pointer]
+        - button [ref=e404] [cursor=pointer]
+        - button [ref=e406] [cursor=pointer]
+        - button [ref=e408] [cursor=pointer]
+  - generic [ref=e414]:
+    - heading "I am working with them" [level=4] [ref=e416]
+    - generic [ref=e417]:
+      - img "partner-image" [ref=e420]
+      - img "partner-image" [ref=e423]
+      - img "partner-image" [ref=e426]
+      - img "partner-image" [ref=e429]
+      - img "partner-image" [ref=e432]
+      - img "partner-image" [ref=e435]
+  - generic [ref=e440]:
+    - img "contact image" [ref=e442]
+    - generic [ref=e443]:
+      - heading "Need help? Get in touch now!" [level=2] [ref=e444]
+      - generic [ref=e446]:
+        - textbox "Email" [ref=e448]
+        - textbox "Phone" [ref=e450]
+        - combobox [ref=e452]:
+          - option "Package" [selected]
+          - option "One"
+          - option "Two"
+          - option "Three"
+        - textbox [ref=e454]
+        - textbox "Message" [ref=e456]
+        - button "Send Me Message" [ref=e459] [cursor=pointer]
+  - generic [ref=e464]:
+    - generic [ref=e465]:
+      - generic [ref=e466]:
+        - img "orange-dot" [ref=e467]
+        - paragraph [ref=e468]: Blog
+      - heading "My Recent Blog" [level=2] [ref=e469]
+    - generic [ref=e470]:
+      - text:                          
+      - generic [ref=e471]:
+        - img "blog image" [ref=e473]
+        - generic [ref=e474]:
+          - paragraph [ref=e475]: Fashion
+          - 'link "Fashion photography: Complete guide, types and tips for shotting 2022" [ref=e476] [cursor=pointer]':
+            - /url: "#blogModalOne"
+          - paragraph [ref=e477]: Heontrar to ppular belief, Lorem Ipsum is not sim ply random text. It has roots in...
+      - generic [ref=e478]:
+        - img "blog image" [ref=e480]
+        - generic [ref=e481]:
+          - paragraph [ref=e482]: Wedding
+          - 'link "Wedding photography: Complete guide, types and tips" [ref=e483] [cursor=pointer]':
+            - /url: "#blogModalOne"
+          - paragraph [ref=e484]: Heontrar to ppular belief, Lorem Ipsum is not sim ply random text. It has roots in...
+      - generic [ref=e485]:
+        - img "blog image" [ref=e487]
+        - generic [ref=e488]:
+          - paragraph [ref=e489]: Outdoor Fashion
+          - link "The 10 best cameras & photoshot guide for travel photography in 2022" [ref=e490] [cursor=pointer]:
+            - /url: "#blogModalOne"
+          - paragraph [ref=e491]: Heontrar to ppular belief, Lorem Ipsum is not sim ply random text. It has roots in...
+  - generic [ref=e493]:
+    - generic [ref=e496]:
+      - generic [ref=e497]:
+        - heading "Quick Link" [level=4] [ref=e498]
+        - list [ref=e500]:
+          - listitem [ref=e501]:
+            - link "About" [ref=e502] [cursor=pointer]:
+              - /url: "#about"
+          - listitem [ref=e503]:
+            - link "Portfolio" [ref=e504] [cursor=pointer]:
+              - /url: "#portfolio"
+          - listitem [ref=e505]:
+            - link "Resume" [ref=e506] [cursor=pointer]:
+              - /url: "#resume"
+          - listitem [ref=e507]:
+            - link "Contact" [ref=e508] [cursor=pointer]:
+              - /url: "#contact"
+      - generic [ref=e509]:
+        - heading "Services" [level=4] [ref=e510]
+        - list [ref=e512]:
+          - listitem [ref=e513]:
+            - link "Photography" [ref=e514] [cursor=pointer]:
+              - /url: "#services"
+          - listitem [ref=e515]:
+            - link "Videography" [ref=e516] [cursor=pointer]:
+              - /url: "#services"
+          - listitem [ref=e517]:
+            - link "Wedding" [ref=e518] [cursor=pointer]:
+              - /url: "#services"
+      - generic [ref=e519]:
+        - heading "Contact" [level=4] [ref=e520]
+        - paragraph [ref=e521]: 202 Dog Hill Lane Beloit,KS 67420
+        - paragraph [ref=e522]: +1416-8241228
+        - list [ref=e524]:
+          - listitem [ref=e525]:
+            - link [ref=e526] [cursor=pointer]:
+              - /url: https://www.facebook.com/
+              - img [ref=e527]: 
+          - listitem [ref=e529]:
+            - link [ref=e530] [cursor=pointer]:
+              - /url: https://linkedin.com/
+              - img [ref=e531]: 
+          - listitem [ref=e533]:
+            - link [ref=e534] [cursor=pointer]:
+              - /url: https://dribbble.com/
+              - img [ref=e535]: 
+      - generic [ref=e538]:
+        - heading "Let's Make Consultation With Us!" [level=2] [ref=e539]
+        - generic [ref=e540]:
+          - textbox "Enter your email" [ref=e542]
+          - button "footer form send icon" [ref=e544] [cursor=pointer]:
+            - img "footer form send icon" [ref=e545]
+    - generic [ref=e549]:
+      - paragraph [ref=e551]: All rights reserved © 2023 Credesign
+      - paragraph [ref=e553]: Developed By Thememarch.

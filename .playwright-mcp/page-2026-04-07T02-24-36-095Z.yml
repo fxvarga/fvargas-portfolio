@@ -1,0 +1,11 @@
+- generic [ref=e4]:
+  - generic [ref=e5]: 🎉
+  - heading "You're all set!" [level=1] [ref=e6]
+  - paragraph [ref=e7]: Thank you for your purchase.
+  - paragraph [ref=e9]:
+    - text: Your
+    - strong [ref=e10]: claim code
+    - text: is on its way to your email. It usually arrives within a minute or two. Check your spam folder if you don't see it.
+  - paragraph [ref=e11]: "Once you have your code, activate your journal:"
+  - button "Activate My Journal" [ref=e12]
+  - button "Back to home" [ref=e13]

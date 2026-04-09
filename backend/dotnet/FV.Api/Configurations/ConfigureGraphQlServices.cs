@@ -22,6 +22,7 @@ public static class ConfigureGraphQlServices
             .AddSorting()
             .AddType(new UuidType('D'))
             .AddType<AnyType>()
+            .AddUploadType()
             .AddQueryType()
             .AddTypeExtension<AppConfigValueQueries>()
             .AddTypeExtension<GenerativeQueries>()
@@ -37,6 +38,7 @@ public static class ConfigureGraphQlServices
             .AddTypeExtension<AuthMutations>()
             .AddTypeExtension<ContentMutations>()
             .AddTypeExtension<AgentMutations>()
+            .AddTypeExtension<MediaMutations>()
             .AddAuthorization()
             .AddHttpRequestInterceptor((context, executor, requestBuilder, ct) =>
             {

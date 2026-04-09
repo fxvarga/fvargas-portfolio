@@ -1,0 +1,170 @@
+@import 'tailwindcss';
+
+/* ──── CSS Custom Properties (defaults: Neutral theme) ──── */
+:root {
+  --color-background: #F3F6FB;
+  --color-panel: #FFFFFF;
+  --color-primary: #26C6B5;
+  --color-primary-light: #D1FAF5;
+  --color-secondary: #FFB347;
+  --color-secondary-light: #FFF3E0;
+  --color-text: #1F2937;
+  --color-muted: #6B7280;
+  --color-accent: #E5E7EB;
+}
+
+/* ──── Base resets ──── */
+*,
+*::before,
+*::after {
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-text);
+  overscroll-behavior-y: contain;
+}
+
+/* Safe area padding for iOS standalone mode */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* ──── Animations ──── */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.2s ease-out both;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s ease-out both;
+}
+
+/* ──── Utility: Hide scrollbar but keep scrollable ──── */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ──── Print styles ──── */
+@media print {
+  /* Reset all colors for print */
+  :root {
+    --color-background: #FFFFFF;
+    --color-panel: #FFFFFF;
+    --color-text: #000000;
+    --color-muted: #555555;
+  }
+
+  body {
+    background: white;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Hide non-print elements */
+  .no-print,
+  nav,
+  button,
+  .fab-button,
+  header {
+    display: none !important;
+  }
+
+  /* Print page setup */
+  @page {
+    size: A4 portrait;
+    margin: 1.5cm;
+  }
+
+  /* Memory book: each month group starts on a new page */
+  .print-page-break {
+    page-break-before: always;
+    break-before: page;
+  }
+
+  .print-page-break:first-child {
+    page-break-before: avoid;
+    break-before: avoid;
+  }
+
+  /* Entry cards in memory book */
+  .print-entry {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 1rem;
+  }
+
+  .print-entry img {
+    max-height: 200px;
+    object-fit: cover;
+  }
+
+  /* Show print header */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+
+  .print-header h1 {
+    font-size: 24pt;
+    margin-bottom: 4pt;
+  }
+
+  .print-header p {
+    font-size: 12pt;
+    color: #555;
+  }
+}

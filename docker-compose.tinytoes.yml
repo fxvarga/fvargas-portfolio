@@ -1,0 +1,91 @@
+# TinyToes — Baby First Bites
+#
+# Local dev:  docker compose -f docker-compose.tinytoes.yml up --build
+# Production: set env vars in .env.tinytoes, then:
+#             docker compose -f docker-compose.tinytoes.yml --env-file deploy/.env.tinytoes up -d --build
+
+services:
+  # ── PostgreSQL (dedicated) ──────────────────────────────────
+  tinytoes-db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${TINYTOES_DB_NAME:-tinytoes}
+      POSTGRES_USER: ${TINYTOES_DB_USER:-tinytoes}
+      POSTGRES_PASSWORD: ${TINYTOES_DB_PASSWORD:-tinytoes_dev}
+    volumes:
+      - tinytoes-pgdata:/var/lib/postgresql/data
+    ports:
+      - "${TINYTOES_DB_PORT:-5434}:5432"
+    networks:
+      - tinytoes-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${TINYTOES_DB_USER:-tinytoes}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── .NET API ────────────────────────────────────────────────
+  tinytoes-api:
+    build:
+      context: ./backend/dotnet
+      dockerfile: TinyToes.Api/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      tinytoes-db:
+        condition: service_healthy
+    ports:
+      - "${TINYTOES_API_PORT:-5010}:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Development}
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__TinyToes: >-
+        Host=tinytoes-db;
+        Port=5432;
+        Database=${TINYTOES_DB_NAME:-tinytoes};
+        Username=${TINYTOES_DB_USER:-tinytoes};
+        Password=${TINYTOES_DB_PASSWORD:-tinytoes_dev}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-whsec_dev_placeholder}
+      FRONTEND_ORIGIN: ${TINYTOES_ALLOWED_ORIGINS:-http://localhost:3456}
+      Cors__AllowedOrigins: ${TINYTOES_ALLOWED_ORIGINS:-http://localhost:3456}
+      ADMIN_API_KEY: ${TINYTOES_ADMIN_API_KEY:-dev-admin-key}
+      MS_GRAPH_TENANT_ID: ${MS_GRAPH_TENANT_ID:-}
+      MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
+      MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
+      MAIL_USER_UPN: ${MAIL_USER_UPN:-}
+    networks:
+      - tinytoes-net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8080/healthz || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Frontend (nginx SPA) ────────────────────────────────────
+  tinytoes-web:
+    build:
+      context: ./frontend/tinytoes-app
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      tinytoes-api:
+        condition: service_healthy
+    ports:
+      - "${TINYTOES_WEB_PORT:-3456}:80"
+    networks:
+      - tinytoes-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 3s
+      start_period: 5s
+
+volumes:
+  tinytoes-pgdata:
+
+networks:
+  tinytoes-net:
+    driver: bridge
