@@ -1,0 +1,38 @@
+- generic [ref=e286]:
+  - banner [ref=e287]:
+    - heading "Memory Book" [level=1] [ref=e288]
+    - button "Settings" [ref=e290]:
+      - img [ref=e291]
+  - navigation [ref=e294]:
+    - generic [ref=e295]:
+      - button "Foods" [ref=e296]:
+        - img [ref=e297]
+        - generic [ref=e302]: Foods
+      - button "Milestones" [ref=e303]:
+        - img [ref=e304]
+        - generic [ref=e310]: Milestones
+      - button "Journal" [ref=e311]:
+        - img [ref=e312]
+        - generic [ref=e314]: Journal
+      - button "Book" [ref=e315]:
+        - img [ref=e316]
+        - generic [ref=e319]: Book
+      - button "Recap" [ref=e320]:
+        - img [ref=e321]
+        - generic [ref=e326]: Recap
+  - generic [ref=e328]:
+    - button "All" [ref=e329]
+    - button "Foods" [ref=e330]:
+      - img [ref=e331]
+      - text: Foods
+    - button "Milestones" [ref=e336]:
+      - img [ref=e337]
+      - text: Milestones
+    - button "Journal" [ref=e343]:
+      - img [ref=e344]
+      - text: Journal
+  - generic [ref=e347]:
+    - img [ref=e349]
+    - paragraph [ref=e351]: Your memory book is empty
+    - paragraph [ref=e352]: Start adding entries, milestones, or journal reflections to see them collected here.
+    - button "Go to First Foods" [ref=e354]

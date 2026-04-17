@@ -10,6 +10,7 @@ export function useMilestones() {
   const loadMilestones = useCallback(async () => {
     try {
       const stored = await milestonesDb.getAll();
+      stored.sort((a, b) => b.achievedAt - a.achievedAt);
       setMilestones(stored);
     } finally {
       setIsLoading(false);

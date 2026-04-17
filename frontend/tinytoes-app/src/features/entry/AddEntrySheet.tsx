@@ -141,7 +141,7 @@ export function AddEntrySheet({ isOpen, onClose, onAdd, onUpdate, editEntry }: A
 
         {/* Reaction */}
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+          <label className="block text-sm font-medium mb-2 text-theme-text">
             Reaction
           </label>
           <ReactionPicker value={reaction} onChange={setReaction} />

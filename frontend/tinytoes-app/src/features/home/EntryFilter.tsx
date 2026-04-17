@@ -8,9 +8,9 @@ interface EntryFilterProps {
 
 const FILTER_OPTIONS: { value: FilterType; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: '😍', label: '😍 Loved' },
-  { value: '😐', label: '😐 Okay' },
-  { value: '😖', label: '😖 Nope' },
+  { value: 'loved', label: 'Loved' },
+  { value: 'neutral', label: 'Okay' },
+  { value: 'disliked', label: 'Nope' },
 ];
 
 export function EntryFilter({ value, onChange }: EntryFilterProps) {

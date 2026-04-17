@@ -1,0 +1,65 @@
+- generic [ref=e7]:
+  - banner [ref=e8]:
+    - heading "First Foods" [level=1] [ref=e9]
+    - button "Settings" [ref=e11]:
+      - img [ref=e12]
+  - navigation [ref=e15]:
+    - generic [ref=e16]:
+      - button "Recap" [ref=e17]:
+        - img [ref=e18]
+        - generic [ref=e23]: Recap
+      - button "Foods" [ref=e24]:
+        - img [ref=e26]
+        - generic [ref=e31]: Foods
+      - button "Milestones" [ref=e32]:
+        - img [ref=e33]
+        - generic [ref=e39]: Milestones
+      - button "Journal" [ref=e40]:
+        - img [ref=e41]
+        - generic [ref=e43]: Journal
+      - button "Book" [ref=e44]:
+        - img [ref=e45]
+        - generic [ref=e48]: Book
+  - generic [ref=e49]:
+    - generic [ref=e51]:
+      - img [ref=e53]
+      - generic [ref=e56]:
+        - heading "Tester's Journal" [level=2] [ref=e57]
+        - paragraph [ref=e58]: 6–9 months
+    - generic [ref=e59]:
+      - generic [ref=e61]:
+        - generic [ref=e62]:
+          - generic [ref=e63]: "0"
+          - generic [ref=e64]: Total
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - img [ref=e67]
+            - generic [ref=e70]: "0"
+          - generic [ref=e71]: Loved
+        - generic [ref=e72]:
+          - generic [ref=e73]:
+            - img [ref=e74]
+            - generic [ref=e76]: "0"
+          - generic [ref=e77]: Not sure
+        - generic [ref=e78]:
+          - generic [ref=e79]:
+            - img [ref=e80]
+            - generic [ref=e83]: "0"
+          - generic [ref=e84]: No thanks
+      - generic [ref=e85]:
+        - button "All" [ref=e86]
+        - button "Loved" [ref=e87]:
+          - img [ref=e88]
+          - text: Loved
+        - button "Not sure" [ref=e91]:
+          - img [ref=e92]
+          - text: Not sure
+        - button "No thanks" [ref=e94]:
+          - img [ref=e95]
+          - text: No thanks
+    - generic [ref=e98]:
+      - img [ref=e100]
+      - paragraph [ref=e105]: No entries yet
+      - paragraph [ref=e106]: Tap the + button to log your baby's first bite!
+  - button "Add Entry" [ref=e107]:
+    - img [ref=e108]

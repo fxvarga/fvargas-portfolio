@@ -1,0 +1,52 @@
+- generic [ref=e7]:
+  - banner [ref=e8]:
+    - generic [ref=e9]:
+      - button "Go back" [ref=e10]:
+        - img [ref=e11]
+      - heading "Settings" [level=1] [ref=e13]
+  - generic [ref=e14]:
+    - generic [ref=e16]:
+      - img [ref=e18]
+      - generic [ref=e21]:
+        - paragraph [ref=e22]: Tester
+        - paragraph [ref=e23]: test@test.com
+      - button "Edit" [ref=e24]
+    - generic [ref=e25]:
+      - heading "Theme" [level=3] [ref=e26]
+      - generic [ref=e27]:
+        - button "Neutral" [active] [ref=e28]: Neutral
+        - button "Soft Pastel" [ref=e30]: Soft Pastel
+        - button "Playful" [ref=e32]: Playful
+    - generic [ref=e34]:
+      - heading "Journal Stats" [level=3] [ref=e35]
+      - generic [ref=e36]:
+        - generic [ref=e37]: Total entries
+        - generic [ref=e38]: "0"
+        - generic [ref=e39]: Loved
+        - generic [ref=e40]:
+          - img [ref=e41]
+          - text: "0"
+        - generic [ref=e44]: Not sure
+        - generic [ref=e45]:
+          - img [ref=e46]
+          - text: "0"
+        - generic [ref=e48]: No thanks
+        - generic [ref=e49]:
+          - img [ref=e50]
+          - text: "0"
+    - generic [ref=e53]:
+      - heading "Data" [level=3] [ref=e54]
+      - generic [ref=e55]:
+        - button "Export Backup (JSON)" [ref=e56]
+        - button "Import Backup" [ref=e57]
+    - generic [ref=e59] [cursor=pointer]:
+      - img [ref=e61]
+      - generic [ref=e63]:
+        - paragraph [ref=e64]: Install App
+        - paragraph [ref=e65]: Add to your home screen for quick access
+      - img [ref=e66]
+    - generic [ref=e68]:
+      - button "Reset All Data" [ref=e69]:
+        - generic [ref=e70]: Reset All Data
+      - button "Sign Out" [ref=e71]
+    - paragraph [ref=e72]: TinyToesAndUs v1.0.0

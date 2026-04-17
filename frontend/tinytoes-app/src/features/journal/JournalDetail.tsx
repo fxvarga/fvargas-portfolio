@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
+import { BookOpen } from 'lucide-react';
 import type { JournalEntry } from '@/types';
 
 interface JournalDetailProps {
@@ -48,12 +49,9 @@ export function JournalDetail({ entry, onClose, onEdit, onDelete }: JournalDetai
 
         {/* Month badge */}
         <div className="flex items-center gap-3">
-          <div
-            className="px-4 py-2 rounded-full flex items-center gap-2"
-            style={{ backgroundColor: 'var(--color-primary-light)' }}
-          >
-            <span className="text-xl">📖</span>
-            <span className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
+          <div className="px-4 py-2 rounded-full flex items-center gap-2 bg-theme-primary-light">
+            <BookOpen size={20} className="text-theme-primary" />
+            <span className="text-sm font-medium text-theme-primary">
               {dateLabel}
             </span>
           </div>
@@ -62,16 +60,12 @@ export function JournalDetail({ entry, onClose, onEdit, onDelete }: JournalDetai
         {/* Highlights */}
         {entry.highlights.length > 0 && (
           <div>
-            <label className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Highlights</label>
+            <label className="text-sm font-medium text-theme-text">Highlights</label>
             <div className="flex flex-wrap gap-2 mt-2">
               {entry.highlights.map((h, i) => (
                 <span
                   key={i}
-                  className="text-xs px-3 py-1 rounded-full font-medium"
-                  style={{
-                    backgroundColor: 'var(--color-primary-light)',
-                    color: 'var(--color-primary)',
-                  }}
+                  className="text-xs px-3 py-1 rounded-full font-medium bg-theme-primary-light text-theme-primary"
                 >
                   {h}
                 </span>
@@ -83,8 +77,8 @@ export function JournalDetail({ entry, onClose, onEdit, onDelete }: JournalDetai
         {/* Text */}
         {entry.text && (
           <div>
-            <label className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Reflection</label>
-            <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: 'var(--color-muted)' }}>
+            <label className="text-sm font-medium text-theme-text">Reflection</label>
+            <p className="mt-1 text-sm leading-relaxed whitespace-pre-wrap text-theme-muted">
               {entry.text}
             </p>
           </div>
@@ -127,8 +121,7 @@ export function JournalDetail({ entry, onClose, onEdit, onDelete }: JournalDetai
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="w-full text-center text-sm font-medium py-2 transition-colors"
-            style={{ color: 'var(--color-muted)' }}
+            className="w-full text-center text-sm font-medium py-2 transition-colors text-theme-muted"
           >
             Delete entry
           </button>

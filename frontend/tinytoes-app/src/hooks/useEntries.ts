@@ -10,6 +10,7 @@ export function useEntries() {
   const loadEntries = useCallback(async () => {
     try {
       const stored = await entriesDb.getAll();
+      stored.sort((a, b) => b.createdAt - a.createdAt);
       setEntries(stored);
     } finally {
       setIsLoading(false);
@@ -41,9 +42,9 @@ export function useEntries() {
 
   const stats = {
     total: entries.length,
-    loved: entries.filter(e => e.reaction === '😍').length,
-    notSure: entries.filter(e => e.reaction === '😐').length,
-    noThanks: entries.filter(e => e.reaction === '😖').length,
+    loved: entries.filter(e => e.reaction === 'loved').length,
+    notSure: entries.filter(e => e.reaction === 'neutral').length,
+    noThanks: entries.filter(e => e.reaction === 'disliked').length,
   };
 
   return {

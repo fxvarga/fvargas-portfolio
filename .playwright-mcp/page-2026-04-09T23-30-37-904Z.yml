@@ -1,0 +1,73 @@
+- generic [ref=e108]:
+  - banner [ref=e109]:
+    - heading "Milestones" [level=1] [ref=e110]
+    - button "Settings" [ref=e112]:
+      - img [ref=e113]
+  - navigation [ref=e116]:
+    - generic [ref=e117]:
+      - button "Foods" [ref=e118]:
+        - img [ref=e119]
+        - generic [ref=e124]: Foods
+      - button "Milestones" [ref=e125]:
+        - img [ref=e126]
+        - generic [ref=e132]: Milestones
+      - button "Journal" [ref=e133]:
+        - img [ref=e134]
+        - generic [ref=e136]: Journal
+      - button "Book" [ref=e137]:
+        - img [ref=e138]
+        - generic [ref=e141]: Book
+      - button "Recap" [ref=e142]:
+        - img [ref=e143]
+        - generic [ref=e148]: Recap
+  - generic [ref=e149]:
+    - generic [ref=e151]:
+      - generic [ref=e152]:
+        - generic [ref=e153]: "0"
+        - generic [ref=e154]: Total
+      - generic [ref=e155]:
+        - generic [ref=e156]:
+          - img [ref=e157]
+          - generic [ref=e159]: "0"
+        - generic [ref=e160]: Motor
+      - generic [ref=e161]:
+        - generic [ref=e162]:
+          - img [ref=e163]
+          - generic [ref=e165]: "0"
+        - generic [ref=e166]: Social
+      - generic [ref=e167]:
+        - generic [ref=e168]:
+          - img [ref=e169]
+          - generic [ref=e171]: "0"
+        - generic [ref=e172]: Language
+      - generic [ref=e173]:
+        - generic [ref=e174]:
+          - img [ref=e175]
+          - generic [ref=e183]: "0"
+        - generic [ref=e184]: Cognitive
+    - generic [ref=e185]:
+      - button "All" [ref=e186]
+      - button "Motor" [ref=e187]:
+        - img [ref=e188]
+        - text: Motor
+      - button "Social" [ref=e190]:
+        - img [ref=e191]
+        - text: Social
+      - button "Language" [ref=e193]:
+        - img [ref=e194]
+        - text: Language
+      - button "Cognitive" [ref=e196]:
+        - img [ref=e197]
+        - text: Cognitive
+      - button "Feeding" [ref=e205]:
+        - img [ref=e206]
+        - text: Feeding
+      - button "Other" [ref=e209]:
+        - img [ref=e210]
+        - text: Other
+  - generic [ref=e213]:
+    - img [ref=e215]
+    - paragraph [ref=e221]: No milestones yet
+    - paragraph [ref=e222]: Tap the + button to record Tester's first milestone!
+  - button "Add Milestone" [ref=e223]:
+    - img [ref=e224]

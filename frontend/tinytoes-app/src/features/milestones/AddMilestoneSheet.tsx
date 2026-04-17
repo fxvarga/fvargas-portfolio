@@ -6,6 +6,25 @@ import { Button } from '@/components/Button';
 import { PhotoUpload } from '@/components/PhotoUpload';
 import { generateId } from '@/lib/imageUtils';
 import { MILESTONE_CATEGORIES, type Milestone, type MilestoneCategory } from '@/types';
+import {
+  Activity,
+  Heart,
+  MessageCircle,
+  Brain,
+  Baby,
+  Star,
+} from 'lucide-react';
+import type { ComponentType } from 'react';
+import type { LucideProps } from 'lucide-react';
+
+const CATEGORY_ICONS: Record<string, ComponentType<LucideProps>> = {
+  activity: Activity,
+  heart: Heart,
+  'message-circle': MessageCircle,
+  brain: Brain,
+  baby: Baby,
+  star: Star,
+};
 
 function toLocalDate(ts: number): string {
   const d = new Date(ts);
@@ -134,29 +153,29 @@ export function AddMilestoneSheet({ isOpen, onClose, onAdd, onUpdate, editMilest
 
         {/* Category */}
         <div>
-          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+          <label className="block text-sm font-medium mb-2 text-theme-text">
             Category
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {MILESTONE_CATEGORIES.map(cat => (
-              <button
-                key={cat.value}
-                type="button"
-                onClick={() => setCategory(cat.value)}
-                className={`px-3 py-2 rounded-xl text-xs font-medium text-center transition-all`}
-                style={{
-                  backgroundColor: category === cat.value ? 'var(--color-primary-light)' : 'var(--color-background)',
-                  color: category === cat.value ? 'var(--color-primary)' : 'var(--color-text)',
-                  outlineColor: category === cat.value ? 'var(--color-primary)' : undefined,
-                  outlineWidth: category === cat.value ? '2px' : undefined,
-                  outlineStyle: category === cat.value ? 'solid' : undefined,
-                }}
-              >
-                <span className="text-base">{cat.icon}</span>
-                <br />
-                {cat.label}
-              </button>
-            ))}
+            {MILESTONE_CATEGORIES.map(cat => {
+              const Icon = CATEGORY_ICONS[cat.icon] || Star;
+              const isSelected = category === cat.value;
+              return (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setCategory(cat.value)}
+                  className={`px-3 py-2 rounded-xl text-xs font-medium text-center transition-all flex flex-col items-center gap-1 ${
+                    isSelected
+                      ? 'bg-theme-primary-light text-theme-primary outline outline-2 outline-theme-primary'
+                      : 'bg-theme-bg text-theme-text'
+                  }`}
+                >
+                  <Icon size={20} />
+                  {cat.label}
+                </button>
+              );
+            })}
           </div>
         </div>
 

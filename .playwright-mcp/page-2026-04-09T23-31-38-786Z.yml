@@ -1,0 +1,26 @@
+- generic [ref=e355]:
+  - banner [ref=e356]:
+    - heading "Year Recap" [level=1] [ref=e357]
+    - button "Settings" [ref=e359]:
+      - img [ref=e360]
+  - navigation [ref=e363]:
+    - generic [ref=e364]:
+      - button "Foods" [ref=e365]:
+        - img [ref=e366]
+        - generic [ref=e371]: Foods
+      - button "Milestones" [ref=e372]:
+        - img [ref=e373]
+        - generic [ref=e379]: Milestones
+      - button "Journal" [ref=e380]:
+        - img [ref=e381]
+        - generic [ref=e383]: Journal
+      - button "Book" [ref=e384]:
+        - img [ref=e385]
+        - generic [ref=e388]: Book
+      - button "Recap" [ref=e389]:
+        - img [ref=e390]
+        - generic [ref=e395]: Recap
+  - generic [ref=e397]:
+    - img [ref=e399]
+    - paragraph [ref=e404]: No data yet
+    - paragraph [ref=e405]: Start logging foods, milestones, or journal entries to see your recap come to life.

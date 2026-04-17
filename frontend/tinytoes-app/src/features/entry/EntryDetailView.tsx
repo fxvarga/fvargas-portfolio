@@ -1,7 +1,10 @@
 import { useState } from 'react';
+import { Smile, Meh, Frown } from 'lucide-react';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
-import { REACTIONS, type FoodEntry } from '@/types';
+import { REACTIONS, type FoodEntry, type Reaction } from '@/types';
+
+const REACTION_ICONS = { loved: Smile, neutral: Meh, disliked: Frown } as const;
 
 interface EntryDetailViewProps {
   entry: FoodEntry;
@@ -14,7 +17,8 @@ export function EntryDetailView({ entry, onClose, onEdit, onDelete }: EntryDetai
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const reactionLabel = REACTIONS.find(r => r.emoji === entry.reaction)?.label ?? '';
+  const reactionLabel = REACTIONS.find(r => r.key === entry.reaction)?.label ?? '';
+  const ReactionIcon = REACTION_ICONS[entry.reaction as Reaction];
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -49,27 +53,24 @@ export function EntryDetailView({ entry, onClose, onEdit, onDelete }: EntryDetai
 
         {/* Reaction badge */}
         <div className="flex items-center gap-3">
-          <div
-            className="px-4 py-2 rounded-full flex items-center gap-2"
-            style={{ backgroundColor: 'var(--color-primary-light)' }}
-          >
-            <span className="text-xl">{entry.reaction}</span>
-            <span className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
+          <div className="px-4 py-2 rounded-full flex items-center gap-2 bg-theme-primary-light">
+            {ReactionIcon && <ReactionIcon size={20} />}
+            <span className="text-sm font-medium text-theme-primary">
               {reactionLabel}
             </span>
           </div>
         </div>
 
         {/* Date */}
-        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm text-theme-muted">
           {formattedDate}
         </p>
 
         {/* Notes */}
         {entry.notes && (
           <div>
-            <label className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Notes</label>
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+            <label className="text-sm font-medium text-theme-text">Notes</label>
+            <p className="mt-1 text-sm leading-relaxed text-theme-muted">
               {entry.notes}
             </p>
           </div>
@@ -112,8 +113,7 @@ export function EntryDetailView({ entry, onClose, onEdit, onDelete }: EntryDetai
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="w-full text-center text-sm font-medium py-2 transition-colors"
-            style={{ color: 'var(--color-muted)' }}
+            className="w-full text-center text-sm font-medium py-2 transition-colors text-theme-muted"
           >
             Delete entry
           </button>

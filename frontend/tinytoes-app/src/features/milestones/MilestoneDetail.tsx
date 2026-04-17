@@ -2,6 +2,25 @@ import { useState } from 'react';
 import { Modal } from '@/components/Modal';
 import { Button } from '@/components/Button';
 import { MILESTONE_CATEGORIES, type Milestone } from '@/types';
+import {
+  Activity,
+  Heart,
+  MessageCircle,
+  Brain,
+  Baby,
+  Star,
+} from 'lucide-react';
+import type { ComponentType } from 'react';
+import type { LucideProps } from 'lucide-react';
+
+const CATEGORY_ICONS: Record<string, ComponentType<LucideProps>> = {
+  activity: Activity,
+  heart: Heart,
+  'message-circle': MessageCircle,
+  brain: Brain,
+  baby: Baby,
+  star: Star,
+};
 
 interface MilestoneDetailProps {
   milestone: Milestone;
@@ -15,6 +34,7 @@ export function MilestoneDetail({ milestone, onClose, onEdit, onDelete }: Milest
   const [isDeleting, setIsDeleting] = useState(false);
 
   const category = MILESTONE_CATEGORIES.find(c => c.value === milestone.category);
+  const Icon = CATEGORY_ICONS[category?.icon ?? ''] || Star;
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -49,27 +69,24 @@ export function MilestoneDetail({ milestone, onClose, onEdit, onDelete }: Milest
 
         {/* Category badge */}
         <div className="flex items-center gap-3">
-          <div
-            className="px-4 py-2 rounded-full flex items-center gap-2"
-            style={{ backgroundColor: 'var(--color-primary-light)' }}
-          >
-            <span className="text-xl">{category?.icon || '⭐'}</span>
-            <span className="text-sm font-medium" style={{ color: 'var(--color-primary)' }}>
+          <div className="px-4 py-2 rounded-full flex items-center gap-2 bg-theme-primary-light">
+            <Icon size={20} className="text-theme-primary" />
+            <span className="text-sm font-medium text-theme-primary">
               {category?.label || 'Other'}
             </span>
           </div>
         </div>
 
         {/* Date */}
-        <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm text-theme-muted">
           {formattedDate}
         </p>
 
         {/* Notes */}
         {milestone.notes && (
           <div>
-            <label className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>Notes</label>
-            <p className="mt-1 text-sm leading-relaxed" style={{ color: 'var(--color-muted)' }}>
+            <label className="text-sm font-medium text-theme-text">Notes</label>
+            <p className="mt-1 text-sm leading-relaxed text-theme-muted">
               {milestone.notes}
             </p>
           </div>
@@ -112,8 +129,7 @@ export function MilestoneDetail({ milestone, onClose, onEdit, onDelete }: Milest
         ) : (
           <button
             onClick={() => setConfirmDelete(true)}
-            className="w-full text-center text-sm font-medium py-2 transition-colors"
-            style={{ color: 'var(--color-muted)' }}
+            className="w-full text-center text-sm font-medium py-2 transition-colors text-theme-muted"
           >
             Delete milestone
           </button>

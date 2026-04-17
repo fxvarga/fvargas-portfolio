@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Baby, Smartphone, ShoppingBag, ChevronRight, Smile, Meh, Frown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
@@ -11,11 +12,13 @@ import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { Input } from '@/components/Input';
 import { InstallPrompt } from '@/components/InstallPrompt';
+import { PageShell } from '@/components/PageShell';
+import { PageHeader } from '@/components/PageHeader';
 import { exportData, importData } from '@/lib/exportImport';
 import { clearAllData } from '@/lib/db';
 import { themes } from '@/lib/themes';
 import type { ThemeName, AgeRange } from '@/types';
-import { AGE_RANGES } from '@/types';
+import { AGE_RANGES, CORE_PRODUCT_SLUGS } from '@/types';
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -26,7 +29,8 @@ export function SettingsPage() {
   const { isInstalled } = useInstallPrompt();
   const { theme, setTheme } = useThemeContext();
 
-  const ownsAll = ownedProducts.length >= 5;
+  const ownedCoreCount = ownedProducts.filter(p => CORE_PRODUCT_SLUGS.includes(p as any)).length;
+  const ownsAll = ownedCoreCount >= CORE_PRODUCT_SLUGS.length;
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -84,43 +88,25 @@ export function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--color-background)' }}>
-      {/* Header */}
-      <header className="px-4 pt-6 pb-4 flex items-center gap-3">
-        <button
-          onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5"
-          style={{ color: 'var(--color-text)' }}
-          aria-label="Go back"
-        >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <h1 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>
-          Settings
-        </h1>
-      </header>
+    <PageShell bottomPad="pb-8">
+      <PageHeader title="Settings" backButton />
 
       <div className="px-4 pb-8 space-y-4">
         {/* Account info */}
         <Card padding="md">
           <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 rounded-full overflow-hidden shrink-0 flex items-center justify-center text-lg"
-              style={{ backgroundColor: 'var(--color-primary-light)' }}
-            >
+            <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 flex items-center justify-center bg-theme-primary-light">
               {profile.photo ? (
                 <img src={profile.photo} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
-                <span>&#x1F476;</span>
+                <Baby size={20} className="text-theme-primary" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold truncate" style={{ color: 'var(--color-text)' }}>
+              <p className="font-semibold truncate text-theme-text">
                 {profile.name}
               </p>
-              <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+              <p className="text-sm text-theme-muted">
                 {session?.email || 'Logged in'}
               </p>
             </div>
@@ -136,7 +122,7 @@ export function SettingsPage() {
 
         {/* Theme selector */}
         <Card padding="md">
-          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
+          <h3 className="text-sm font-semibold mb-3 text-theme-text">
             Theme
           </h3>
           <div className="flex gap-3">
@@ -171,24 +157,30 @@ export function SettingsPage() {
 
         {/* Stats */}
         <Card padding="md">
-          <h3 className="text-sm font-semibold mb-2" style={{ color: 'var(--color-text)' }}>
-            Journal Stats
+          <h3 className="text-sm font-semibold mb-2 text-theme-text">
+            Food Stats
           </h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <div style={{ color: 'var(--color-muted)' }}>Total entries</div>
-            <div className="text-right font-medium" style={{ color: 'var(--color-text)' }}>{stats.total}</div>
-            <div style={{ color: 'var(--color-muted)' }}>Loved</div>
-            <div className="text-right font-medium" style={{ color: 'var(--color-text)' }}>😍 {stats.loved}</div>
-            <div style={{ color: 'var(--color-muted)' }}>Not sure</div>
-            <div className="text-right font-medium" style={{ color: 'var(--color-text)' }}>😐 {stats.notSure}</div>
-            <div style={{ color: 'var(--color-muted)' }}>No thanks</div>
-            <div className="text-right font-medium" style={{ color: 'var(--color-text)' }}>😖 {stats.noThanks}</div>
+            <div className="text-theme-muted">Total entries</div>
+            <div className="text-right font-medium text-theme-text">{stats.total}</div>
+            <div className="text-theme-muted">Loved</div>
+            <div className="text-right font-medium text-theme-text flex items-center justify-end gap-1">
+              <Smile size={14} className="text-theme-primary" /> {stats.loved}
+            </div>
+            <div className="text-theme-muted">Not sure</div>
+            <div className="text-right font-medium text-theme-text flex items-center justify-end gap-1">
+              <Meh size={14} className="text-theme-muted" /> {stats.notSure}
+            </div>
+            <div className="text-theme-muted">No thanks</div>
+            <div className="text-right font-medium text-theme-text flex items-center justify-end gap-1">
+              <Frown size={14} className="text-theme-secondary" /> {stats.noThanks}
+            </div>
           </div>
         </Card>
 
         {/* Data management */}
         <Card padding="md">
-          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text)' }}>
+          <h3 className="text-sm font-semibold mb-3 text-theme-text">
             Data
           </h3>
           <div className="space-y-3">
@@ -219,23 +211,18 @@ export function SettingsPage() {
         {!isInstalled && (
           <Card padding="md" hoverable onClick={() => setShowInstallPrompt(true)}>
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-                style={{ backgroundColor: 'var(--color-primary-light)' }}
-              >
-                <span>&#x1F4F2;</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-theme-primary-light">
+                <Smartphone size={20} className="text-theme-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                <p className="text-sm font-semibold text-theme-text">
                   Install App
                 </p>
-                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
+                <p className="text-xs text-theme-muted">
                   Add to your home screen for quick access
                 </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-muted)' }}>
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <ChevronRight size={16} className="text-theme-muted" />
             </div>
           </Card>
         )}
@@ -244,23 +231,18 @@ export function SettingsPage() {
         {!ownsAll && (
           <Card padding="md" hoverable onClick={() => navigate('/store')}>
             <div className="flex items-center gap-3">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg"
-                style={{ backgroundColor: 'var(--color-primary-light)' }}
-              >
-                <span>&#x1F6CD;&#xFE0F;</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-theme-primary-light">
+                <ShoppingBag size={20} className="text-theme-primary" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>
+                <p className="text-sm font-semibold text-theme-text">
                   Get More Modules
                 </p>
-                <p className="text-xs" style={{ color: 'var(--color-muted)' }}>
-                  You own {ownedProducts.length} of 5 — explore the store
+                <p className="text-xs text-theme-muted">
+                  You own {ownedCoreCount} of {CORE_PRODUCT_SLUGS.length} — explore the store
                 </p>
               </div>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--color-muted)' }}>
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
+              <ChevronRight size={16} className="text-theme-muted" />
             </div>
           </Card>
         )}
@@ -276,7 +258,7 @@ export function SettingsPage() {
         </div>
 
         {/* Version */}
-        <p className="text-center text-xs pt-4" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-center text-xs pt-4 text-theme-muted">
           TinyToesAndUs v1.0.0
         </p>
       </div>
@@ -294,7 +276,7 @@ export function SettingsPage() {
             onChange={e => setEditName(e.target.value)}
           />
           <div>
-            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+            <label className="block text-sm font-medium mb-2 text-theme-text">
               Age Range
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -327,7 +309,7 @@ export function SettingsPage() {
         title="Reset All Data"
       >
         <div className="space-y-4">
-          <p className="text-sm" style={{ color: 'var(--color-muted)' }}>
+          <p className="text-sm text-theme-muted">
             This will permanently delete all entries and your profile. 
             You'll need to go through onboarding again. This cannot be undone.
           </p>
@@ -355,6 +337,6 @@ export function SettingsPage() {
         isOpen={showInstallPrompt}
         onClose={() => setShowInstallPrompt(false)}
       />
-    </div>
+    </PageShell>
   );
 }

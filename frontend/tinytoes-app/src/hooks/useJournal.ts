@@ -9,6 +9,7 @@ export function useJournal() {
   const loadEntries = useCallback(async () => {
     try {
       const stored = await journalDb.getAll();
+      stored.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
       setEntries(stored);
     } finally {
       setIsLoading(false);

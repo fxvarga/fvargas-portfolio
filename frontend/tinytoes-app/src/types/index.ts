@@ -1,12 +1,19 @@
-export type Reaction = '😍' | '😐' | '😖';
+export type Reaction = 'loved' | 'neutral' | 'disliked';
 
 export type ReactionLabel = 'Loved it' | 'Not sure' | 'No thanks';
 
-export const REACTIONS: { emoji: Reaction; label: ReactionLabel }[] = [
-  { emoji: '😍', label: 'Loved it' },
-  { emoji: '😐', label: 'Not sure' },
-  { emoji: '😖', label: 'No thanks' },
+export const REACTIONS: { key: Reaction; label: ReactionLabel }[] = [
+  { key: 'loved', label: 'Loved it' },
+  { key: 'neutral', label: 'Not sure' },
+  { key: 'disliked', label: 'No thanks' },
 ];
+
+/** Map legacy emoji values to new string keys (for IDB migration + import) */
+export const EMOJI_TO_REACTION: Record<string, Reaction> = {
+  '\u{1F60D}': 'loved',   // 😍
+  '\u{1F610}': 'neutral', // 😐
+  '\u{1F616}': 'disliked', // 😖
+};
 
 export type AgeRange = '4–6 months' | '6–9 months' | '9–12 months' | '12+ months';
 
@@ -52,9 +59,10 @@ export type ProductSlug =
   | 'first-foods'
   | 'milestones'
   | 'monthly-journal'
-  | 'memory-book'
-  | 'year-recap'
   | 'first-year-bundle';
+
+/** Core purchasable product slugs (Memory Book & Year Recap are free features) */
+export const CORE_PRODUCT_SLUGS: ProductSlug[] = ['first-foods', 'milestones', 'monthly-journal'];
 
 export interface Product {
   slug: ProductSlug;
@@ -70,7 +78,7 @@ export interface EntitlementsResponse {
   products: string[];
 }
 
-export type FilterType = 'all' | '😍' | '😐' | '😖';
+export type FilterType = 'all' | 'loved' | 'neutral' | 'disliked';
 
 // --- Milestones ---
 
@@ -83,12 +91,12 @@ export type MilestoneCategory =
   | 'other';
 
 export const MILESTONE_CATEGORIES: { value: MilestoneCategory; label: string; icon: string }[] = [
-  { value: 'motor', label: 'Motor', icon: '🏃' },
-  { value: 'social', label: 'Social', icon: '😊' },
-  { value: 'language', label: 'Language', icon: '🗣️' },
-  { value: 'cognitive', label: 'Cognitive', icon: '🧠' },
-  { value: 'feeding', label: 'Feeding', icon: '🍼' },
-  { value: 'other', label: 'Other', icon: '⭐' },
+  { value: 'motor', label: 'Motor', icon: 'activity' },
+  { value: 'social', label: 'Social', icon: 'heart' },
+  { value: 'language', label: 'Language', icon: 'message-circle' },
+  { value: 'cognitive', label: 'Cognitive', icon: 'brain' },
+  { value: 'feeding', label: 'Feeding', icon: 'baby' },
+  { value: 'other', label: 'Other', icon: 'star' },
 ];
 
 export interface Milestone {

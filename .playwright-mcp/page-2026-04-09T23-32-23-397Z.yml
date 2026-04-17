@@ -1,0 +1,94 @@
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e6]:
+        - img [ref=e8]
+        - generic [ref=e14]: TinyToes
+      - button "I have a code" [ref=e16]
+  - generic [ref=e19]:
+    - generic [ref=e20]:
+      - img [ref=e21]
+      - generic [ref=e24]: Capture every precious moment
+    - heading "Your Baby's First Year, Remembered Forever" [level=1] [ref=e25]:
+      - text: Your Baby's
+      - text: First Year,
+      - text: Remembered Forever
+    - paragraph [ref=e26]: From first bites to first steps — track milestones, journal memories, and create beautiful keepsakes. Pick the tools that fit your family, or get them all.
+    - generic [ref=e27]:
+      - button "See All Products" [ref=e28]
+      - paragraph [ref=e29]: One-time purchases. No subscriptions.
+    - generic [ref=e32]:
+      - generic [ref=e33]:
+        - img [ref=e35]
+        - generic [ref=e41]:
+          - generic [ref=e42]: Emma's Journal
+          - generic [ref=e43]: 6-9 months
+      - generic [ref=e44]:
+        - generic [ref=e45]:
+          - img [ref=e47]
+          - generic [ref=e50]: Avocado
+        - generic [ref=e51]:
+          - img [ref=e53]
+          - generic [ref=e56]: Banana
+        - generic [ref=e57]:
+          - img [ref=e59]
+          - generic [ref=e61]: Carrots
+        - generic [ref=e62]:
+          - img [ref=e64]
+          - generic [ref=e67]: Sweet Potato
+      - generic [ref=e68]:
+        - generic [ref=e69]: 4 foods tried
+        - generic [ref=e70]: 3 loved!
+  - generic [ref=e72]:
+    - generic [ref=e73]:
+      - heading "Choose What Fits Your Family" [level=2] [ref=e74]
+      - paragraph [ref=e75]: Buy just what you need, or save with the bundle. Every product is a one-time purchase.
+    - img [ref=e77]
+  - generic [ref=e81]:
+    - generic [ref=e82]:
+      - heading "Ready in 2 minutes" [level=2] [ref=e83]
+      - paragraph [ref=e84]: No app store. No accounts. Just a code and you're in.
+    - generic [ref=e85]:
+      - generic [ref=e86]:
+        - generic [ref=e87]: "1"
+        - heading "Purchase" [level=3] [ref=e88]
+        - paragraph [ref=e89]: Pick the products you want. You'll receive a claim code by email for each one.
+      - generic [ref=e90]:
+        - generic [ref=e91]: "2"
+        - heading "Activate" [level=3] [ref=e92]
+        - paragraph [ref=e93]: Open the app, enter your email and claim code. Each code unlocks a feature.
+      - generic [ref=e94]:
+        - generic [ref=e95]: "3"
+        - heading "Enjoy" [level=3] [ref=e96]
+        - paragraph [ref=e97]: Start capturing memories. Your data stays private on your device.
+  - generic [ref=e99]:
+    - heading "Parents love it" [level=2] [ref=e101]
+    - generic [ref=e102]:
+      - generic [ref=e103]:
+        - paragraph [ref=e104]: "\"I wish I had this when my first was starting solids. Now I have every single moment captured for baby #2.\""
+        - generic [ref=e105]:
+          - paragraph [ref=e106]: Sarah M.
+          - paragraph [ref=e107]: Mom of two
+      - generic [ref=e108]:
+        - paragraph [ref=e109]: "\"The memory book feature made me cry — in the best way. Printed it for the grandparents and they loved it.\""
+        - generic [ref=e110]:
+          - paragraph [ref=e111]: Jessica R.
+          - paragraph [ref=e112]: First-time mom
+      - generic [ref=e113]:
+        - paragraph [ref=e114]: "\"So simple to use. I can add an entry in 30 seconds between bites. And the themes are adorable.\""
+        - generic [ref=e115]:
+          - paragraph [ref=e116]: Priya K.
+          - paragraph [ref=e117]: Mom of one
+  - generic [ref=e119]:
+    - img [ref=e121]
+    - heading "These moments won't wait" [level=2] [ref=e124]
+    - paragraph [ref=e125]: Every first bite, first step, and first giggle is a milestone. Start capturing them today.
+    - paragraph [ref=e126]: One-time purchase · Instant delivery · Works on any device
+  - contentinfo [ref=e127]:
+    - generic [ref=e128]:
+      - generic [ref=e129]:
+        - img [ref=e131]
+        - generic [ref=e137]: TinyToes
+      - generic [ref=e138]:
+        - button "Activate Code" [ref=e139]
+        - generic [ref=e140]: © 2026 TinyToesAndUs

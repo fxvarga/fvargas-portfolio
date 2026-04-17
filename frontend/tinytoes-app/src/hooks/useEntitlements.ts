@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import type { ProductSlug } from '@/types';
+import { CORE_PRODUCT_SLUGS, type ProductSlug } from '@/types';
 
 interface EntitlementsState {
   products: string[];
@@ -39,5 +39,11 @@ export function useEntitlements(isAuthenticated: boolean) {
     [state.products]
   );
 
-  return { ...state, hasProduct, refresh };
+  /** User owns at least one core product (first-foods, milestones, or monthly-journal) */
+  const hasAnyCoreProduct = useCallback(
+    () => CORE_PRODUCT_SLUGS.some(slug => state.products.includes(slug)),
+    [state.products]
+  );
+
+  return { ...state, hasProduct, hasAnyCoreProduct, refresh };
 }

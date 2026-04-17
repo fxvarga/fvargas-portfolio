@@ -13,7 +13,6 @@ interface AddJournalSheetProps {
   onAdd: (entry: JournalEntry) => Promise<void>;
   onUpdate?: (entry: JournalEntry) => Promise<void>;
   editEntry?: JournalEntry | null;
-  existingMonthKeys: string[];
 }
 
 function getCurrentMonthKey(): string {
@@ -48,7 +47,6 @@ export function AddJournalSheet({
   onAdd,
   onUpdate,
   editEntry,
-  existingMonthKeys,
 }: AddJournalSheetProps) {
   const [monthKey, setMonthKey] = useState(getCurrentMonthKey());
   const [monthLabel, setMonthLabel] = useState('');
@@ -108,12 +106,6 @@ export function AddJournalSheet({
 
     if (!text.trim() && highlights.length === 0) {
       setError('Write something about this month or add some highlights!');
-      return;
-    }
-
-    // Check for duplicate month (only on add, not edit)
-    if (!isEditing && existingMonthKeys.includes(monthKey)) {
-      setError('You already have an entry for this month. Edit the existing one instead.');
       return;
     }
 
@@ -177,7 +169,6 @@ export function AddJournalSheet({
             {monthOptions.map(opt => (
               <option key={opt.key} value={opt.key}>
                 {opt.label}
-                {!isEditing && existingMonthKeys.includes(opt.key) ? ' (already written)' : ''}
               </option>
             ))}
           </select>

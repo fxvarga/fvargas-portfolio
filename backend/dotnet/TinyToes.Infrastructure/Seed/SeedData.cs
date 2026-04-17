@@ -18,6 +18,9 @@ public static class SeedData
         // Seed product catalog
         await SeedProductsAsync(context, logger);
 
+        // Deactivate memory-book and year-recap (now free features)
+        await DeactivateFreeFeaturesAsync(context, logger);
+
         // Seed dev claim codes (one per product) if no codes exist
         await SeedDevCodesAsync(context, logger);
 
@@ -68,34 +71,12 @@ public static class SeedData
             new()
             {
                 ProductId = Guid.NewGuid(),
-                Slug = "memory-book",
-                Name = "Memory Book Generator",
-                Description = "Turn your baby's first year into a beautiful printable keepsake",
-                PriceUsd = 8.99m,
-                IsBundle = false,
-                SortOrder = 4,
-                CreatedAt = DateTime.UtcNow
-            },
-            new()
-            {
-                ProductId = Guid.NewGuid(),
-                Slug = "year-recap",
-                Name = "First Year Recap",
-                Description = "Create a beautiful shareable recap of your baby's first year",
-                PriceUsd = 6.99m,
-                IsBundle = false,
-                SortOrder = 5,
-                CreatedAt = DateTime.UtcNow
-            },
-            new()
-            {
-                ProductId = Guid.NewGuid(),
                 Slug = "first-year-bundle",
                 Name = "First Year Bundle",
-                Description = "Everything you need to capture and celebrate your baby's first year",
-                PriceUsd = 17.99m,
+                Description = "All 3 core products — track foods, milestones, and journal memories. Memory Book & Year Recap included free.",
+                PriceUsd = 9.99m,
                 IsBundle = true,
-                BundleProductSlugs = "first-foods,milestones,monthly-journal,memory-book,year-recap",
+                BundleProductSlugs = "first-foods,milestones,monthly-journal",
                 SortOrder = 0,
                 CreatedAt = DateTime.UtcNow
             }
@@ -106,12 +87,45 @@ public static class SeedData
         logger.LogInformation("Seeded {Count} products", products.Count);
     }
 
+    private static async Task DeactivateFreeFeaturesAsync(TinyToesDbContext context, ILogger logger)
+    {
+        // Deactivate memory-book and year-recap — they are now free features
+        var slugsToDeactivate = new[] { "memory-book", "year-recap" };
+        var productsToDeactivate = await context.Products
+            .Where(p => slugsToDeactivate.Contains(p.Slug) && p.IsActive)
+            .ToListAsync();
+
+        foreach (var product in productsToDeactivate)
+        {
+            product.IsActive = false;
+        }
+
+        // Update the bundle: remove memory-book and year-recap, update price
+        var bundle = await context.Products.FirstOrDefaultAsync(p => p.Slug == "first-year-bundle");
+        if (bundle is not null)
+        {
+            bundle.BundleProductSlugs = "first-foods,milestones,monthly-journal";
+            bundle.PriceUsd = 9.99m;
+            bundle.Description = "All 3 core products — track foods, milestones, and journal memories. Memory Book & Year Recap included free.";
+        }
+
+        if (productsToDeactivate.Count > 0 || bundle is not null)
+        {
+            await context.SaveChangesAsync();
+            if (productsToDeactivate.Count > 0)
+                logger.LogInformation("Deactivated {Count} free-feature products: {Slugs}",
+                    productsToDeactivate.Count, string.Join(", ", productsToDeactivate.Select(p => p.Slug)));
+            if (bundle is not null)
+                logger.LogInformation("Updated bundle to 3 core products at $9.99");
+        }
+    }
+
     private static async Task SeedDevCodesAsync(TinyToesDbContext context, ILogger logger)
     {
         if (await context.ClaimCodes.AnyAsync())
             return;
 
-        var slugs = new[] { "first-foods", "milestones", "monthly-journal", "memory-book", "year-recap", "first-year-bundle" };
+        var slugs = new[] { "first-foods", "milestones", "monthly-journal", "first-year-bundle" };
         var codes = new List<ClaimCode>();
 
         for (int i = 0; i < slugs.Length; i++)

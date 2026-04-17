@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Card } from '@/components/Card';
+import { BrandMark } from '@/components/BrandMark';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export function ClaimPage() {
   const navigate = useNavigate();
@@ -15,14 +18,7 @@ export function ClaimPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--color-background)' }}>
-        <svg className="animate-spin h-8 w-8" style={{ color: 'var(--color-primary)' }} viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-        </svg>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -47,9 +43,9 @@ export function ClaimPage() {
       if (isAuthenticated) {
         setSuccess('Product activated! Redirecting...');
         setCode('');
-        setTimeout(() => navigate('/home', { replace: true }), 1500);
+        setTimeout(() => navigate('/year-recap', { replace: true }), 1500);
       } else {
-        navigate('/home', { replace: true });
+        navigate('/year-recap', { replace: true });
       }
     } catch {
       setError(authError || 'Activation failed. Please check your code and try again.');
@@ -68,15 +64,14 @@ export function ClaimPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-8" style={{ backgroundColor: 'var(--color-background)' }}>
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-theme-bg">
       <div className="w-full max-w-sm">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl" style={{ backgroundColor: 'var(--color-primary-light)' }}>
-            <span role="img" aria-label="baby foot">&#x1F9B6;</span>
+          <div className="flex justify-center mb-4">
+            <BrandMark size="lg" />
           </div>
-          <h1 className="text-2xl font-bold" style={{ color: 'var(--color-text)' }}>TinyToesAndUs</h1>
-          <p className="text-base mt-1" style={{ color: 'var(--color-primary)' }}>
+          <p className="text-base mt-1 text-theme-primary">
             {isAuthenticated ? 'Activate a new product' : 'Baby First Bites'}
           </p>
         </div>
@@ -84,20 +79,17 @@ export function ClaimPage() {
         {/* Back to app link for authenticated users */}
         {isAuthenticated && (
           <button
-            onClick={() => navigate('/home')}
-            className="flex items-center gap-1 text-sm font-medium mb-4 transition-colors hover:opacity-70"
-            style={{ color: 'var(--color-primary)' }}
+            onClick={() => navigate('/year-recap')}
+            className="flex items-center gap-1 text-sm font-medium mb-4 transition-colors hover:opacity-70 text-theme-primary"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
+            <ChevronLeft size={16} />
             Back to app
           </button>
         )}
 
         <Card padding="lg">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <p className="text-sm text-center" style={{ color: 'var(--color-muted)' }}>
+            <p className="text-sm text-center text-theme-muted">
               {isAuthenticated
                 ? 'Enter your claim code to unlock a new product.'
                 : 'Enter your email and claim code to activate your journal.'}
@@ -116,8 +108,8 @@ export function ClaimPage() {
             )}
 
             {isAuthenticated && (
-              <p className="text-xs text-center" style={{ color: 'var(--color-muted)' }}>
-                Logged in as <span className="font-medium" style={{ color: 'var(--color-text)' }}>{session?.email}</span>
+              <p className="text-xs text-center text-theme-muted">
+                Logged in as <span className="font-medium text-theme-text">{session?.email}</span>
               </p>
             )}
 
@@ -136,7 +128,7 @@ export function ClaimPage() {
             )}
 
             {success && (
-              <p className="text-sm text-center font-medium" style={{ color: 'var(--color-primary)' }}>{success}</p>
+              <p className="text-sm text-center font-medium text-theme-primary">{success}</p>
             )}
 
             <Button type="submit" fullWidth loading={isSubmitting} size="lg">
@@ -145,7 +137,7 @@ export function ClaimPage() {
           </form>
         </Card>
 
-        <p className="text-xs text-center mt-6" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-xs text-center mt-6 text-theme-muted">
           Haven't received your code? Check your purchase confirmation email.
         </p>
       </div>

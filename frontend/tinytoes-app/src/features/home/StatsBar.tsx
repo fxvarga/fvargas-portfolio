@@ -1,5 +1,7 @@
+import { Smile, Meh, Frown } from 'lucide-react';
 import { Card } from '@/components/Card';
 import type { FilterType } from '@/types';
+import type { LucideIcon } from 'lucide-react';
 
 interface StatsBarProps {
   total: number;
@@ -10,47 +12,65 @@ interface StatsBarProps {
   onFilter?: (filter: FilterType) => void;
 }
 
+const FILTERS: { label: string; icon: LucideIcon | null; value: FilterType }[] = [
+  { label: 'All', icon: null, value: 'all' },
+  { label: 'Loved', icon: Smile, value: 'loved' },
+  { label: 'Not sure', icon: Meh, value: 'neutral' },
+  { label: 'No thanks', icon: Frown, value: 'disliked' },
+];
+
 export function StatsBar({ total, loved, notSure, noThanks, filter = 'all', onFilter }: StatsBarProps) {
-  const stats: { label: string; value: number; emoji: string | null; filterValue: FilterType }[] = [
-    { label: 'Total', value: total, emoji: null, filterValue: 'all' },
-    { label: 'Loved', value: loved, emoji: '\u{1F60D}', filterValue: '\u{1F60D}' as FilterType },
-    { label: 'Okay', value: notSure, emoji: '\u{1F610}', filterValue: '\u{1F610}' as FilterType },
-    { label: 'Nope', value: noThanks, emoji: '\u{1F616}', filterValue: '\u{1F616}' as FilterType },
+  const stats: { label: string; value: number; icon: LucideIcon }[] = [
+    { label: 'Loved', value: loved, icon: Smile },
+    { label: 'Not sure', value: notSure, icon: Meh },
+    { label: 'No thanks', value: noThanks, icon: Frown },
   ];
 
   return (
-    <Card padding="sm">
-      <div className="flex">
-        {stats.map((stat, i) => {
-          const isActive = filter === stat.filterValue;
-          return (
-            <button
+    <div className="space-y-3">
+      {/* Stats display */}
+      <Card padding="sm">
+        <div className="flex items-center">
+          <div className="flex-1 text-center py-1 border-r border-theme-accent">
+            <div className="text-lg font-bold text-theme-text">{total}</div>
+            <div className="text-xs text-theme-muted">Total</div>
+          </div>
+          {stats.map((stat, i) => (
+            <div
               key={stat.label}
-              onClick={() => onFilter?.(stat.filterValue)}
-              className={`flex-1 text-center py-1 transition-all rounded-xl ${i < stats.length - 1 ? 'border-r' : ''} ${
-                onFilter ? 'cursor-pointer active:scale-95' : ''
+              className={`flex-1 text-center py-1 ${
+                i < stats.length - 1 ? 'border-r border-theme-accent' : ''
               }`}
-              style={{
-                borderColor: 'var(--color-accent)',
-                backgroundColor: isActive && filter !== 'all' ? 'var(--color-primary-light)' : 'transparent',
-              }}
             >
-              <div
-                className="text-lg font-bold"
-                style={{ color: isActive && filter !== 'all' ? 'var(--color-primary)' : 'var(--color-text)' }}
-              >
-                {stat.emoji ? `${stat.emoji} ${stat.value}` : stat.value}
+              <div className="text-lg font-bold text-theme-text flex items-center justify-center gap-1">
+                <stat.icon size={16} />
+                <span>{stat.value}</span>
               </div>
-              <div
-                className="text-xs"
-                style={{ color: isActive && filter !== 'all' ? 'var(--color-primary)' : 'var(--color-muted)' }}
-              >
-                {stat.label}
-              </div>
+              <div className="text-xs text-theme-muted">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Filter pills */}
+      {onFilter && (
+        <div className="flex gap-2 flex-wrap">
+          {FILTERS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => onFilter(f.value)}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+                filter === f.value
+                  ? 'bg-theme-primary text-white'
+                  : 'bg-theme-panel text-theme-text hover:bg-black/5'
+              }`}
+            >
+              {f.icon && <f.icon size={12} />}
+              {f.label}
             </button>
-          );
-        })}
-      </div>
-    </Card>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,4 +1,7 @@
-import type { FoodEntry } from '@/types';
+import { UtensilsCrossed, Smile, Meh, Frown } from 'lucide-react';
+import { REACTIONS, type FoodEntry, type Reaction } from '@/types';
+
+const REACTION_ICONS = { loved: Smile, neutral: Meh, disliked: Frown } as const;
 
 interface EntryCardProps {
   entry: FoodEntry;
@@ -6,44 +9,56 @@ interface EntryCardProps {
 }
 
 export function EntryCard({ entry, onClick }: EntryCardProps) {
+  const ReactionIcon = REACTION_ICONS[entry.reaction as Reaction];
+  const reactionLabel = REACTIONS.find(r => r.key === entry.reaction)?.label ?? '';
+  const dateStr = new Date(entry.createdAt).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   return (
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-2xl overflow-hidden shadow-sm transition-all duration-200 hover:shadow-md active:scale-[0.98] text-left"
-      style={{ backgroundColor: 'var(--color-panel)' }}
+      className="w-full text-left rounded-2xl overflow-hidden shadow-sm transition-transform active:scale-[0.98] bg-theme-panel"
     >
-      {/* Image area */}
-      <div
-        className="w-full aspect-square flex items-center justify-center overflow-hidden"
-        style={{ backgroundColor: 'var(--color-accent)' }}
-      >
-        {entry.image ? (
-          <img
-            src={entry.image}
-            alt={entry.food}
-            className="w-full h-full object-cover"
-            loading="lazy"
-          />
-        ) : (
-          <span className="text-3xl" role="img" aria-label="food">&#x1F37D;&#xFE0F;</span>
+      <div className="flex gap-0">
+        {/* Image column */}
+        {entry.image && (
+          <div className="w-24 shrink-0">
+            <img
+              src={entry.image}
+              alt={entry.food}
+              className="w-full h-full object-cover min-h-[6rem]"
+              loading="lazy"
+            />
+          </div>
         )}
-      </div>
 
-      {/* Info */}
-      <div className="p-3">
-        <div className="flex items-center justify-between gap-1">
-          <p className="text-sm font-semibold truncate" style={{ color: 'var(--color-text)' }}>
-            {entry.food}
-          </p>
-          <span className="text-base shrink-0">{entry.reaction}</span>
+        {/* Info column */}
+        <div className="flex-1 p-3 min-w-0">
+          <div className="flex items-center gap-2">
+            <UtensilsCrossed size={14} className="text-theme-primary shrink-0" />
+            <h3 className="text-sm font-bold truncate flex-1 text-theme-text">
+              {entry.food}
+            </h3>
+            {ReactionIcon && <ReactionIcon size={20} className="text-theme-primary shrink-0" />}
+          </div>
+          <div className="flex items-center gap-2 mt-1">
+            <span className="text-[10px] font-medium px-2 py-0.5 rounded-full bg-theme-primary-light text-theme-primary">
+              {reactionLabel}
+            </span>
+            <span className="text-xs text-theme-muted">
+              {dateStr}
+            </span>
+          </div>
+          {entry.notes && (
+            <p className="text-xs mt-1.5 line-clamp-2 text-theme-muted">
+              {entry.notes}
+            </p>
+          )}
         </div>
-        <p className="text-xs mt-0.5" style={{ color: 'var(--color-muted)' }}>
-          {new Date(entry.createdAt).toLocaleDateString(undefined, {
-            month: 'short',
-            day: 'numeric',
-          })}
-        </p>
       </div>
     </button>
   );

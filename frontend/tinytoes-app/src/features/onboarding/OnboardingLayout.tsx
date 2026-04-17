@@ -33,7 +33,7 @@ export function OnboardingLayout() {
       photo,
       onboardingComplete: true,
     });
-    navigate('/home', { replace: true });
+    navigate('/year-recap', { replace: true });
   };
 
   const handleThemeChange = (t: ThemeName) => {
