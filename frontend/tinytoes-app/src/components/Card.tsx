@@ -16,8 +16,11 @@ export function Card({
 
   return (
     <div
-      className={`rounded-2xl shadow-sm ${paddings[padding]} ${hoverable ? 'transition-shadow duration-200 hover:shadow-md cursor-pointer' : ''} ${className}`}
-      style={{ backgroundColor: 'var(--color-panel)' }}
+      className={`rounded-2xl border border-theme-accent/60 ${paddings[padding]} ${hoverable ? 'transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 cursor-pointer' : ''} ${className}`}
+      style={{
+        backgroundColor: 'var(--color-panel)',
+        boxShadow: '0 1px 3px rgba(61,44,46,0.04), 0 4px 12px rgba(61,44,46,0.03)',
+      }}
       {...props}
     >
       {children}

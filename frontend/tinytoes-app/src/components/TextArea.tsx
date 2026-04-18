@@ -16,7 +16,7 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
         )}
         <textarea
           ref={ref}
-          className={`w-full px-4 py-3 rounded-xl border-2 text-base transition-colors duration-200 outline-none resize-none placeholder:text-gray-400 ${error ? 'border-red-400' : 'border-gray-200 focus:border-[var(--color-primary)]'} ${className}`}
+          className={`w-full px-4 py-3 rounded-xl border text-base transition-colors duration-200 outline-none resize-none placeholder:text-theme-muted/50 ${error ? 'border-red-400' : 'border-[var(--color-accent)] focus:border-[var(--color-primary)]'} ${className}`}
           style={{ backgroundColor: 'var(--color-panel)', color: 'var(--color-text)' }}
           rows={3}
           {...props}

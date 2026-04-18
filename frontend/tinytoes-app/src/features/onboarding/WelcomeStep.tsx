@@ -13,7 +13,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
         <UtensilsCrossed size={48} className="text-theme-primary" />
       </div>
 
-      <h1 className="text-3xl font-bold mb-3 text-theme-text">
+      <h1 className="text-3xl font-bold font-display tracking-tight mb-3 text-theme-text">
         Welcome to TinyToesAndUs
       </h1>
       <p className="text-lg mb-2 text-theme-primary">

@@ -160,10 +160,11 @@ export function AddJournalSheet({
             value={monthKey}
             onChange={e => setMonthKey(e.target.value)}
             disabled={isEditing}
-            className="w-full px-4 py-3 rounded-xl text-sm border-0 outline-none"
+            className="w-full px-4 py-3 rounded-xl text-sm border outline-none transition-colors focus:border-[var(--color-primary)]"
             style={{
-              backgroundColor: 'var(--color-background)',
+              backgroundColor: 'var(--color-panel)',
               color: 'var(--color-text)',
+              borderColor: 'var(--color-accent)',
             }}
           >
             {monthOptions.map(opt => (
@@ -203,16 +204,17 @@ export function AddJournalSheet({
               onChange={e => setHighlightInput(e.target.value)}
               onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHighlight(); } }}
               placeholder="e.g. First giggle, New tooth..."
-              className="flex-1 px-3 py-2 rounded-xl text-sm border-0 outline-none"
+              className="flex-1 px-3 py-2 rounded-xl text-sm border outline-none transition-colors focus:border-[var(--color-primary)]"
               style={{
-                backgroundColor: 'var(--color-background)',
+                backgroundColor: 'var(--color-panel)',
                 color: 'var(--color-text)',
+                borderColor: 'var(--color-accent)',
               }}
             />
             <button
               type="button"
               onClick={addHighlight}
-              className="px-3 py-2 rounded-xl text-sm font-medium"
+              className="px-4 py-2 rounded-full text-sm font-medium"
               style={{
                 backgroundColor: 'var(--color-primary)',
                 color: '#fff',

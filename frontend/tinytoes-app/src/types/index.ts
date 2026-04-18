@@ -1,10 +1,10 @@
 export type Reaction = 'loved' | 'neutral' | 'disliked';
 
-export type ReactionLabel = 'Loved it' | 'Not sure' | 'No thanks';
+export type ReactionLabel = 'Loved it' | 'Meh' | 'No thanks';
 
 export const REACTIONS: { key: Reaction; label: ReactionLabel }[] = [
   { key: 'loved', label: 'Loved it' },
-  { key: 'neutral', label: 'Not sure' },
+  { key: 'neutral', label: 'Meh' },
   { key: 'disliked', label: 'No thanks' },
 ];
 

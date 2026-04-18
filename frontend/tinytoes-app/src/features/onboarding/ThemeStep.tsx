@@ -15,10 +15,10 @@ export function ThemeStep({ value, onChange, onNext, onBack }: ThemeStepProps) {
   return (
     <div className="flex-1 flex flex-col px-6 py-10">
       <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
+        <h2 className="text-2xl font-bold font-display tracking-tight text-center mb-2 text-theme-text">
           Choose a theme
         </h2>
-        <p className="text-sm text-center mb-8" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm text-center mb-8 text-theme-muted">
           Set the mood for your journal.
         </p>
 
@@ -38,10 +38,10 @@ export function ThemeStep({ value, onChange, onNext, onBack }: ThemeStepProps) {
               >
                 <div className="flex gap-1.5">
                   {[colors.primary, colors.secondary, colors.background].map((c, i) => (
-                    <div key={i} className="w-7 h-7 rounded-full border border-gray-200" style={{ backgroundColor: c }} />
+                    <div key={i} className="w-7 h-7 rounded-full border border-theme-accent" style={{ backgroundColor: c }} />
                   ))}
                 </div>
-                <span className="font-medium text-sm" style={{ color: 'var(--color-text)' }}>{t}</span>
+                <span className="font-medium text-sm text-theme-text">{t}</span>
                 {isSelected && (
                   <span className="ml-auto text-sm" style={{ color: colors.primary }}>&#10003;</span>
                 )}

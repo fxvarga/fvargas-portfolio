@@ -2,7 +2,7 @@ import { Card } from '@/components/Card';
 import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
 
-/* ── Metric item (one column in the stats row) ────────────── */
+/* -- Metric item (one column in the stats row) -- */
 
 export interface MetricItem {
   label: string;
@@ -10,7 +10,7 @@ export interface MetricItem {
   icon?: ComponentType<LucideProps>;
 }
 
-/* ── Filter pill ──────────────────────────────────────────── */
+/* -- Filter pill -- */
 
 export interface FilterPill<T extends string = string> {
   label: string;
@@ -18,7 +18,7 @@ export interface FilterPill<T extends string = string> {
   icon?: ComponentType<LucideProps>;
 }
 
-/* ── Props ────────────────────────────────────────────────── */
+/* -- Props -- */
 
 interface MetricsBarProps<T extends string = string> {
   metrics: MetricItem[];
@@ -27,7 +27,7 @@ interface MetricsBarProps<T extends string = string> {
   onFilter?: (value: T) => void;
 }
 
-/* ── Component ────────────────────────────────────────────── */
+/* -- Component -- */
 
 export function MetricsBar<T extends string = string>({
   metrics,
@@ -45,15 +45,15 @@ export function MetricsBar<T extends string = string>({
             return (
               <div
                 key={metric.label}
-                className={`flex-1 text-center py-1 ${
+                className={`flex-1 text-center py-1.5 ${
                   i < metrics.length - 1 ? 'border-r border-theme-accent' : ''
                 }`}
               >
-                <div className="text-lg font-bold text-theme-text flex items-center justify-center gap-1">
-                  {Icon && <Icon size={16} />}
+                <div className="text-xl font-bold font-display tracking-tight text-theme-text flex items-center justify-center gap-1">
+                  {Icon && <Icon size={15} strokeWidth={1.8} />}
                   <span>{metric.value}</span>
                 </div>
-                <div className="text-xs text-theme-muted">{metric.label}</div>
+                <div className="text-[11px] text-theme-muted mt-0.5">{metric.label}</div>
               </div>
             );
           })}
@@ -69,13 +69,13 @@ export function MetricsBar<T extends string = string>({
               <button
                 key={f.value}
                 onClick={() => onFilter(f.value)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
+                className={`shrink-0 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1.5 border ${
                   activeFilter === f.value
-                    ? 'bg-theme-primary text-white'
-                    : 'bg-theme-panel text-theme-text hover:bg-black/5'
+                    ? 'bg-theme-primary text-white border-transparent shadow-sm'
+                    : 'bg-theme-panel text-theme-text border-theme-accent/60 hover:border-theme-primary/40'
                 }`}
               >
-                {Icon && <Icon size={12} />}
+                {Icon && <Icon size={12} strokeWidth={1.8} />}
                 {f.label}
               </button>
             );

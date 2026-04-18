@@ -54,7 +54,7 @@ export function OnboardingLayout() {
     <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--color-background)' }}>
       {/* Step indicator */}
       {step > 0 && (
-        <div className="flex justify-center gap-2 pt-6 px-4">
+        <div className="flex justify-center gap-2.5 pt-7 px-4">
           {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
             <div
               key={i}

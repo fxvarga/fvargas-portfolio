@@ -6,7 +6,7 @@ interface PageShellProps {
   bottomPad?: string;
 }
 
-export function PageShell({ children, bottomPad = 'pb-24' }: PageShellProps) {
+export function PageShell({ children, bottomPad = 'pb-20' }: PageShellProps) {
   return (
     <div className={`min-h-screen bg-theme-bg ${bottomPad}`}>
       {children}

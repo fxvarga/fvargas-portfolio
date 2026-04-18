@@ -15,14 +15,14 @@ interface StatsBarProps {
 const FILTERS: { label: string; icon: LucideIcon | null; value: FilterType }[] = [
   { label: 'All', icon: null, value: 'all' },
   { label: 'Loved', icon: Smile, value: 'loved' },
-  { label: 'Not sure', icon: Meh, value: 'neutral' },
+  { label: 'Meh', icon: Meh, value: 'neutral' },
   { label: 'No thanks', icon: Frown, value: 'disliked' },
 ];
 
 export function StatsBar({ total, loved, notSure, noThanks, filter = 'all', onFilter }: StatsBarProps) {
   const stats: { label: string; value: number; icon: LucideIcon }[] = [
     { label: 'Loved', value: loved, icon: Smile },
-    { label: 'Not sure', value: notSure, icon: Meh },
+    { label: 'Meh', value: notSure, icon: Meh },
     { label: 'No thanks', value: noThanks, icon: Frown },
   ];
 

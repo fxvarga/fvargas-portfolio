@@ -22,20 +22,24 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-black/30 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <div
-        className="relative w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl shadow-xl animate-slide-up"
-        style={{ backgroundColor: 'var(--color-panel)' }}
+        className="relative w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl animate-slide-up border-t border-theme-accent/40 sm:border sm:border-theme-accent/40"
+        style={{
+          backgroundColor: 'var(--color-panel)',
+          boxShadow: '0 -4px 32px rgba(61,44,46,0.08), 0 0 0 1px rgba(61,44,46,0.02)',
+        }}
       >
-        <div className="sticky top-0 flex items-center justify-between p-5 pb-0" style={{ backgroundColor: 'var(--color-panel)' }}>
-          <div className="mx-auto w-10 h-1 rounded-full bg-gray-300 sm:hidden mb-3" />
+        {/* Drag handle */}
+        <div className="sticky top-0 flex items-center justify-center pt-3 pb-1 sm:hidden" style={{ backgroundColor: 'var(--color-panel)' }}>
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--color-accent)' }} />
         </div>
         {title && (
-          <div className="px-5 pt-2 pb-0">
+          <div className="px-6 pt-3 pb-0">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold" style={{ color: 'var(--color-text)' }}>{title}</h2>
+              <h2 className="text-xl font-bold font-display tracking-tight" style={{ color: 'var(--color-text)' }}>{title}</h2>
               <button
                 onClick={onClose}
                 className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-black/5 transition-colors"
@@ -49,7 +53,7 @@ export function Modal({ isOpen, onClose, title, children }: ModalProps) {
             </div>
           </div>
         )}
-        <div className="p-5">{children}</div>
+        <div className="p-6">{children}</div>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
 import { Input } from '@/components/Input';
+import { PhotoUpload } from '@/components/PhotoUpload';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -42,6 +43,7 @@ export function SettingsPage() {
   // Edit profile state
   const [editName, setEditName] = useState(profile.name);
   const [editAge, setEditAge] = useState<AgeRange>(profile.ageRange);
+  const [editPhoto, setEditPhoto] = useState<string | null>(profile.photo);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -71,7 +73,7 @@ export function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
-    await updateProfile({ name: editName.trim(), ageRange: editAge });
+    await updateProfile({ name: editName.trim(), ageRange: editAge, photo: editPhoto });
     setShowEditProfile(false);
   };
 
@@ -113,6 +115,7 @@ export function SettingsPage() {
             <Button variant="ghost" size="sm" onClick={() => {
               setEditName(profile.name);
               setEditAge(profile.ageRange);
+              setEditPhoto(profile.photo);
               setShowEditProfile(true);
             }}>
               Edit
@@ -122,7 +125,7 @@ export function SettingsPage() {
 
         {/* Theme selector */}
         <Card padding="md">
-          <h3 className="text-sm font-semibold mb-3 text-theme-text">
+          <h3 className="text-sm font-semibold mb-3 text-theme-text tracking-tight">
             Theme
           </h3>
           <div className="flex gap-3">
@@ -133,7 +136,7 @@ export function SettingsPage() {
                   setTheme(t);
                   updateProfile({ theme: t });
                 }}
-                className={`flex-1 py-3 rounded-xl border-2 text-center transition-all duration-200 ${
+                className={`flex-1 py-3 rounded-xl border text-center transition-all duration-200 ${
                   theme === t ? 'shadow-sm' : ''
                 }`}
                 style={{
@@ -167,7 +170,7 @@ export function SettingsPage() {
             <div className="text-right font-medium text-theme-text flex items-center justify-end gap-1">
               <Smile size={14} className="text-theme-primary" /> {stats.loved}
             </div>
-            <div className="text-theme-muted">Not sure</div>
+            <div className="text-theme-muted">Meh</div>
             <div className="text-right font-medium text-theme-text flex items-center justify-end gap-1">
               <Meh size={14} className="text-theme-muted" /> {stats.notSure}
             </div>
@@ -270,6 +273,14 @@ export function SettingsPage() {
         title="Edit Profile"
       >
         <div className="space-y-5">
+          <div className="flex justify-center">
+            <PhotoUpload
+              value={editPhoto}
+              onChange={setEditPhoto}
+              circular
+              label="Baby's Photo"
+            />
+          </div>
           <Input
             label="Baby's Name"
             value={editName}

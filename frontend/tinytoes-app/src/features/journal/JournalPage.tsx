@@ -85,6 +85,8 @@ export function JournalPage() {
       {selectedEntry && (
         <JournalDetail
           entry={selectedEntry}
+          items={entries}
+          onNavigate={setSelectedEntry}
           onClose={() => setSelectedEntry(null)}
           onEdit={(e) => {
             setSelectedEntry(null);

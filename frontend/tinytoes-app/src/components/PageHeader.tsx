@@ -14,7 +14,7 @@ export function PageHeader({ title, backButton, actions }: PageHeaderProps) {
   const navigate = useNavigate();
 
   return (
-    <header className="px-4 pt-6 pb-2 flex items-center justify-between no-print">
+    <header className="px-5 pt-4 pb-2 flex items-center justify-between no-print">
       {backButton ? (
         <div className="flex items-center gap-3">
           <button
@@ -26,10 +26,10 @@ export function PageHeader({ title, backButton, actions }: PageHeaderProps) {
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </button>
-          <h1 className="text-xl font-bold text-theme-text">{title}</h1>
+          <h1 className="text-2xl font-bold font-display tracking-tight text-theme-text">{title}</h1>
         </div>
       ) : (
-        <h1 className="text-xl font-bold text-theme-text">{title}</h1>
+        <h1 className="text-2xl font-bold font-display tracking-tight text-theme-text">{title}</h1>
       )}
       <div className="flex gap-2">
         {actions}
@@ -39,7 +39,7 @@ export function PageHeader({ title, backButton, actions }: PageHeaderProps) {
             className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5 text-theme-muted"
             aria-label="Settings"
           >
-            <Settings size={22} />
+            <Settings size={22} strokeWidth={1.8} />
           </button>
         )}
       </div>

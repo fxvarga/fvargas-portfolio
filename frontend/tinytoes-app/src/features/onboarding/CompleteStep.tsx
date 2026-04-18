@@ -15,7 +15,7 @@ export function CompleteStep({ name, onComplete, onBack }: CompleteStepProps) {
         <Sparkles size={40} className="text-theme-secondary" />
       </div>
 
-      <h1 className="text-3xl font-bold mb-2 text-theme-text">
+      <h1 className="text-3xl font-bold font-display tracking-tight mb-2 text-theme-text">
         {name}'s journal is ready!
       </h1>
       <p className="text-base max-w-xs mb-10 text-theme-muted">

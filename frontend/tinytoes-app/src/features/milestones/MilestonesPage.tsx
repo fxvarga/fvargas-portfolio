@@ -124,6 +124,8 @@ export function MilestonesPage() {
       {selectedMilestone && (
         <MilestoneDetail
           milestone={selectedMilestone}
+          items={filteredMilestones}
+          onNavigate={setSelectedMilestone}
           onClose={() => setSelectedMilestone(null)}
           onEdit={(m) => {
             setSelectedMilestone(null);

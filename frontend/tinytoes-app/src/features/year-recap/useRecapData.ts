@@ -4,81 +4,58 @@ import type {
   Milestone,
   JournalEntry,
   BabyProfile,
-  Reaction,
-  MilestoneCategory,
   ProductSlug,
 } from '@/types';
 
-/* ── Derived data shapes ────────────────────────────────── */
+/* ── Unified timeline item for recent activity ──────────── */
 
-export interface FoodRecap {
-  total: number;
-  loved: number;
-  neutral: number;
-  disliked: number;
-  firstFood: FoodEntry | null;
-  favoriteFood: string | null;
-  /** Top 5 loved foods */
-  topFoods: string[];
-  /** { monthLabel: count } */
-  byMonth: Record<string, number>;
-  /** Longest consecutive-day streak of logging */
-  streak: number;
+export interface TimelineItem {
+  id: string;
+  type: 'food' | 'milestone' | 'journal';
+  title: string;
+  subtitle: string;
+  image: string | null;
+  timestamp: number;
+  data: FoodEntry | Milestone | JournalEntry;
 }
 
-export interface MilestoneRecap {
-  total: number;
-  byCategory: Record<MilestoneCategory, number>;
-  firstMilestone: Milestone | null;
-  latestMilestone: Milestone | null;
-  /** Milestones sorted chronologically */
-  timeline: Milestone[];
-}
+/* ── Dashboard data shape ───────────────────────────────── */
 
-export interface JournalRecap {
-  totalMonths: number;
-  totalHighlights: number;
-  /** All highlights collected across months */
-  highlights: string[];
-  /** A single representative excerpt from the longest entry */
-  excerpt: string | null;
-  entries: JournalEntry[];
-}
-
-export interface StatsRecap {
-  /** Month with the most food entries */
-  busiestFoodMonth: string | null;
-  /** Total days between first and latest entry */
-  journeyDays: number;
-  /** Average foods logged per week */
-  foodsPerWeek: number;
-  /** Most common reaction */
-  dominantReaction: Reaction | null;
-  /** Total photos across all modules */
-  totalPhotos: number;
-}
-
-export interface RecapData {
+export interface DashboardData {
   profile: BabyProfile;
-  food: FoodRecap | null;
-  milestones: MilestoneRecap | null;
-  journal: JournalRecap | null;
-  stats: StatsRecap;
   hasAnyData: boolean;
+
+  /* Hero */
+  journeyDays: number;
+  firstEntryDate: number | null;
+
+  /* Fun counters */
+  totalFoods: number;
+  totalMilestones: number;
+  totalJournalMonths: number;
+  totalPhotos: number;
+  loggingStreak: number;
+
+  /* Activity timeline (all types combined, sorted newest first) */
+  recentActivity: TimelineItem[];
+
+  /* Photo collage (entries with photos, newest first) */
+  photoMemories: TimelineItem[];
+
+  /* Insights */
+  insights: Insight[];
+}
+
+export interface Insight {
+  icon: 'smile' | 'flame' | 'calendar' | 'camera' | 'trophy' | 'utensils' | 'book' | 'sparkles';
+  text: string;
 }
 
 /* ── Helpers ─────────────────────────────────────────────── */
 
-function monthLabel(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-  });
-}
-
-function dayKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  return `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+function dayKey(ts: number): string {
+  const d = new Date(ts);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function longestStreak(entries: FoodEntry[]): number {
@@ -100,17 +77,30 @@ function longestStreak(entries: FoodEntry[]): number {
   return best;
 }
 
-function topFoodsByReaction(entries: FoodEntry[], reaction: Reaction, limit: number): string[] {
-  const counts: Record<string, number> = {};
-  for (const e of entries) {
-    if (e.reaction === reaction) {
-      counts[e.food] = (counts[e.food] || 0) + 1;
+function monthLabel(ts: number): string {
+  return new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+}
+
+function toTimelineItem(type: 'food', e: FoodEntry): TimelineItem;
+function toTimelineItem(type: 'milestone', e: Milestone): TimelineItem;
+function toTimelineItem(type: 'journal', e: JournalEntry): TimelineItem;
+function toTimelineItem(type: 'food' | 'milestone' | 'journal', e: FoodEntry | Milestone | JournalEntry): TimelineItem {
+  switch (type) {
+    case 'food': {
+      const f = e as FoodEntry;
+      return { id: f.id, type: 'food', title: f.food, subtitle: f.reaction === 'loved' ? 'Loved it' : f.reaction === 'neutral' ? 'Meh' : 'No thanks', image: f.image, timestamp: f.createdAt, data: f };
+    }
+    case 'milestone': {
+      const m = e as Milestone;
+      return { id: m.id, type: 'milestone', title: m.title, subtitle: new Date(m.achievedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), image: m.image, timestamp: m.achievedAt, data: m };
+    }
+    case 'journal': {
+      const j = e as JournalEntry;
+      const [y, mo] = j.monthKey.split('-').map(Number);
+      const monthName = new Date(y, mo - 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      return { id: j.id, type: 'journal', title: j.monthLabel, subtitle: monthName, image: j.image, timestamp: j.createdAt, data: j };
     }
   }
-  return Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, limit)
-    .map(([food]) => food);
 }
 
 /* ── Hook ────────────────────────────────────────────────── */
@@ -121,111 +111,105 @@ export function useRecapData(
   milestones: Milestone[],
   journalEntries: JournalEntry[],
   hasProduct: (slug: ProductSlug) => boolean,
-): RecapData {
+): DashboardData {
   return useMemo(() => {
     const hasFoods = hasProduct('first-foods');
     const hasMilestones = hasProduct('milestones');
     const hasJournal = hasProduct('monthly-journal');
 
-    /* ── Food Recap ──────────────────────────────── */
-    let food: FoodRecap | null = null;
+    /* Build unified timeline */
+    const allItems: TimelineItem[] = [];
+    if (hasFoods) entries.forEach(e => allItems.push(toTimelineItem('food', e)));
+    if (hasMilestones) milestones.forEach(m => allItems.push(toTimelineItem('milestone', m)));
+    if (hasJournal) journalEntries.forEach(j => allItems.push(toTimelineItem('journal', j)));
+
+    allItems.sort((a, b) => b.timestamp - a.timestamp); // newest first
+
+    const recentActivity = allItems.slice(0, 15);
+    const photoMemories = allItems.filter(i => i.image).slice(0, 9);
+
+    /* Journey stats */
+    const allTimestamps = allItems.map(i => i.timestamp);
+    const earliest = allTimestamps.length > 0 ? Math.min(...allTimestamps) : null;
+    const latest = allTimestamps.length > 0 ? Math.max(...allTimestamps) : null;
+    const journeyDays = earliest && latest ? Math.max(1, Math.round((latest - earliest) / 86_400_000)) : 0;
+
+    const totalFoods = hasFoods ? entries.length : 0;
+    const totalMilestones = hasMilestones ? milestones.length : 0;
+    const totalJournalMonths = hasJournal ? journalEntries.length : 0;
+    const totalPhotos = allItems.filter(i => i.image).length;
+    const streak = hasFoods ? longestStreak(entries) : 0;
+
+    /* Build insights */
+    const insights: Insight[] = [];
+
     if (hasFoods && entries.length > 0) {
-      const sorted = [...entries].sort((a, b) => a.createdAt - b.createdAt);
-      const byMonth: Record<string, number> = {};
-      for (const e of sorted) {
-        const m = monthLabel(e.createdAt);
-        byMonth[m] = (byMonth[m] || 0) + 1;
+      // Favorite food
+      const foodCounts: Record<string, number> = {};
+      entries.filter(e => e.reaction === 'loved').forEach(e => { foodCounts[e.food] = (foodCounts[e.food] || 0) + 1; });
+      const topFood = Object.entries(foodCounts).sort((a, b) => b[1] - a[1])[0];
+      if (topFood) {
+        insights.push({
+          icon: 'smile',
+          text: topFood[1] > 1
+            ? `${topFood[0]} is the #1 favorite — loved ${topFood[1]} times!`
+            : `${topFood[0]} is the top favorite!`,
+        });
       }
-      const top = topFoodsByReaction(entries, 'loved', 5);
-      food = {
-        total: entries.length,
-        loved: entries.filter(e => e.reaction === 'loved').length,
-        neutral: entries.filter(e => e.reaction === 'neutral').length,
-        disliked: entries.filter(e => e.reaction === 'disliked').length,
-        firstFood: sorted[0],
-        favoriteFood: top[0] ?? null,
-        topFoods: top,
-        byMonth,
-        streak: longestStreak(sorted),
-      };
+
+      // Streak
+      if (streak > 1) {
+        insights.push({ icon: 'flame', text: `${streak}-day logging streak — impressive consistency!` });
+      }
+
+      // Busiest month
+      const byMonth: Record<string, number> = {};
+      entries.forEach(e => { const m = monthLabel(e.createdAt); byMonth[m] = (byMonth[m] || 0) + 1; });
+      const busiest = Object.entries(byMonth).sort((a, b) => b[1] - a[1])[0];
+      if (busiest && busiest[1] > 2) {
+        insights.push({ icon: 'calendar', text: `${busiest[0]} was the busiest month with ${busiest[1]} foods tried` });
+      }
+
+      // Reaction breakdown
+      const loved = entries.filter(e => e.reaction === 'loved').length;
+      const pct = Math.round((loved / entries.length) * 100);
+      if (pct >= 50) {
+        insights.push({ icon: 'sparkles', text: `${pct}% of foods were loved — what an adventurous eater!` });
+      }
     }
 
-    /* ── Milestone Recap ─────────────────────────── */
-    let milestoneRecap: MilestoneRecap | null = null;
     if (hasMilestones && milestones.length > 0) {
-      const sorted = [...milestones].sort((a, b) => a.achievedAt - b.achievedAt);
-      const byCategory = {
-        motor: 0, social: 0, language: 0, cognitive: 0, feeding: 0, other: 0,
-      } as Record<MilestoneCategory, number>;
-      for (const m of milestones) byCategory[m.category]++;
-      milestoneRecap = {
-        total: milestones.length,
-        byCategory,
-        firstMilestone: sorted[0],
-        latestMilestone: sorted[sorted.length - 1],
-        timeline: sorted,
-      };
+      const latest = [...milestones].sort((a, b) => b.achievedAt - a.achievedAt)[0];
+      insights.push({
+        icon: 'trophy',
+        text: `Latest milestone: "${latest.title}" — ${new Date(latest.achievedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
+      });
     }
 
-    /* ── Journal Recap ───────────────────────────── */
-    let journal: JournalRecap | null = null;
+    if (totalPhotos > 0) {
+      insights.push({ icon: 'camera', text: `${totalPhotos} photo${totalPhotos !== 1 ? 's' : ''} captured across the journey` });
+    }
+
     if (hasJournal && journalEntries.length > 0) {
-      const sorted = [...journalEntries].sort(
-        (a, b) => a.monthKey.localeCompare(b.monthKey),
-      );
-      const allHighlights = sorted.flatMap(e => e.highlights);
-      const longest = sorted.reduce((a, b) => (b.text.length > a.text.length ? b : a));
-      const excerpt = longest.text.length > 0
-        ? longest.text.slice(0, 160) + (longest.text.length > 160 ? '...' : '')
-        : null;
-      journal = {
-        totalMonths: sorted.length,
-        totalHighlights: allHighlights.length,
-        highlights: allHighlights.slice(0, 12),
-        excerpt,
-        entries: sorted,
-      };
+      const totalHighlights = journalEntries.reduce((sum, j) => sum + j.highlights.length, 0);
+      if (totalHighlights > 0) {
+        insights.push({ icon: 'book', text: `${totalHighlights} highlights recorded across ${journalEntries.length} month${journalEntries.length !== 1 ? 's' : ''}` });
+      }
     }
 
-    /* ── Aggregate Stats ─────────────────────────── */
-    const allTimestamps = [
-      ...entries.map(e => e.createdAt),
-      ...milestones.map(m => m.achievedAt),
-      ...journalEntries.map(j => j.createdAt),
-    ];
-    const earliest = allTimestamps.length > 0 ? Math.min(...allTimestamps) : Date.now();
-    const latest = allTimestamps.length > 0 ? Math.max(...allTimestamps) : Date.now();
-    const journeyDays = Math.max(1, Math.round((latest - earliest) / 86_400_000));
-
-    let busiestFoodMonth: string | null = null;
-    if (food) {
-      const best = Object.entries(food.byMonth).sort((a, b) => b[1] - a[1])[0];
-      busiestFoodMonth = best ? best[0] : null;
-    }
-
-    const reactions = { loved: food?.loved ?? 0, neutral: food?.neutral ?? 0, disliked: food?.disliked ?? 0 };
-    const dominant = Object.entries(reactions).sort((a, b) => b[1] - a[1])[0];
-    const dominantReaction = dominant && dominant[1] > 0 ? (dominant[0] as Reaction) : null;
-
-    const totalPhotos = [
-      ...entries.filter(e => e.image),
-      ...milestones.filter(m => m.image),
-      ...journalEntries.filter(j => j.image),
-    ].length;
-
-    const weeks = journeyDays / 7;
-    const foodsPerWeek = weeks > 0 ? Math.round((entries.length / weeks) * 10) / 10 : 0;
-
-    const stats: StatsRecap = {
-      busiestFoodMonth,
+    return {
+      profile,
+      hasAnyData: allItems.length > 0,
       journeyDays,
-      foodsPerWeek,
-      dominantReaction,
+      firstEntryDate: earliest,
+      totalFoods,
+      totalMilestones,
+      totalJournalMonths,
       totalPhotos,
+      loggingStreak: streak,
+      recentActivity,
+      photoMemories,
+      insights,
     };
-
-    const hasAnyData = entries.length > 0 || milestones.length > 0 || journalEntries.length > 0;
-
-    return { profile, food, milestones: milestoneRecap, journal, stats, hasAnyData };
   }, [profile, entries, milestones, journalEntries, hasProduct]);
 }

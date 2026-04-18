@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
   --color-theme-bg: var(--color-background);
@@ -14,15 +15,15 @@
 
 /* ──── CSS Custom Properties (defaults: Neutral theme) ──── */
 :root {
-  --color-background: #F3F6FB;
+  --color-background: #FBF8F4;
   --color-panel: #FFFFFF;
-  --color-primary: #26C6B5;
-  --color-primary-light: #D1FAF5;
-  --color-secondary: #FFB347;
-  --color-secondary-light: #FFF3E0;
-  --color-text: #1F2937;
-  --color-muted: #6B7280;
-  --color-accent: #E5E7EB;
+  --color-primary: #8FB996;
+  --color-primary-light: #EDF5EF;
+  --color-secondary: #C4816B;
+  --color-secondary-light: #FBF0EB;
+  --color-text: #3D2C2E;
+  --color-muted: #8B7E7F;
+  --color-accent: #EDE8E3;
 }
 
 /* ──── Base resets ──── */
@@ -41,12 +42,16 @@ html {
 body {
   margin: 0;
   padding: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: var(--color-background);
   color: var(--color-text);
   overscroll-behavior-y: contain;
+  letter-spacing: -0.01em;
+}
+
+/* Serif heading font for premium feel */
+.font-display {
+  font-family: 'Playfair Display', Georgia, serif;
 }
 
 /* Safe area padding for iOS standalone mode */
@@ -193,4 +198,13 @@ body {
 
 .animate-ken-burns {
   animation: ken-burns 6s ease-out forwards;
+}
+
+/* ──── Hide scrollbar utility ──── */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

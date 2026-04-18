@@ -17,18 +17,18 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
-  const base = 'inline-flex items-center justify-center font-semibold rounded-2xl transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none';
+  const base = 'inline-flex items-center justify-center font-semibold rounded-full transition-all duration-200 active:scale-[0.97] disabled:opacity-50 disabled:pointer-events-none tracking-tight';
 
   const variants = {
     primary: 'text-white shadow-sm hover:shadow-md',
-    secondary: 'shadow-sm hover:shadow-md',
+    secondary: 'shadow-sm hover:shadow-md border border-theme-accent/60',
     ghost: 'hover:bg-black/5',
   };
 
   const sizes = {
-    sm: 'px-4 py-2 text-sm min-h-[36px]',
-    md: 'px-6 py-3 text-base min-h-[44px]',
-    lg: 'px-8 py-4 text-lg min-h-[52px]',
+    sm: 'px-5 py-2 text-sm min-h-[36px]',
+    md: 'px-7 py-3 text-base min-h-[44px]',
+    lg: 'px-9 py-4 text-lg min-h-[52px]',
   };
 
   return (

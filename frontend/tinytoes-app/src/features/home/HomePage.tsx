@@ -22,7 +22,7 @@ const FILTER_ICONS = { loved: Smile, neutral: Meh, disliked: Frown } as const;
 const FOOD_FILTERS: FilterPill<FilterType>[] = [
   { label: 'All', value: 'all' },
   { label: 'Loved', value: 'loved', icon: Smile },
-  { label: 'Not sure', value: 'neutral', icon: Meh },
+  { label: 'Meh', value: 'neutral', icon: Meh },
   { label: 'No thanks', value: 'disliked', icon: Frown },
 ];
 
@@ -119,7 +119,7 @@ export function HomePage() {
           metrics={[
             { label: 'Total', value: stats.total },
             { label: 'Loved', value: stats.loved, icon: Smile },
-            { label: 'Not sure', value: stats.notSure, icon: Meh },
+            { label: 'Meh', value: stats.notSure, icon: Meh },
             { label: 'No thanks', value: stats.noThanks, icon: Frown },
           ]}
           filters={FOOD_FILTERS}
@@ -177,6 +177,8 @@ export function HomePage() {
       {selectedEntry && (
         <EntryDetailView
           entry={selectedEntry}
+          items={filteredEntries}
+          onNavigate={setSelectedEntry}
           onClose={() => setSelectedEntry(null)}
           onEdit={(entry) => {
             setSelectedEntry(null);

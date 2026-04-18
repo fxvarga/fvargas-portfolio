@@ -12,11 +12,11 @@ import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { useRecapData } from './useRecapData';
-import { RecapHero } from './RecapHero';
-import { RecapFoodJourney } from './RecapFoodJourney';
-import { RecapMilestones } from './RecapMilestones';
-import { RecapJournal } from './RecapJournal';
-import { RecapStats } from './RecapStats';
+import { DashboardHero } from './DashboardHero';
+import { FunCounters } from './FunCounters';
+import { ActivityTimeline } from './ActivityTimeline';
+import { MemoryCollage } from './MemoryCollage';
+import { InsightCards } from './InsightCards';
 
 /* ── Scroll-reveal wrapper ───────────────────────────────── */
 
@@ -44,52 +44,54 @@ export function YearRecapPage() {
 
   const canGenerate = hasAnyCoreProduct();
 
-  const recap = useRecapData(profile, entries, milestones, journalEntries, hasProduct);
+  const data = useRecapData(profile, entries, milestones, journalEntries, hasProduct);
 
   return (
     <PageShell>
-      <PageHeader title={profile.name ? `${profile.name}'s Journey` : 'Year Recap'} />
+      <PageHeader title={profile.name ? `${profile.name}'s Journey` : 'Dashboard'} />
       <ModuleNavBar activeSlug="year-recap" />
 
       {canGenerate ? (
-        /* ── Full Recap Story ─────────────────────── */
         <div className="px-4 space-y-6 pb-8">
-          {recap.hasAnyData ? (
+          {data.hasAnyData ? (
             <>
+              {/* Hero — big photo card */}
               <RevealSection>
-                <RecapHero
-                  profile={recap.profile}
-                  stats={recap.stats}
-                  totalFoods={recap.food?.total ?? 0}
-                  totalMilestones={recap.milestones?.total ?? 0}
-                  totalJournalMonths={recap.journal?.totalMonths ?? 0}
+                <DashboardHero
+                  profile={data.profile}
+                  journeyDays={data.journeyDays}
+                  firstEntryDate={data.firstEntryDate}
                 />
               </RevealSection>
 
-              {recap.food && (
-                <RevealSection delay={100}>
-                  <RecapFoodJourney data={recap.food} />
-                </RevealSection>
-              )}
+              {/* Fun animated counters */}
+              <RevealSection delay={80}>
+                <FunCounters
+                  totalFoods={data.totalFoods}
+                  totalMilestones={data.totalMilestones}
+                  totalJournalMonths={data.totalJournalMonths}
+                  totalPhotos={data.totalPhotos}
+                  loggingStreak={data.loggingStreak}
+                />
+              </RevealSection>
 
-              {recap.milestones && (
-                <RevealSection delay={200}>
-                  <RecapMilestones data={recap.milestones} />
-                </RevealSection>
-              )}
+              {/* Recent activity horizontal scroll */}
+              <RevealSection delay={160}>
+                <ActivityTimeline items={data.recentActivity} />
+              </RevealSection>
 
-              {recap.journal && (
-                <RevealSection delay={300}>
-                  <RecapJournal data={recap.journal} />
-                </RevealSection>
-              )}
+              {/* Photo memory collage */}
+              <RevealSection delay={240}>
+                <MemoryCollage items={data.photoMemories} />
+              </RevealSection>
 
-              <RevealSection delay={400}>
-                <RecapStats data={recap.stats} />
+              {/* Did you know? insights */}
+              <RevealSection delay={320}>
+                <InsightCards insights={data.insights} />
               </RevealSection>
 
               {/* Footer */}
-              <RevealSection delay={500}>
+              <RevealSection delay={400}>
                 <div className="text-center py-4">
                   <p className="text-xs text-theme-muted">
                     Made with love by TinyToes
@@ -101,17 +103,16 @@ export function YearRecapPage() {
             <EmptyState
               icon={Clapperboard}
               title="No data yet"
-              subtitle="Start logging foods, milestones, or journal entries to see your recap come to life."
+              subtitle="Start logging foods, milestones, or journal entries to see your dashboard come to life."
             />
           )}
         </div>
       ) : (
-        /* ── No products — direct to store ─────────── */
         <div className="px-4">
           <EmptyState
             icon={Clapperboard}
-            title="Year Recap"
-            subtitle="Purchase any product to unlock your Year Recap — a beautiful summary of your baby's first year, generated from your data."
+            title="Dashboard"
+            subtitle="Purchase any product to unlock your dashboard — a beautiful summary of your baby's journey, generated from your data."
             action={
               <Button onClick={() => navigate('/store')}>
                 View Products

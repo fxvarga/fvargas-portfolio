@@ -17,7 +17,8 @@ export function JournalCard({ entry, onClick }: JournalCardProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left rounded-2xl overflow-hidden shadow-sm transition-transform active:scale-[0.98] bg-theme-panel"
+      className="w-full text-left rounded-2xl overflow-hidden transition-all active:scale-[0.98] bg-theme-panel border border-theme-accent/60 hover:-translate-y-0.5"
+      style={{ boxShadow: '0 1px 3px rgba(61,44,46,0.04), 0 4px 12px rgba(61,44,46,0.03)' }}
     >
       <div className="flex gap-0">
         {/* Image column */}
@@ -32,9 +33,9 @@ export function JournalCard({ entry, onClick }: JournalCardProps) {
         )}
 
         {/* Info column */}
-        <div className="flex-1 p-3 min-w-0">
+        <div className="flex-1 p-3.5 min-w-0">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-bold truncate text-theme-text">
+            <h3 className="text-sm font-semibold truncate text-theme-text tracking-tight">
               {entry.monthLabel}
             </h3>
             <span className="text-[10px] shrink-0 text-theme-muted">
@@ -42,12 +43,12 @@ export function JournalCard({ entry, onClick }: JournalCardProps) {
             </span>
           </div>
           {entry.text && (
-            <p className="text-xs mt-1.5 line-clamp-2 text-theme-muted">
+            <p className="text-xs mt-2 line-clamp-2 text-theme-muted leading-relaxed">
               {entry.text}
             </p>
           )}
           {entry.highlights.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+            <div className="flex flex-wrap gap-1.5 mt-2">
               {entry.highlights.slice(0, 3).map((h, i) => (
                 <span
                   key={i}

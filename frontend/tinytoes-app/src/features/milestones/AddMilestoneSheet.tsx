@@ -165,10 +165,10 @@ export function AddMilestoneSheet({ isOpen, onClose, onAdd, onUpdate, editMilest
                   key={cat.value}
                   type="button"
                   onClick={() => setCategory(cat.value)}
-                  className={`px-3 py-2 rounded-xl text-xs font-medium text-center transition-all flex flex-col items-center gap-1 ${
+                  className={`px-3 py-2.5 rounded-xl text-xs font-medium text-center transition-all flex flex-col items-center gap-1.5 border ${
                     isSelected
-                      ? 'bg-theme-primary-light text-theme-primary outline outline-2 outline-theme-primary'
-                      : 'bg-theme-bg text-theme-text'
+                      ? 'bg-theme-primary-light text-theme-primary border-theme-primary shadow-sm'
+                      : 'bg-theme-panel text-theme-text border-theme-accent/60'
                   }`}
                 >
                   <Icon size={20} />

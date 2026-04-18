@@ -18,7 +18,7 @@ export function AgeStep({ value, onChange, onNext, onBack }: AgeStepProps) {
   return (
     <div className="flex-1 flex flex-col px-6 py-10">
       <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        <h2 className="text-2xl font-bold text-center mb-2 text-theme-text">
+        <h2 className="text-2xl font-bold font-display tracking-tight text-center mb-2 text-theme-text">
           How old is your baby?
         </h2>
         <p className="text-sm text-center mb-8 text-theme-muted">

@@ -34,9 +34,10 @@ export function ModuleNavBar({ activeSlug }: ModuleNavBarProps) {
       style={{
         backgroundColor: 'var(--color-panel)',
         borderTop: '1px solid var(--color-accent)',
+        boxShadow: '0 -2px 16px rgba(61,44,46,0.04)',
       }}
     >
-      <div className="flex items-stretch justify-around h-16">
+      <div className="flex items-stretch justify-around h-[3.5rem]">
         {MODULE_NAV.map(mod => {
           const isFreeFeature = FREE_FEATURE_SLUGS.includes(mod.slug);
           const owned = isFreeFeature ? hasAnyCoreProduct() : entitlements.includes(mod.slug);
@@ -49,7 +50,10 @@ export function ModuleNavBar({ activeSlug }: ModuleNavBarProps) {
                   navigate('/store');
                   return;
                 }
-                if (mod.path !== location.pathname) navigate(mod.path);
+                if (mod.path !== location.pathname) {
+                  window.scrollTo({ top: 0, behavior: 'instant' });
+                  navigate(mod.path);
+                }
               }}
               className={`flex flex-col items-center justify-center flex-1 gap-0.5 transition-colors relative ${
                 !owned ? 'opacity-40' : ''
@@ -63,12 +67,12 @@ export function ModuleNavBar({ activeSlug }: ModuleNavBarProps) {
               {/* Active indicator bar */}
               {isActive && (
                 <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full"
+                  className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full"
                   style={{ backgroundColor: 'var(--color-primary)' }}
                 />
               )}
-              <mod.icon size={22} strokeWidth={isActive ? 2.5 : 1.8} />
-              <span className={`text-[10px] leading-tight ${isActive ? 'font-semibold' : 'font-normal'}`}>
+              <mod.icon size={21} strokeWidth={isActive ? 2.2 : 1.6} />
+              <span className={`text-[10px] leading-tight tracking-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
                 {mod.label}
               </span>
               {!owned && <Lock size={10} className="absolute top-2 right-1/4" />}

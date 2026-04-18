@@ -12,10 +12,10 @@ export function PhotoStep({ value, onChange, onNext, onBack }: PhotoStepProps) {
   return (
     <div className="flex-1 flex flex-col px-6 py-10">
       <div className="flex-1 flex flex-col items-center justify-center max-w-sm mx-auto w-full">
-        <h2 className="text-2xl font-bold text-center mb-2" style={{ color: 'var(--color-text)' }}>
+        <h2 className="text-2xl font-bold font-display tracking-tight text-center mb-2 text-theme-text">
           Add a profile photo
         </h2>
-        <p className="text-sm text-center mb-8" style={{ color: 'var(--color-muted)' }}>
+        <p className="text-sm text-center mb-8 text-theme-muted">
           A photo of your little one for their journal.
         </p>
 
