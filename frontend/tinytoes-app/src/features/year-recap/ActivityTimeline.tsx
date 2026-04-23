@@ -3,6 +3,7 @@ import type { TimelineItem } from './useRecapData';
 
 interface Props {
   items: TimelineItem[];
+  onItemClick?: (item: TimelineItem) => void;
 }
 
 const TYPE_CONFIG = {
@@ -22,7 +23,7 @@ function relativeDate(ts: number): string {
   return new Date(ts).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-export function ActivityTimeline({ items }: Props) {
+export function ActivityTimeline({ items, onItemClick }: Props) {
   if (items.length === 0) return null;
 
   return (
@@ -37,9 +38,11 @@ export function ActivityTimeline({ items }: Props) {
           const Icon = config.icon;
 
           return (
-            <div
+            <button
               key={item.id}
-              className="flex flex-col items-center shrink-0 w-[72px]"
+              type="button"
+              onClick={() => onItemClick?.(item)}
+              className="flex flex-col items-center shrink-0 w-[72px] cursor-pointer"
             >
               {/* Circular thumbnail with type badge */}
               <div className="relative mb-1.5">
@@ -65,7 +68,7 @@ export function ActivityTimeline({ items }: Props) {
               <span className="text-[9px] text-theme-muted">
                 {relativeDate(item.timestamp)}
               </span>
-            </div>
+            </button>
           );
         })}
       </div>

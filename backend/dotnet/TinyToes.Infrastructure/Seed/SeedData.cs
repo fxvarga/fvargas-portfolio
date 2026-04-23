@@ -18,6 +18,9 @@ public static class SeedData
         // Seed product catalog
         await SeedProductsAsync(context, logger);
 
+        // Seed physical print book products (independent of initial seed)
+        await SeedPrintProductsAsync(context, logger);
+
         // Deactivate memory-book and year-recap (now free features)
         await DeactivateFreeFeaturesAsync(context, logger);
 
@@ -85,6 +88,73 @@ public static class SeedData
         context.Products.AddRange(products);
         await context.SaveChangesAsync();
         logger.LogInformation("Seeded {Count} products", products.Count);
+    }
+
+    private static async Task SeedPrintProductsAsync(TinyToesDbContext context, ILogger logger)
+    {
+        var printSlugs = new[] { "print-softcover", "print-hardcover", "print-premium" };
+        var existingCount = await context.Products.CountAsync(p => printSlugs.Contains(p.Slug));
+        if (existingCount == printSlugs.Length)
+            return;
+
+        var printProducts = new List<Product>
+        {
+            new()
+            {
+                ProductId = Guid.NewGuid(),
+                Slug = "print-softcover",
+                Name = "Keepsake Softcover Book",
+                Description = "6x9 perfect-bound softcover with matte finish. Includes digital bundle.",
+                PriceUsd = 29.99m,
+                IsBundle = false,
+                IsPhysical = true,
+                LuluPodPackageId = "0600X0900BWSTDPB060UW444MXX",
+                MinPages = 32,
+                MaxPages = 200,
+                SortOrder = 10,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                ProductId = Guid.NewGuid(),
+                Slug = "print-hardcover",
+                Name = "Heirloom Hardcover Book",
+                Description = "8.5x8.5 casebound hardcover with matte finish. Includes digital bundle.",
+                PriceUsd = 49.99m,
+                IsBundle = false,
+                IsPhysical = true,
+                LuluPodPackageId = "0850X0850FCSTDCW080CW444MXX",
+                MinPages = 32,
+                MaxPages = 200,
+                SortOrder = 11,
+                CreatedAt = DateTime.UtcNow
+            },
+            new()
+            {
+                ProductId = Guid.NewGuid(),
+                Slug = "print-premium",
+                Name = "Linen Premium Hardcover Book",
+                Description = "8.5x11 linen casebound with foil-stamped title. Includes digital bundle.",
+                PriceUsd = 79.99m,
+                IsBundle = false,
+                IsPhysical = true,
+                LuluPodPackageId = "0850X1100FCSTDCW080CW444MXX",
+                MinPages = 32,
+                MaxPages = 200,
+                SortOrder = 12,
+                CreatedAt = DateTime.UtcNow
+            }
+        };
+
+        // Only add missing ones
+        foreach (var p in printProducts)
+        {
+            if (!await context.Products.AnyAsync(x => x.Slug == p.Slug))
+                context.Products.Add(p);
+        }
+
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seeded print book products");
     }
 
     private static async Task DeactivateFreeFeaturesAsync(TinyToesDbContext context, ILogger logger)

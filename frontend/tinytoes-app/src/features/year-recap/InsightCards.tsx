@@ -1,5 +1,7 @@
+import { useNavigate } from 'react-router-dom';
 import {
   Smile, Flame, CalendarDays, Camera, Trophy, UtensilsCrossed, BookOpen, Sparkles,
+  ChevronRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type { Insight } from './useRecapData';
@@ -31,6 +33,7 @@ interface Props {
 }
 
 export function InsightCards({ insights }: Props) {
+  const navigate = useNavigate();
   // Show up to 3 insights
   const visible = insights.slice(0, 3);
   if (visible.length === 0) return null;
@@ -48,18 +51,28 @@ export function InsightCards({ insights }: Props) {
         {visible.map((insight, i) => {
           const Icon = ICON_MAP[insight.icon];
           const color = ICON_COLOR[insight.icon];
+          const isClickable = !!insight.link;
+
           return (
-            <div
+            <button
               key={i}
-              className="flex items-start gap-3 rounded-2xl p-4 bg-theme-panel border border-theme-accent"
+              type="button"
+              disabled={!isClickable}
+              onClick={() => insight.link && navigate(insight.link)}
+              className={`flex items-start gap-3 rounded-2xl p-4 bg-theme-panel border border-theme-accent w-full text-left transition-colors ${
+                isClickable ? 'active:bg-theme-accent cursor-pointer' : ''
+              }`}
             >
               <div className="w-9 h-9 rounded-xl bg-theme-bg flex items-center justify-center shrink-0">
                 <Icon size={18} className={color} />
               </div>
-              <p className="text-sm text-theme-text leading-relaxed pt-1.5">
+              <p className="text-sm text-theme-text leading-relaxed pt-1.5 flex-1">
                 {insight.text}
               </p>
-            </div>
+              {isClickable && (
+                <ChevronRight size={16} className="text-theme-muted shrink-0 mt-2" />
+              )}
+            </button>
           );
         })}
       </div>

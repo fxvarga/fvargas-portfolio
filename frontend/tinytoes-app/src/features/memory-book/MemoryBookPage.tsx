@@ -1,7 +1,5 @@
 import { useMemo, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useEntitlements } from '@/hooks/useEntitlements';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
 import { useMilestones } from '@/hooks/useMilestones';
@@ -11,7 +9,9 @@ import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
 import { Button } from '@/components/Button';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { MemorySlideshow, type SlideItem } from '@/components/MemorySlideshow';
+import { PrintTab } from '@/features/print-book/PrintTab';
 import {
   BookOpen, Printer, Smile, Meh, Frown, UtensilsCrossed,
   Trophy, BookText, Activity, Heart, MessageCircle, Brain,
@@ -111,16 +111,23 @@ function buildTimeline(
 
 export function MemoryBookPage() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const { hasAnyCoreProduct } = useEntitlements(isAuthenticated);
+  const location = useLocation();
   const { profile } = useProfile();
   const { entries } = useEntries();
   const { milestones } = useMilestones();
   const { entries: journalEntries } = useJournal();
   const [filter, setFilter] = useState<ItemFilter>('all');
   const [slideshowIndex, setSlideshowIndex] = useState<number | null>(null);
+  const savedTab = sessionStorage.getItem('memoryBookTab') as 'timeline' | 'print' | null;
+  const initialTab = savedTab ?? ((location.state as { tab?: string } | null)?.tab === 'print' ? 'print' : 'timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'print'>(initialTab);
 
-  const canPrint = hasAnyCoreProduct();
+  const handleTabChange = (tab: 'timeline' | 'print') => {
+    setActiveTab(tab);
+    sessionStorage.setItem('memoryBookTab', tab);
+  };
+
+  const canPrint = true; // Print books available to all users; checkout grants bundle if needed
 
   const totalItems = entries.length + milestones.length + journalEntries.length;
 
@@ -158,6 +165,24 @@ export function MemoryBookPage() {
       <PageHeader title="Memory Book" actions={printButton} />
       <ModuleNavBar activeSlug="memory-book" />
 
+      {/* Tab switcher */}
+      {canPrint && (
+        <div className="px-4 pb-3">
+          <SegmentedControl
+            options={[
+              { value: 'timeline' as const, label: 'Timeline' },
+              { value: 'print' as const, label: 'Print' },
+            ]}
+            value={activeTab}
+            onChange={handleTabChange}
+          />
+        </div>
+      )}
+
+      {activeTab === 'print' && canPrint ? (
+        <PrintTab />
+      ) : (
+      <>
       {/* Print header (hidden on screen) */}
       <div className="print-header hidden">
         <h1 className="text-theme-text">{profile.name}'s Memory Book</h1>
@@ -239,6 +264,8 @@ export function MemoryBookPage() {
           </div>
         )}
       </div>
+      </>
+      )}
 
       {/* Fullscreen slideshow */}
       {slideshowIndex !== null && (

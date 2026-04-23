@@ -9,6 +9,10 @@ import { HomePage } from '@/features/home/HomePage';
 import { MilestonesPage } from '@/features/milestones/MilestonesPage';
 import { JournalPage } from '@/features/journal/JournalPage';
 import { MemoryBookPage } from '@/features/memory-book/MemoryBookPage';
+import { BookEditorPage } from '@/features/print-book/BookEditorPage';
+import { OrderStatusPage } from '@/features/print-book/OrderStatusPage';
+import { PrintOrderSuccessPage } from '@/features/print-book/PrintOrderSuccessPage';
+import { PrintOrderCancelPage } from '@/features/print-book/PrintOrderCancelPage';
 import { YearRecapPage } from '@/features/year-recap/YearRecapPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { StorePage } from '@/features/store/StorePage';
@@ -69,6 +73,26 @@ export const router = createBrowserRouter([
         <MemoryBookPage />
       </RouteGuard>
     ),
+  },
+  {
+    path: '/book-editor/:projectId',
+    element: (
+      <RouteGuard>
+        <BookEditorPage />
+      </RouteGuard>
+    ),
+  },
+  {
+    path: '/print-order/success',
+    element: <PrintOrderSuccessPage />,
+  },
+  {
+    path: '/print-order/cancel',
+    element: <PrintOrderCancelPage />,
+  },
+  {
+    path: '/print-order/:token',
+    element: <OrderStatusPage />,
   },
   {
     path: '/year-recap',

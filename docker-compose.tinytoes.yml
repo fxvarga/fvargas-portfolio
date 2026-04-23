@@ -55,6 +55,17 @@ services:
       MS_GRAPH_CLIENT_ID: ${MS_GRAPH_CLIENT_ID:-}
       MS_GRAPH_CLIENT_SECRET: ${MS_GRAPH_CLIENT_SECRET:-}
       MAIL_USER_UPN: ${MAIL_USER_UPN:-}
+      # Lulu Print API
+      LULU_API_URL: ${LULU_API_URL:-https://api.sandbox.lulu.com}
+      LULU_AUTH_URL: ${LULU_AUTH_URL:-https://api.sandbox.lulu.com/auth/realms/glasstree/protocol/openid-connect/token}
+      LULU_CLIENT_KEY: ${LULU_CLIENT_KEY:-}
+      LULU_CLIENT_SECRET: ${LULU_CLIENT_SECRET:-}
+      LULU_WEBHOOK_SECRET: ${LULU_WEBHOOK_SECRET:-}
+      # DigitalOcean Spaces (PDF blob storage)
+      SPACES_ENDPOINT: ${SPACES_ENDPOINT:-https://sfo3.digitaloceanspaces.com}
+      SPACES_BUCKET: ${SPACES_BUCKET:-tinytoes}
+      SPACES_ACCESS_KEY: ${SPACES_ACCESS_KEY:-}
+      SPACES_SECRET_KEY: ${SPACES_SECRET_KEY:-}
     networks:
       - tinytoes-net
     healthcheck:

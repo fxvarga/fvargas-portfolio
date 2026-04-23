@@ -1,44 +1,57 @@
-import { useState, useEffect, useCallback } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { ImageModeProvider } from './context/ImageModeContext';
+import { EditModeProvider, useEditMode } from './context/EditModeContext';
+import { ThemeProvider } from './context/ThemeContext';
+import Header from './components/layout/Header';
+import Footer from './components/layout/Footer';
 import Home from './pages/Home';
-import { fetchCMSContent, defaultContent, type CMSContent } from './cms';
-import { CmsAgentWrapper } from './agent/CmsAgentWrapper';
+import Work from './pages/Work';
+import CaseStudyPage from './pages/CaseStudyPage';
+import Process from './pages/Process';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import ScrollToTop from './components/ScrollToTop';
+import ImageModeToggle from './components/ImageModeToggle';
+import EditModeToggle from './components/EditModeToggle';
+import EditBanner from './components/EditBanner';
+import ExportButton from './components/ExportButton';
+
+/** Spacer to push content below the fixed edit banner */
+function EditBannerSpacer() {
+  const { editMode } = useEditMode();
+  if (!editMode) return null;
+  return <div data-editor-ui className="h-10" />;
+}
 
 function App() {
-  const [realContent, setRealContent] = useState<CMSContent>(defaultContent);
-  const [displayContent, setDisplayContent] = useState<CMSContent>(defaultContent);
-  const [loading, setLoading] = useState(true);
-
-  const loadContent = useCallback(() => {
-    return fetchCMSContent()
-      .then((data) => {
-        setRealContent(data);
-        setDisplayContent(data);
-      });
-  }, []);
-
-  useEffect(() => {
-    loadContent().finally(() => setLoading(false));
-  }, [loadContent]);
-
-  const handleRefetch = useCallback(async () => {
-    await loadContent();
-  }, [loadContent]);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-light">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500 text-lg font-body">Loading...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <CmsAgentWrapper content={realContent} onContentChange={setDisplayContent} onRefetch={handleRefetch}>
-      <Home content={displayContent} />
-    </CmsAgentWrapper>
+    <ThemeProvider>
+      <EditModeProvider>
+        <ImageModeProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <EditBanner />
+            <EditBannerSpacer />
+            <Header />
+            <main className="min-h-screen">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/work" element={<Work />} />
+                <Route path="/work/:slug" element={<CaseStudyPage />} />
+                <Route path="/process" element={<Process />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+              </Routes>
+            </main>
+            <Footer />
+            {/* Floating action stack — bottom-right */}
+            <ExportButton />
+            <EditModeToggle />
+            <ImageModeToggle />
+          </BrowserRouter>
+        </ImageModeProvider>
+      </EditModeProvider>
+    </ThemeProvider>
   );
 }
 

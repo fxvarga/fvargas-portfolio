@@ -173,6 +173,53 @@ public static class AdminEndpoints
             return Results.Ok(products);
         });
 
+        // Retry a failed print order
+        group.MapPost("/orders/{orderId}/retry", async (Guid orderId, StripeWebhookService webhookService) =>
+        {
+            try
+            {
+                var result = await webhookService.RetryFailedOrderAsync(orderId);
+                if (result.Contains("not found") || result.Contains("not Error"))
+                    return Results.BadRequest(new { error = result });
+                return Results.Ok(new { message = result });
+            }
+            catch (Exception)
+            {
+                return Results.StatusCode(500);
+            }
+        });
+
+        // List all print orders
+        group.MapGet("/orders", async (TinyToesDbContext db, string? status) =>
+        {
+            var query = db.MemoryBookOrders
+                .Include(o => o.ShippingAddress)
+                .Include(o => o.PrintJob)
+                .AsQueryable();
+
+            if (Enum.TryParse<OrderStatus>(status, true, out var parsedStatus))
+                query = query.Where(o => o.Status == parsedStatus);
+
+            var orders = await query
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new
+                {
+                    o.Id,
+                    o.Email,
+                    status = o.Status.ToString(),
+                    o.ProductSlug,
+                    o.PageCount,
+                    o.AmountCents,
+                    o.ShippingLevel,
+                    luluJobId = o.PrintJob != null ? o.PrintJob.LuluPrintJobId : null,
+                    luluStatus = o.PrintJob != null ? o.PrintJob.Status : null,
+                    o.CreatedAt
+                })
+                .ToListAsync();
+
+            return Results.Ok(orders);
+        });
+
         // List buyer entitlements
         group.MapGet("/entitlements", async (TinyToesDbContext db, string? email) =>
         {

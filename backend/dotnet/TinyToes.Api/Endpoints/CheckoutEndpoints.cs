@@ -73,8 +73,12 @@ public static class CheckoutEndpoints
                     p.Description,
                     p.PriceUsd,
                     p.IsBundle,
+                    p.IsPhysical,
                     bundleIncludes = p.IsBundle ? p.BundleProductSlugs : null,
-                    isAvailable = !string.IsNullOrEmpty(p.StripePriceId)
+                    isAvailable = !string.IsNullOrEmpty(p.StripePriceId),
+                    p.LuluPodPackageId,
+                    p.MinPages,
+                    p.MaxPages
                 })
                 .ToListAsync();
 

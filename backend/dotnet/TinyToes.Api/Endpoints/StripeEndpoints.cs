@@ -32,12 +32,30 @@ public static class StripeEndpoints
                 if (stripeEvent.Type == EventTypes.CheckoutSessionCompleted)
                 {
                     var session = stripeEvent.Data.Object as Stripe.Checkout.Session;
-                    logger.LogInformation("Checkout session completed. Email={Email}, CustomerId={CustomerId}",
-                        session?.CustomerDetails?.Email, session?.CustomerId);
+                    
+                    // Webhook payload often has minimal session data — retrieve full session
+                    // to ensure ShippingDetails is populated
+                    if (session?.Id is not null)
+                    {
+                        var sessionService = new SessionService();
+                        session = await sessionService.GetAsync(session.Id);
+                    }
+                    logger.LogInformation("Checkout session completed. Email={Email}, CustomerId={CustomerId}, HasShipping={HasShipping}",
+                        session?.CustomerDetails?.Email, session?.CustomerId, session?.ShippingDetails?.Address?.City is not null);
 
                     if (session?.CustomerDetails?.Email is not null)
                     {
-                        // Read the product slug from checkout session metadata
+                        var isPhysical = session.Metadata?.GetValueOrDefault("is_physical") == "true";
+
+                        if (isPhysical)
+                        {
+                            // Physical print book order — create Lulu print job
+                            await webhookService.HandlePhysicalCheckoutCompletedAsync(session);
+                            logger.LogInformation("Physical order processed for {Email}", session.CustomerDetails.Email);
+                            return Results.Ok(new { received = true, type = "physical" });
+                        }
+
+                        // Digital product — generate claim code
                         var productSlug = session.Metadata?.GetValueOrDefault("product_slug") ?? "first-foods";
 
                         var code = await webhookService.HandleCheckoutCompletedAsync(

@@ -284,17 +284,16 @@ http://opsblueprint.homehost {
     }
 }
 
-# Brad Earnhardt Portfolio (UI/UX designer)
+# Brad Earnhardt Portfolio (UI/UX designer) — Production
+https://{$DOMAIN_BRAD_PROD:brad.fernando-vargas.com} {
+    handle {
+        reverse_proxy frontend-brad:80
+    }
+}
+
+# Brad Earnhardt Portfolio (UI/UX designer) — Local dev
 https://{$DOMAIN_BRAD:brad.localhost} {
     tls internal
-
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
 
     handle {
         reverse_proxy frontend-brad:80
@@ -303,12 +302,6 @@ https://{$DOMAIN_BRAD:brad.localhost} {
 
 # Brad Earnhardt (LAN)
 http://brad.homehost {
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
     handle {
         reverse_proxy frontend-brad:80
     }

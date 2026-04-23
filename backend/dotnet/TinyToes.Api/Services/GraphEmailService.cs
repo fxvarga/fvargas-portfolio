@@ -48,6 +48,20 @@ public class GraphEmailService
         await SendEmailAsync(recipientEmail, recipientName, subject, htmlBody);
     }
 
+    /// <summary>
+    /// Send a generic email via Graph API. Used by OrderEmailService for print order transactional emails.
+    /// </summary>
+    public async Task SendGenericEmailAsync(string toEmail, string subject, string htmlBody)
+    {
+        if (!IsConfigured)
+        {
+            _logger.LogWarning("Graph API not configured — skipping email delivery for {Email}", toEmail);
+            return;
+        }
+
+        await SendEmailAsync(toEmail, toEmail, subject, htmlBody);
+    }
+
     private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody)
     {
         var token = await GetAccessTokenAsync();

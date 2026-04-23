@@ -1,0 +1,136 @@
+# ── Production Caddyfile ─────────────────────────────────────
+# Deploy to server: scp deploy/Caddyfile.production root@147.182.169.160:/opt/portfolio/Caddyfile
+# Then restart:     ssh root@147.182.169.160 "cd /opt/portfolio && docker compose restart caddy"
+#
+# All domains use automatic Let's Encrypt TLS (no tls internal, no local_certs).
+# Do NOT add blog.fernando-vargas.com — DNS does not exist for it.
+
+# Fernando Vargas Portfolio
+fernando-vargas.com, www.fernando-vargas.com {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-fernando:80
+    }
+}
+
+# Jessica Sutherland Portfolio
+jessicasutherland.me, www.jessicasutherland.me {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-jessica:80
+    }
+}
+
+# Busy Bee Marketing Agency
+thebusybeeweb.com, www.thebusybeeweb.com {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-busybee:80
+    }
+}
+
+# 1 Stop Wings
+1stopwings.executivecateringct.com {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-executive-catering:80
+    }
+}
+
+# Executive Catering
+executivecateringct.fernando-vargas.com {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-executive-catering:80
+    }
+}
+
+# OpsBlueprint
+opsblueprint.fernando-vargas.com {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle {
+        reverse_proxy frontend-opsblueprint:80
+    }
+}
+
+# Brad Earnhardt Portfolio (static — no backend)
+brad.fernando-vargas.com {
+    handle {
+        reverse_proxy frontend-brad:80
+    }
+}
+
+# Plausible Analytics
+analytics.fernando-vargas.com {
+    reverse_proxy plausible:8000
+}
+
+# Grafana Monitoring
+grafana.fernando-vargas.com {
+    reverse_proxy grafana:3000
+}
+
+# n8n Workflow Automation
+n8n.fernando-vargas.com {
+    reverse_proxy n8n:5678 {
+        header_up Connection {>Connection}
+        header_up Upgrade {>Upgrade}
+    }
+}
+
+# Discord Bot
+bot.fernando-vargas.com {
+    reverse_proxy discord-bot:3100
+}
+
+# TinyToes — Baby First Bites
+tinytoes.fernando-vargas.com {
+    handle /api/* {
+        reverse_proxy tinytoes-api:8080
+    }
+    handle /healthz {
+        reverse_proxy tinytoes-api:8080
+    }
+    handle {
+        reverse_proxy tinytoes-web:80
+    }
+}

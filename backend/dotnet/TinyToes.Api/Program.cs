@@ -20,6 +20,10 @@ builder.Services.AddDbContext<TinyToesDbContext>(options =>
 builder.Services.AddScoped<ClaimService>();
 builder.Services.AddSingleton<GraphEmailService>();
 builder.Services.AddScoped<StripeWebhookService>();
+builder.Services.AddSingleton<BlobStorageService>();
+builder.Services.AddSingleton<LuluApiClient>();
+builder.Services.AddScoped<OrderEmailService>();
+builder.Services.AddScoped<LuluWebhookService>();
 builder.Services.AddHttpClient();
 
 // CORS
@@ -67,6 +71,8 @@ app.MapClaimEndpoints();
 app.MapCheckoutEndpoints();
 app.MapStripeEndpoints();
 app.MapAdminEndpoints();
+app.MapPrintEndpoints();
+app.MapLuluWebhookEndpoints();
 app.MapHealthChecks("/health");
 app.MapHealthChecks("/healthz");
 

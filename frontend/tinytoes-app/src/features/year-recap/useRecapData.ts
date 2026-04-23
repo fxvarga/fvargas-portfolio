@@ -49,6 +49,8 @@ export interface DashboardData {
 export interface Insight {
   icon: 'smile' | 'flame' | 'calendar' | 'camera' | 'trophy' | 'utensils' | 'book' | 'sparkles';
   text: string;
+  /** Navigation target when tapped */
+  link?: '/first-foods' | '/milestones' | '/journal' | '/memory-book';
 }
 
 /* ── Helpers ─────────────────────────────────────────────── */
@@ -151,6 +153,7 @@ export function useRecapData(
       if (topFood) {
         insights.push({
           icon: 'smile',
+          link: '/first-foods',
           text: topFood[1] > 1
             ? `${topFood[0]} is the #1 favorite — loved ${topFood[1]} times!`
             : `${topFood[0]} is the top favorite!`,
@@ -159,7 +162,7 @@ export function useRecapData(
 
       // Streak
       if (streak > 1) {
-        insights.push({ icon: 'flame', text: `${streak}-day logging streak — impressive consistency!` });
+        insights.push({ icon: 'flame', link: '/first-foods', text: `${streak}-day logging streak — impressive consistency!` });
       }
 
       // Busiest month
@@ -167,14 +170,14 @@ export function useRecapData(
       entries.forEach(e => { const m = monthLabel(e.createdAt); byMonth[m] = (byMonth[m] || 0) + 1; });
       const busiest = Object.entries(byMonth).sort((a, b) => b[1] - a[1])[0];
       if (busiest && busiest[1] > 2) {
-        insights.push({ icon: 'calendar', text: `${busiest[0]} was the busiest month with ${busiest[1]} foods tried` });
+        insights.push({ icon: 'calendar', link: '/first-foods', text: `${busiest[0]} was the busiest month with ${busiest[1]} foods tried` });
       }
 
       // Reaction breakdown
       const loved = entries.filter(e => e.reaction === 'loved').length;
       const pct = Math.round((loved / entries.length) * 100);
       if (pct >= 50) {
-        insights.push({ icon: 'sparkles', text: `${pct}% of foods were loved — what an adventurous eater!` });
+        insights.push({ icon: 'sparkles', link: '/first-foods', text: `${pct}% of foods were loved — what an adventurous eater!` });
       }
     }
 
@@ -182,18 +185,19 @@ export function useRecapData(
       const latest = [...milestones].sort((a, b) => b.achievedAt - a.achievedAt)[0];
       insights.push({
         icon: 'trophy',
+        link: '/milestones',
         text: `Latest milestone: "${latest.title}" — ${new Date(latest.achievedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`,
       });
     }
 
     if (totalPhotos > 0) {
-      insights.push({ icon: 'camera', text: `${totalPhotos} photo${totalPhotos !== 1 ? 's' : ''} captured across the journey` });
+      insights.push({ icon: 'camera', link: '/memory-book', text: `${totalPhotos} photo${totalPhotos !== 1 ? 's' : ''} captured across the journey` });
     }
 
     if (hasJournal && journalEntries.length > 0) {
       const totalHighlights = journalEntries.reduce((sum, j) => sum + j.highlights.length, 0);
       if (totalHighlights > 0) {
-        insights.push({ icon: 'book', text: `${totalHighlights} highlights recorded across ${journalEntries.length} month${journalEntries.length !== 1 ? 's' : ''}` });
+        insights.push({ icon: 'book', link: '/journal', text: `${totalHighlights} highlights recorded across ${journalEntries.length} month${journalEntries.length !== 1 ? 's' : ''}` });
       }
     }
 

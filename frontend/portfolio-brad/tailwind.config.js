@@ -7,32 +7,38 @@ export default {
   theme: {
     extend: {
       colors: {
-        orange: {
-          50: '#FFF7ED',
-          100: '#FFEDD5',
-          200: '#FED7AA',
-          300: '#FDBA74',
-          400: '#FB923C',
-          500: '#FF6B00',
-          600: '#EA580C',
-          700: '#C2410C',
-          800: '#9A3412',
-          900: '#7C2D12',
+        primary: {
+          DEFAULT: 'rgb(var(--color-primary) / <alpha-value>)',
+          hover: 'rgb(var(--color-primary-hover) / <alpha-value>)',
+          light: 'rgb(var(--color-primary-light) / <alpha-value>)',
         },
-        dark: {
-          DEFAULT: '#1A1A1A',
-          light: '#2A2A2A',
-          lighter: '#3A3A3A',
+        surface: {
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          light: 'rgb(var(--color-surface-light) / <alpha-value>)',
         },
-        light: {
-          DEFAULT: '#F9F5F0',
-          warm: '#FDF8F3',
-          cool: '#F5F5F5',
+        bg: {
+          DEFAULT: 'rgb(var(--color-bg) / <alpha-value>)',
+          alt: 'rgb(var(--color-bg-alt) / <alpha-value>)',
+        },
+        txt: {
+          DEFAULT: 'rgb(var(--color-text) / <alpha-value>)',
+          muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
+          inverse: 'rgb(var(--color-text-inverse) / <alpha-value>)',
+        },
+        border: {
+          DEFAULT: 'rgb(var(--color-border) / <alpha-value>)',
+          dark: 'rgb(var(--color-border-dark) / <alpha-value>)',
         },
       },
       fontFamily: {
-        heading: ['Jost', 'sans-serif'],
-        body: ['Urbanist', 'sans-serif'],
+        heading: ['var(--font-heading)'],
+        body: ['var(--font-body)'],
+      },
+      borderRadius: {
+        sm: 'var(--radius-sm)',
+        md: 'var(--radius-md)',
+        lg: 'var(--radius-lg)',
+        full: 'var(--radius-full)',
       },
     },
   },

@@ -3,9 +3,10 @@ import type { TimelineItem } from './useRecapData';
 
 interface Props {
   items: TimelineItem[];
+  onItemClick?: (index: number) => void;
 }
 
-export function MemoryCollage({ items }: Props) {
+export function MemoryCollage({ items, onItemClick }: Props) {
   if (items.length === 0) return null;
 
   return (
@@ -19,9 +20,11 @@ export function MemoryCollage({ items }: Props) {
 
       <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden">
         {items.map((item, i) => (
-          <div
+          <button
             key={item.id}
-            className={`relative overflow-hidden bg-theme-bg ${
+            type="button"
+            onClick={() => onItemClick?.(i)}
+            className={`relative overflow-hidden bg-theme-bg cursor-pointer ${
               /* Make the first image span 2 rows if we have 4+ photos */
               i === 0 && items.length >= 4 ? 'row-span-2 aspect-[2/3]' : 'aspect-square'
             }`}
@@ -36,7 +39,7 @@ export function MemoryCollage({ items }: Props) {
             <span className="absolute bottom-1 left-1.5 text-[9px] font-medium text-white/90 drop-shadow-sm line-clamp-1">
               {item.title}
             </span>
-          </div>
+          </button>
         ))}
       </div>
     </section>

@@ -1,0 +1,213 @@
+- generic [ref=e2]:
+  - generic [ref=e233]:
+    - generic [ref=e234]: Editing — click any highlighted text to modify. Changes save locally.
+    - generic [ref=e236] [cursor=pointer]: Import
+  - banner [ref=e3]:
+    - generic [ref=e5]:
+      - link "Brad Earnhardt" [ref=e6] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e7]: Brad
+        - generic [ref=e8]: Earnhardt
+      - navigation [ref=e9]:
+        - link "Home" [ref=e10] [cursor=pointer]:
+          - /url: /
+        - link "Work" [ref=e11] [cursor=pointer]:
+          - /url: /work
+        - link "Process" [ref=e12] [cursor=pointer]:
+          - /url: /process
+        - link "About" [ref=e13] [cursor=pointer]:
+          - /url: /about
+        - link "Contact" [ref=e14] [cursor=pointer]:
+          - /url: /contact
+      - link "Get In Touch" [ref=e15] [cursor=pointer]:
+        - /url: /contact
+        - generic [ref=e16]: Get In Touch
+  - dialog "Mobile navigation" [ref=e17]:
+    - generic [ref=e18]:
+      - generic [ref=e19]: BradEarnhardt
+      - button "Close menu" [ref=e20] [cursor=pointer]: ×
+    - navigation [ref=e21]:
+      - link "Home" [ref=e22] [cursor=pointer]:
+        - /url: /
+      - link "Work" [ref=e23] [cursor=pointer]:
+        - /url: /work
+      - link "Process" [ref=e24] [cursor=pointer]:
+        - /url: /process
+      - link "About" [ref=e25] [cursor=pointer]:
+        - /url: /about
+      - link "Contact" [ref=e26] [cursor=pointer]:
+        - /url: /contact
+      - link "Get In Touch" [ref=e27] [cursor=pointer]:
+        - /url: /contact
+  - main [ref=e28]:
+    - generic [ref=e31]:
+      - generic [ref=e33]:
+        - img "Brad Earnhardt, UX Designer" [ref=e35]
+        - generic [ref=e36]: Senior UX Designer
+      - generic [ref=e37]:
+        - paragraph [ref=e38]: Hello, I'm Brad Earnhardt
+        - heading "UX Designer focused on building intuitive, scalable enterprise and product experiences" [level=1] [ref=e39]
+        - paragraph [ref=e40]: I translate research and business requirements into clear, usable designs across web and mobile.
+        - generic [ref=e41]:
+          - link "View My Work" [ref=e42] [cursor=pointer]:
+            - /url: /work
+            - generic [ref=e43]: View My Work
+            - img [ref=e44]
+          - link "My Process" [ref=e46] [cursor=pointer]:
+            - /url: /process
+    - generic [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - paragraph [ref=e53]: Featured Work
+          - heading "Selected Case Studies" [level=2] [ref=e54]
+        - link "View All" [ref=e55] [cursor=pointer]:
+          - /url: /work
+      - generic [ref=e56]:
+        - link "Rothman Index Mobile App Healthcare / Mobile Rothman Index Mobile App Real-time patient acuity monitoring for clinical teams on the go Figma React Native Angular +1 more" [ref=e57] [cursor=pointer]:
+          - /url: /work/rothman-mobile
+          - img "Rothman Index Mobile App" [ref=e59]
+          - generic [ref=e60]:
+            - paragraph [ref=e61]: Healthcare / Mobile
+            - heading "Rothman Index Mobile App" [level=3] [ref=e62]
+            - paragraph [ref=e63]: Real-time patient acuity monitoring for clinical teams on the go
+            - generic [ref=e64]:
+              - generic [ref=e65]: Figma
+              - generic [ref=e66]: React Native
+              - generic [ref=e67]: Angular
+              - generic [ref=e68]: +1 more
+        - link "SafeNSound Platform Healthcare / Product Design SafeNSound Platform Redesigning a patient monitoring platform for modern clinical workflows Figma Design Systems WCAG 2.1 +1 more" [ref=e69] [cursor=pointer]:
+          - /url: /work/safensound
+          - img "SafeNSound Platform" [ref=e71]
+          - generic [ref=e72]:
+            - paragraph [ref=e73]: Healthcare / Product Design
+            - heading "SafeNSound Platform" [level=3] [ref=e74]
+            - paragraph [ref=e75]: Redesigning a patient monitoring platform for modern clinical workflows
+            - generic [ref=e76]:
+              - generic [ref=e77]: Figma
+              - generic [ref=e78]: Design Systems
+              - generic [ref=e79]: WCAG 2.1
+              - generic [ref=e80]: +1 more
+        - link "Rothman Index Analytics Dashboard Enterprise / Dashboard Rothman Index Analytics Dashboard Enterprise reporting tool for hospital administrators and quality teams Figma React D3.js +2 more" [ref=e81] [cursor=pointer]:
+          - /url: /work/ri-analytics-dashboard
+          - img "Rothman Index Analytics Dashboard" [ref=e83]
+          - generic [ref=e84]:
+            - paragraph [ref=e85]: Enterprise / Dashboard
+            - heading "Rothman Index Analytics Dashboard" [level=3] [ref=e86]
+            - paragraph [ref=e87]: Enterprise reporting tool for hospital administrators and quality teams
+            - generic [ref=e88]:
+              - generic [ref=e89]: Figma
+              - generic [ref=e90]: React
+              - generic [ref=e91]: D3.js
+              - generic [ref=e92]: +2 more
+    - generic [ref=e95]:
+      - generic [ref=e96]:
+        - generic [ref=e97]:
+          - paragraph [ref=e100]: Approach
+          - heading "How I Work" [level=2] [ref=e101]
+        - list [ref=e102]:
+          - listitem [ref=e103]:
+            - img [ref=e104]
+            - generic [ref=e106]: Start with research, not assumptions
+          - listitem [ref=e107]:
+            - img [ref=e108]
+            - generic [ref=e110]: Show wireframes and iterations, not just final screens
+          - listitem [ref=e111]:
+            - img [ref=e112]
+            - generic [ref=e114]: Design within real technical and business constraints
+          - listitem [ref=e115]:
+            - img [ref=e116]
+            - generic [ref=e118]: Collaborate daily with PMs and engineers
+          - listitem [ref=e119]:
+            - img [ref=e120]
+            - generic [ref=e122]: Validate decisions with usability testing
+          - listitem [ref=e123]:
+            - img [ref=e124]
+            - generic [ref=e126]: Deliver dev-ready specs, not just mockups
+        - link "See Full Process" [ref=e127] [cursor=pointer]:
+          - /url: /process
+          - text: See Full Process
+          - img [ref=e128]
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - paragraph [ref=e134]: Skills
+          - heading "Core Competencies" [level=2] [ref=e135]
+        - generic [ref=e136]:
+          - generic [ref=e137]:
+            - text: Figma
+            - generic [ref=e138]: (wireframes, prototypes, hi-fi)
+          - generic [ref=e139]: Interaction design
+          - generic [ref=e140]: User-centered design
+          - generic [ref=e141]: Design systems
+          - generic [ref=e142]: Cross-functional collaboration
+          - generic [ref=e143]: Usability testing
+        - heading "Tools" [level=4] [ref=e144]
+        - generic [ref=e145]:
+          - generic [ref=e148]: Figma
+          - generic [ref=e151]: Adobe Creative Cloud
+          - generic [ref=e154]: Adobe XD
+          - generic [ref=e157]: Sketch
+          - generic [ref=e160]: InVision
+          - generic [ref=e163]: React
+          - generic [ref=e166]: Angular
+          - generic [ref=e169]: HTML / CSS / SASS / SCSS
+          - generic [ref=e172]: JavaScript / TypeScript
+          - generic [ref=e175]: Git / GitHub
+          - generic [ref=e178]: VS Code / IntelliJ
+          - generic [ref=e181]: Azure DevOps / Jira
+          - generic [ref=e184]: Microsoft Office 365
+  - contentinfo [ref=e185]:
+    - generic [ref=e188]:
+      - heading "Have a project in mind? Let's talk." [level=3] [ref=e189]
+      - link "Get In Touch" [ref=e190] [cursor=pointer]:
+        - /url: /contact
+        - generic [ref=e191]: Get In Touch
+    - generic [ref=e192]:
+      - generic [ref=e193]:
+        - generic [ref=e194]:
+          - generic [ref=e195]: BradEarnhardt
+          - paragraph [ref=e196]: UX Designer focused on building intuitive, scalable enterprise and product experiences.
+        - generic [ref=e197]:
+          - heading "Quick Links" [level=4] [ref=e198]
+          - list [ref=e199]:
+            - listitem [ref=e200]:
+              - link "Home" [ref=e201] [cursor=pointer]:
+                - /url: /
+            - listitem [ref=e202]:
+              - link "Work" [ref=e203] [cursor=pointer]:
+                - /url: /work
+            - listitem [ref=e204]:
+              - link "Process" [ref=e205] [cursor=pointer]:
+                - /url: /process
+            - listitem [ref=e206]:
+              - link "About" [ref=e207] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e208]:
+              - link "Contact" [ref=e209] [cursor=pointer]:
+                - /url: /contact
+        - generic [ref=e210]:
+          - heading "Get In Touch" [level=4] [ref=e211]
+          - list [ref=e212]:
+            - listitem [ref=e213]:
+              - link "uxbrad@bdesigns.net" [ref=e214] [cursor=pointer]:
+                - /url: mailto:uxbrad@bdesigns.net
+            - listitem [ref=e215]:
+              - link "704-323-6921" [ref=e216] [cursor=pointer]:
+                - /url: tel:704-323-6921
+            - listitem [ref=e217]: Charlotte, NC
+          - generic [ref=e218]:
+            - link "LinkedIn" [ref=e219] [cursor=pointer]:
+              - /url: https://www.linkedin.com/in/bradearnhardt/
+              - img [ref=e220]
+            - link "Email" [ref=e222] [cursor=pointer]:
+              - /url: mailto:uxbrad@bdesigns.net
+              - img [ref=e223]
+      - paragraph [ref=e226]: © 2026 Brad Earnhardt. All rights reserved.
+  - button "Export site as static HTML" [ref=e237] [cursor=pointer]:
+    - img [ref=e238]
+    - text: Export
+  - button "Exit edit mode" [active] [ref=e240] [cursor=pointer]:
+    - img [ref=e228]
+    - text: Editing
+  - button "Switch to placeholder mode" [ref=e230] [cursor=pointer]:
+    - img [ref=e231]
+    - text: Stock Images

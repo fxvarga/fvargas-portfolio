@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Clapperboard } from 'lucide-react';
+import { Clapperboard, BookOpen } from 'lucide-react';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
 import { useMilestones } from '@/hooks/useMilestones';
@@ -11,12 +12,14 @@ import { Button } from '@/components/Button';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
-import { useRecapData } from './useRecapData';
+import { MemorySlideshow, type SlideItem } from '@/components/MemorySlideshow';
+import { useRecapData, type TimelineItem } from './useRecapData';
 import { DashboardHero } from './DashboardHero';
 import { FunCounters } from './FunCounters';
 import { ActivityTimeline } from './ActivityTimeline';
 import { MemoryCollage } from './MemoryCollage';
 import { InsightCards } from './InsightCards';
+import type { FoodEntry, Milestone, JournalEntry } from '@/types';
 
 /* ── Scroll-reveal wrapper ───────────────────────────────── */
 
@@ -29,6 +32,19 @@ function RevealSection({ children, delay = 0 }: { children: React.ReactNode; del
       {children}
     </div>
   );
+}
+
+/* ── Convert TimelineItem to SlideItem ───────────────────── */
+
+function toSlideItem(item: TimelineItem): SlideItem {
+  switch (item.type) {
+    case 'food':
+      return { type: 'food', data: item.data as FoodEntry };
+    case 'milestone':
+      return { type: 'milestone', data: item.data as Milestone };
+    case 'journal':
+      return { type: 'journal', data: item.data as JournalEntry };
+  }
 }
 
 /* ── Page ─────────────────────────────────────────────────── */
@@ -45,6 +61,21 @@ export function YearRecapPage() {
   const canGenerate = hasAnyCoreProduct();
 
   const data = useRecapData(profile, entries, milestones, journalEntries, hasProduct);
+
+  /* Slideshow state for image previews */
+  const [slideshow, setSlideshow] = useState<{ items: SlideItem[]; startIndex: number } | null>(null);
+
+  const openCollageSlideshow = (index: number) => {
+    const slideItems = data.photoMemories.map(toSlideItem);
+    setSlideshow({ items: slideItems, startIndex: index });
+  };
+
+  const openActivitySlideshow = (item: TimelineItem) => {
+    // Build a slideshow from all recent activity items
+    const slideItems = data.recentActivity.map(toSlideItem);
+    const startIndex = data.recentActivity.findIndex(a => a.id === item.id);
+    setSlideshow({ items: slideItems, startIndex: Math.max(0, startIndex) });
+  };
 
   return (
     <PageShell>
@@ -77,12 +108,18 @@ export function YearRecapPage() {
 
               {/* Recent activity horizontal scroll */}
               <RevealSection delay={160}>
-                <ActivityTimeline items={data.recentActivity} />
+                <ActivityTimeline
+                  items={data.recentActivity}
+                  onItemClick={openActivitySlideshow}
+                />
               </RevealSection>
 
               {/* Photo memory collage */}
               <RevealSection delay={240}>
-                <MemoryCollage items={data.photoMemories} />
+                <MemoryCollage
+                  items={data.photoMemories}
+                  onItemClick={openCollageSlideshow}
+                />
               </RevealSection>
 
               {/* Did you know? insights */}
@@ -90,8 +127,28 @@ export function YearRecapPage() {
                 <InsightCards insights={data.insights} />
               </RevealSection>
 
-              {/* Footer */}
+              {/* Print a Book CTA */}
               <RevealSection delay={400}>
+                <button
+                  onClick={() => navigate('/memory-book', { state: { tab: 'print' } })}
+                  className="w-full rounded-2xl p-5 text-left transition-transform active:scale-[0.98] bg-theme-panel shadow-sm border border-theme-accent"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-theme-primary-light">
+                      <BookOpen size={20} className="text-theme-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-sm font-bold text-theme-text">Print a Photo Book</h3>
+                      <p className="text-xs text-theme-muted mt-0.5">
+                        Turn {profile.name ? `${profile.name}'s` : 'your'} memories into a beautiful keepsake book
+                      </p>
+                    </div>
+                  </div>
+                </button>
+              </RevealSection>
+
+              {/* Footer */}
+              <RevealSection delay={480}>
                 <div className="text-center py-4">
                   <p className="text-xs text-theme-muted">
                     Made with love by TinyToes
@@ -120,6 +177,15 @@ export function YearRecapPage() {
             }
           />
         </div>
+      )}
+
+      {/* Slideshow overlay for image previews */}
+      {slideshow && (
+        <MemorySlideshow
+          items={slideshow.items}
+          startIndex={slideshow.startIndex}
+          onClose={() => setSlideshow(null)}
+        />
       )}
     </PageShell>
   );

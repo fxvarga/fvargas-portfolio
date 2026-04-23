@@ -1,25 +1,20 @@
-# Build stage — workspace-aware build that includes @fvargas/cms-agent-panel
+# Build stage
 FROM node:20-alpine AS build
 WORKDIR /app
 
-# Install pnpm v9 (v10 blocks build scripts by default, breaking esbuild)
+# Install pnpm v9
 RUN npm install -g pnpm@9
 
 # Copy workspace root config and lockfile
 COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 
-# Copy package.json files for all workspace members (for dependency resolution)
-COPY packages/cms-agent-panel/package.json packages/cms-agent-panel/
+# Copy package.json for portfolio-brad
 COPY frontend/portfolio-brad/package.json frontend/portfolio-brad/
 
-# Install all workspace dependencies from root
+# Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy the cms-agent-panel source and build it first
-COPY packages/cms-agent-panel/ packages/cms-agent-panel/
-RUN pnpm --filter @fvargas/cms-agent-panel build
-
-# Copy portfolio-brad source
+# Copy source
 COPY frontend/portfolio-brad/ frontend/portfolio-brad/
 
 # Build the app

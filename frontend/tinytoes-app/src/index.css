@@ -1,5 +1,5 @@
 @import 'tailwindcss';
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 @theme {
   --color-theme-bg: var(--color-background);
@@ -49,9 +49,10 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* Serif heading font for premium feel */
+/* Display heading font — Inter with tighter tracking for a modern feel */
 .font-display {
-  font-family: 'Playfair Display', Georgia, serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.025em;
 }
 
 /* Safe area padding for iOS standalone mode */

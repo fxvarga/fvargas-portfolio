@@ -1,29 +1,23 @@
-import type { SiteConfig, Footer as FooterType } from '../../cms';
+import { Link } from 'react-router-dom';
+import { siteConfig, footer, navigation } from '../../content/site';
+import Editable from '../Editable';
 
-interface FooterProps {
-  siteConfig: SiteConfig;
-  footer: FooterType;
-}
-
-export default function Footer({ siteConfig, footer }: FooterProps) {
+export default function Footer() {
   const year = new Date().getFullYear();
   const copyright = footer.copyrightTemplate.replace('{year}', String(year));
 
   return (
-    <footer className="bg-dark text-white">
+    <footer className="bg-surface text-txt-inverse">
       {/* CTA Section */}
-      <div className="border-b border-gray-800">
+      <div className="border-b border-border-dark">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <h3 className="font-heading text-2xl md:text-3xl font-semibold text-center md:text-left">
+            <Editable path="footer.ctaHeading" as="h3" className="font-heading text-2xl md:text-3xl font-semibold text-center md:text-left">
               {footer.ctaHeading}
-            </h3>
-            <a
-              href={footer.ctaButtonLink}
-              className="inline-flex items-center px-8 py-3 bg-orange-500 text-white font-semibold rounded-sm hover:bg-orange-600 transition-all btn-effect font-body"
-            >
-              <span className="relative z-10">{footer.ctaButtonText}</span>
-            </a>
+            </Editable>
+            <Link to={footer.ctaButtonLink} className="btn-primary">
+              <Editable path="footer.ctaButtonText">{footer.ctaButtonText}</Editable>
+            </Link>
           </div>
         </div>
       </div>
@@ -31,43 +25,44 @@ export default function Footer({ siteConfig, footer }: FooterProps) {
       {/* Footer Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {/* Brand */}
           <div>
             <div className="font-heading text-2xl font-bold mb-4">
-              <span className="text-white">{siteConfig.brandName}</span>
-              <span className="text-orange-500">{siteConfig.brandHighlight}</span>
+              <span>{siteConfig.brandName}</span>
+              <span className="text-primary">{siteConfig.brandHighlight}</span>
             </div>
-            <p className="text-gray-400 font-body leading-relaxed">{footer.tagline}</p>
+            <Editable path="footer.tagline" as="p" className="text-txt-inverse/60 font-body leading-relaxed">{footer.tagline}</Editable>
           </div>
 
-          {/* Quick Links */}
           <div>
             <h4 className="font-heading text-lg font-semibold mb-4">Quick Links</h4>
             <ul className="space-y-2 font-body">
-              <li><a href="#about" className="text-gray-400 hover:text-orange-500 transition-colors">About</a></li>
-              <li><a href="#services" className="text-gray-400 hover:text-orange-500 transition-colors">Services</a></li>
-              <li><a href="#portfolio" className="text-gray-400 hover:text-orange-500 transition-colors">Portfolio</a></li>
-              <li><a href="#contact" className="text-gray-400 hover:text-orange-500 transition-colors">Contact</a></li>
+              {navigation.links.map((link) => (
+                <li key={link.href}>
+                  <Link to={link.href} className="text-txt-inverse/60 hover:text-primary transition-colors">
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
             </ul>
           </div>
 
-          {/* Contact Info */}
           <div>
             <h4 className="font-heading text-lg font-semibold mb-4">Get In Touch</h4>
             <ul className="space-y-2 font-body">
               <li>
-                <a href={`mailto:${siteConfig.contactEmail}`} className="text-gray-400 hover:text-orange-500 transition-colors">
-                  {siteConfig.contactEmail}
+                <a href={`mailto:${siteConfig.contactEmail}`} className="text-txt-inverse/60 hover:text-primary transition-colors">
+                  <Editable path="footer.email">{siteConfig.contactEmail}</Editable>
                 </a>
               </li>
               <li>
-                <a href={`tel:${siteConfig.contactPhone}`} className="text-gray-400 hover:text-orange-500 transition-colors">
-                  {siteConfig.contactPhone}
+                <a href={`tel:${siteConfig.contactPhone}`} className="text-txt-inverse/60 hover:text-primary transition-colors">
+                  <Editable path="footer.phone">{siteConfig.contactPhone}</Editable>
                 </a>
               </li>
-              <li className="text-gray-400">{siteConfig.location}</li>
+              <li className="text-txt-inverse/60">
+                <Editable path="footer.location">{siteConfig.location}</Editable>
+              </li>
             </ul>
-            {/* Social Links */}
             <div className="flex gap-3 mt-4">
               {footer.socialLinks.map((link) => (
                 <a
@@ -75,7 +70,7 @@ export default function Footer({ siteConfig, footer }: FooterProps) {
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-10 h-10 flex items-center justify-center rounded-full border border-gray-700 text-gray-400 hover:bg-orange-500 hover:border-orange-500 hover:text-white transition-all"
+                  className="w-10 h-10 flex items-center justify-center rounded-full border border-border-dark text-txt-inverse/60 hover:bg-primary hover:border-primary hover:text-txt-inverse transition-all"
                   aria-label={link.platform}
                 >
                   {link.icon === 'linkedin' && (
@@ -94,9 +89,8 @@ export default function Footer({ siteConfig, footer }: FooterProps) {
           </div>
         </div>
 
-        {/* Copyright */}
-        <div className="mt-12 pt-8 border-t border-gray-800 text-center">
-          <p className="text-gray-500 text-sm font-body">{copyright}</p>
+        <div className="mt-12 pt-8 border-t border-border-dark text-center">
+          <p className="text-txt-inverse/40 text-sm font-body">{copyright}</p>
         </div>
       </div>
     </footer>

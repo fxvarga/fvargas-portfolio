@@ -80,6 +80,113 @@ export interface EntitlementsResponse {
 
 export type FilterType = 'all' | 'loved' | 'neutral' | 'disliked';
 
+// --- Print Book Types ---
+
+export type PrintProductSlug = 'print-softcover' | 'print-hardcover' | 'print-premium';
+
+export interface PrintProduct {
+  slug: PrintProductSlug;
+  name: string;
+  description: string;
+  basePriceUsd: number;
+  luluPodPackageId: string;
+  minPages: number;
+  maxPages: number;
+}
+
+export type PageTemplateId =
+  | 'full-bleed'
+  | 'photo-text'
+  | 'two-photo'
+  | 'collage-4'
+  | 'text-only'
+  | 'month-title';
+
+export interface PageContentItem {
+  /** Source item type */
+  sourceType: 'food' | 'milestone' | 'journal' | 'custom';
+  /** ID of the source item in IndexedDB */
+  sourceId: string;
+  /** Snapshot of the image data URL (may be null) */
+  image: string | null;
+  /** Display title */
+  title: string;
+  /** Subtitle / date string */
+  subtitle: string;
+  /** Body text (notes, journal text, etc.) */
+  text: string;
+}
+
+export interface BookPage {
+  id: string;
+  templateId: PageTemplateId;
+  /** Content items placed on this page (1-4 depending on template) */
+  items: PageContentItem[];
+  /** Optional custom caption / heading override */
+  heading?: string;
+}
+
+export type CoverTheme = 'classic' | 'pastel' | 'playful';
+
+export interface CoverConfig {
+  babyName: string;
+  year: string;
+  theme: CoverTheme;
+  /** Baby profile photo data URL for cover */
+  photo: string | null;
+}
+
+export interface BookProject {
+  id: string;
+  name: string;
+  cover: CoverConfig;
+  pages: BookPage[];
+  /** Selected print SKU slug (null = not chosen yet) */
+  skuSlug: PrintProductSlug | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+// --- Print Order Types ---
+
+export type PrintOrderStatus =
+  | 'created'
+  | 'uploading'
+  | 'unpaid'
+  | 'payment_in_progress'
+  | 'production_ready'
+  | 'in_production'
+  | 'shipped'
+  | 'delivered'
+  | 'cancelled'
+  | 'error';
+
+export interface PrintOrder {
+  token: string;
+  status: PrintOrderStatus;
+  productName: string;
+  pageCount: number;
+  totalPriceUsd: number;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShippingOption {
+  level: string;
+  name: string;
+  costUsd: number;
+  estimatedDays: string;
+}
+
+export interface CostEstimate {
+  baseCost: number;
+  totalCost: number;
+  currency: string;
+  pageCount: number;
+}
+
 // --- Milestones ---
 
 export type MilestoneCategory =

@@ -120,6 +120,172 @@ namespace TinyToes.Infrastructure.Migrations
                     b.ToTable("ClaimCodes");
                 });
 
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.LuluPrintJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("LastStatusAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long?>("LuluPrintJobId")
+                        .HasColumnType("bigint");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("RawPayload")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
+                    b.Property<string>("TrackingUrls")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LuluPrintJobId")
+                        .IsUnique()
+                        .HasFilter("\"LuluPrintJobId\" IS NOT NULL");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.ToTable("LuluPrintJobs");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.MemoryBookOrder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("AmountCents")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<string>("LuluPodPackageId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("PageCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProductSlug")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("ShippingCents")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ShippingLevel")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("StripeSessionId")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StripeSessionId")
+                        .IsUnique();
+
+                    b.ToTable("MemoryBookOrders");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.OrderStatusToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("OrderStatusTokens");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.PdfUpload", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BlobKey")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SignedUrl")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId");
+
+                    b.ToTable("PdfUploads");
+                });
+
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.Product", b =>
                 {
                     b.Property<Guid>("ProductId")
@@ -143,6 +309,19 @@ namespace TinyToes.Infrastructure.Migrations
 
                     b.Property<bool>("IsBundle")
                         .HasColumnType("boolean");
+
+                    b.Property<bool>("IsPhysical")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LuluPodPackageId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("MaxPages")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MinPages")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -203,6 +382,61 @@ namespace TinyToes.Infrastructure.Migrations
                     b.ToTable("Sessions");
                 });
 
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.ShippingAddress", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("City")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Country")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)");
+
+                    b.Property<string>("Line1")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Line2")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("OrderId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<string>("PostalCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OrderId")
+                        .IsUnique();
+
+                    b.ToTable("ShippingAddresses");
+                });
+
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.BuyerProduct", b =>
                 {
                     b.HasOne("TinyToes.Infrastructure.Entities.Buyer", "Buyer")
@@ -231,6 +465,38 @@ namespace TinyToes.Infrastructure.Migrations
                     b.Navigation("Buyer");
                 });
 
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.LuluPrintJob", b =>
+                {
+                    b.HasOne("TinyToes.Infrastructure.Entities.MemoryBookOrder", "Order")
+                        .WithOne("PrintJob")
+                        .HasForeignKey("TinyToes.Infrastructure.Entities.LuluPrintJob", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.OrderStatusToken", b =>
+                {
+                    b.HasOne("TinyToes.Infrastructure.Entities.MemoryBookOrder", "Order")
+                        .WithOne("StatusToken")
+                        .HasForeignKey("TinyToes.Infrastructure.Entities.OrderStatusToken", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.PdfUpload", b =>
+                {
+                    b.HasOne("TinyToes.Infrastructure.Entities.MemoryBookOrder", "Order")
+                        .WithMany("PdfUploads")
+                        .HasForeignKey("OrderId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.Session", b =>
                 {
                     b.HasOne("TinyToes.Infrastructure.Entities.Buyer", "Buyer")
@@ -242,6 +508,17 @@ namespace TinyToes.Infrastructure.Migrations
                     b.Navigation("Buyer");
                 });
 
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.ShippingAddress", b =>
+                {
+                    b.HasOne("TinyToes.Infrastructure.Entities.MemoryBookOrder", "Order")
+                        .WithOne("ShippingAddress")
+                        .HasForeignKey("TinyToes.Infrastructure.Entities.ShippingAddress", "OrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Order");
+                });
+
             modelBuilder.Entity("TinyToes.Infrastructure.Entities.Buyer", b =>
                 {
                     b.Navigation("ClaimCodes");
@@ -249,6 +526,17 @@ namespace TinyToes.Infrastructure.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("Sessions");
+                });
+
+            modelBuilder.Entity("TinyToes.Infrastructure.Entities.MemoryBookOrder", b =>
+                {
+                    b.Navigation("PdfUploads");
+
+                    b.Navigation("PrintJob");
+
+                    b.Navigation("ShippingAddress");
+
+                    b.Navigation("StatusToken");
                 });
 #pragma warning restore 612, 618
         }
