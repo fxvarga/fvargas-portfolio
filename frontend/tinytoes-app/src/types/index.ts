@@ -95,12 +95,49 @@ export interface PrintProduct {
 }
 
 export type PageTemplateId =
+  // Locked / system
+  | 'blank-locked'
+  // Hero / opening
+  | 'title-stats'
+  // Photo-driven
+  | 'full-photo'
+  | 'photo-quote'
+  | 'two-photo-stack'
+  | 'grid-4'
+  | 'grid-6'
+  | 'polaroid'
+  // Text-driven
+  | 'quote-only'
+  // Legacy (kept for back-compat with existing projects)
   | 'full-bleed'
   | 'photo-text'
   | 'two-photo'
   | 'collage-4'
   | 'text-only'
   | 'month-title';
+
+/** Decoration mascot/motif for photo-quote and quote-only pages */
+export type DecorationKind =
+  | 'sparkles'
+  | 'hearts'
+  | 'moon-stars'
+  | 'sun'
+  | 'rainbow'
+  | 'sailboat'
+  | 'lion'
+  | 'giraffe'
+  | 'elephant'
+  | 'cupcake'
+  | 'floral'
+  | 'angel';
+
+/** Per-image positioning when an image fills its slot (object-fit: cover).
+ * Offsets are percentages (-50..50) relative to slot center; scale 1+. */
+export interface ImageOffset {
+  x: number;
+  y: number;
+  scale: number;
+}
 
 export interface PageContentItem {
   /** Source item type */
@@ -115,6 +152,8 @@ export interface PageContentItem {
   subtitle: string;
   /** Body text (notes, journal text, etc.) */
   text: string;
+  /** Optional pan/zoom offset for the filled image */
+  imageOffset?: ImageOffset;
 }
 
 export interface BookPage {
@@ -124,6 +163,17 @@ export interface BookPage {
   items: PageContentItem[];
   /** Optional custom caption / heading override */
   heading?: string;
+  /** Decoration motif applied to this page (if template supports it) */
+  decoration?: DecorationKind;
+  /** Locked pages cannot be edited, deleted, or reordered */
+  locked?: boolean;
+  /** Optional birth-stats payload (used by title-stats template) */
+  stats?: {
+    birthDate?: string;   // ISO date or "August 1, 2026"
+    birthTime?: string;   // "9:42 am"
+    weight?: string;      // "7 lb 4 oz"
+    length?: string;      // "20 in"
+  };
 }
 
 export type CoverTheme = 'classic' | 'pastel' | 'playful';
@@ -224,7 +274,24 @@ export interface JournalEntry {
   monthLabel: string; // "Month 1", "Month 2", etc.
   text: string;
   highlights: string[]; // short highlight items
+  /** @deprecated Use `images`. Kept for back-compat with older entries. */
   image: string | null;
+  /** Multiple photos per month (preferred). First image acts as cover. */
+  images?: string[];
   createdAt: number;
   updatedAt: number;
+}
+
+/** Returns all images for a journal entry, merging legacy `image` with new `images[]`. */
+export function getJournalImages(entry: JournalEntry): string[] {
+  const all = entry.images ? [...entry.images] : [];
+  if (entry.image && !all.includes(entry.image)) all.unshift(entry.image);
+  return all;
+}
+
+/** Returns ms timestamp for the start of the month referenced by a journal entry's monthKey. */
+export function journalEntryDateMs(entry: JournalEntry): number {
+  const [year, month] = entry.monthKey.split('-').map(Number);
+  if (!year || !month) return entry.createdAt;
+  return new Date(year, month - 1, 1).getTime();
 }

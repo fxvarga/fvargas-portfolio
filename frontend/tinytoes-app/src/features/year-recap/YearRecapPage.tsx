@@ -12,6 +12,7 @@ import { Button } from '@/components/Button';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
 import { EmptyState } from '@/components/EmptyState';
+import { SegmentedControl } from '@/components/SegmentedControl';
 import { MemorySlideshow, type SlideItem } from '@/components/MemorySlideshow';
 import { useRecapData, type TimelineItem } from './useRecapData';
 import { DashboardHero } from './DashboardHero';
@@ -19,6 +20,7 @@ import { FunCounters } from './FunCounters';
 import { ActivityTimeline } from './ActivityTimeline';
 import { MemoryCollage } from './MemoryCollage';
 import { InsightCards } from './InsightCards';
+import { MemoryTimeline } from './MemoryTimeline';
 import type { FoodEntry, Milestone, JournalEntry } from '@/types';
 
 /* ── Scroll-reveal wrapper ───────────────────────────────── */
@@ -62,6 +64,13 @@ export function YearRecapPage() {
 
   const data = useRecapData(profile, entries, milestones, journalEntries, hasProduct);
 
+  const savedTab = sessionStorage.getItem('yearRecapTab') as 'recap' | 'timeline' | null;
+  const [activeTab, setActiveTab] = useState<'recap' | 'timeline'>(savedTab ?? 'recap');
+  const handleTabChange = (tab: 'recap' | 'timeline') => {
+    setActiveTab(tab);
+    sessionStorage.setItem('yearRecapTab', tab);
+  };
+
   /* Slideshow state for image previews */
   const [slideshow, setSlideshow] = useState<{ items: SlideItem[]; startIndex: number } | null>(null);
 
@@ -86,6 +95,18 @@ export function YearRecapPage() {
         <div className="px-4 space-y-6 pb-8">
           {data.hasAnyData ? (
             <>
+              <SegmentedControl
+                options={[
+                  { value: 'recap' as const, label: 'Recap' },
+                  { value: 'timeline' as const, label: 'Timeline' },
+                ]}
+                value={activeTab}
+                onChange={handleTabChange}
+              />
+              {activeTab === 'timeline' ? (
+                <MemoryTimeline />
+              ) : (
+                <>
               {/* Hero — big photo card */}
               <RevealSection>
                 <DashboardHero
@@ -130,7 +151,7 @@ export function YearRecapPage() {
               {/* Print a Book CTA */}
               <RevealSection delay={400}>
                 <button
-                  onClick={() => navigate('/memory-book', { state: { tab: 'print' } })}
+                  onClick={() => navigate('/memory-book')}
                   className="w-full rounded-2xl p-5 text-left transition-transform active:scale-[0.98] bg-theme-panel shadow-sm border border-theme-accent"
                 >
                   <div className="flex items-center gap-3">
@@ -155,6 +176,8 @@ export function YearRecapPage() {
                   </p>
                 </div>
               </RevealSection>
+                </>
+              )}
             </>
           ) : (
             <EmptyState

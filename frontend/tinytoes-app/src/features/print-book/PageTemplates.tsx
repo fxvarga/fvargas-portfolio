@@ -1,8 +1,9 @@
-import type { PageTemplateId, BookPage, PageContentItem } from '@/types';
+import type { PageTemplateId, BookPage, PageContentItem, DecorationKind } from '@/types';
 import type { ComponentType } from 'react';
 import type { LucideProps } from 'lucide-react';
 import {
-  Image, AlignLeft, Columns2, LayoutGrid, FileText, Heading,
+  Image as ImageIcon, Quote, Layers, LayoutGrid, Grid3x3, FileText, Heading,
+  Camera, Sparkles,
 } from 'lucide-react';
 
 /* ── Template metadata ───────────────────────────────────── */
@@ -13,156 +14,122 @@ export interface TemplateInfo {
   description: string;
   icon: ComponentType<LucideProps>;
   maxItems: number;
+  /** Whether the template supports a decoration motif */
+  supportsDecoration?: boolean;
+  /** Hidden from the user-facing layout picker (system templates) */
+  hidden?: boolean;
 }
 
 export const PAGE_TEMPLATES: TemplateInfo[] = [
-  { id: 'full-bleed', label: 'Full Photo', description: 'Single photo fills the page', icon: Image, maxItems: 1 },
-  { id: 'photo-text', label: 'Photo + Text', description: 'Photo on top, text below', icon: AlignLeft, maxItems: 1 },
-  { id: 'two-photo', label: 'Two Photos', description: 'Side-by-side photos', icon: Columns2, maxItems: 2 },
-  { id: 'collage-4', label: 'Collage', description: '2x2 grid of photos', icon: LayoutGrid, maxItems: 4 },
-  { id: 'text-only', label: 'Text Only', description: 'Full text page', icon: FileText, maxItems: 1 },
-  { id: 'month-title', label: 'Month Title', description: 'Month heading with optional photo', icon: Heading, maxItems: 1 },
+  // System
+  { id: 'blank-locked', label: 'Blank (locked)', description: 'Intentionally left blank', icon: FileText, maxItems: 0, hidden: true },
+  // Curated nursery layouts
+  { id: 'title-stats',     label: 'Hello, Baby!',  description: 'Name + birth stats',          icon: Heading,    maxItems: 0 },
+  { id: 'full-photo',      label: 'Full Photo',    description: 'Single edge-to-edge photo',   icon: ImageIcon,  maxItems: 1 },
+  { id: 'photo-quote',     label: 'Photo + Quote', description: 'Photo with script quote',     icon: Quote,      maxItems: 1, supportsDecoration: true },
+  { id: 'two-photo-stack', label: 'Two Photos',    description: 'Two stacked photos',          icon: Layers,     maxItems: 2 },
+  { id: 'grid-4',          label: 'Grid of 4',     description: '2×2 photo grid',              icon: LayoutGrid, maxItems: 4 },
+  { id: 'grid-6',          label: 'Grid of 6',     description: '3×2 photo grid',              icon: Grid3x3,    maxItems: 6 },
+  { id: 'polaroid',        label: 'Polaroids',     description: 'Photos in tilted frames',     icon: Camera,     maxItems: 4 },
+  { id: 'quote-only',      label: 'Quote Only',    description: 'Big script quote',            icon: Sparkles,   maxItems: 0, supportsDecoration: true },
+
+  // Legacy (kept hidden so old projects still render)
+  { id: 'full-bleed',  label: 'Full Photo',   description: 'Legacy', icon: ImageIcon,  maxItems: 1, hidden: true },
+  { id: 'photo-text',  label: 'Photo + Text', description: 'Legacy', icon: Quote,      maxItems: 1, hidden: true },
+  { id: 'two-photo',   label: 'Two Photos',   description: 'Legacy', icon: Layers,     maxItems: 2, hidden: true },
+  { id: 'collage-4',   label: 'Collage',      description: 'Legacy', icon: LayoutGrid, maxItems: 4, hidden: true },
+  { id: 'text-only',   label: 'Text Only',    description: 'Legacy', icon: FileText,   maxItems: 1, hidden: true },
+  { id: 'month-title', label: 'Month Title',  description: 'Legacy', icon: Heading,    maxItems: 1, hidden: true },
 ];
 
 export function getTemplateInfo(id: PageTemplateId): TemplateInfo {
-  return PAGE_TEMPLATES.find(t => t.id === id) ?? PAGE_TEMPLATES[0];
+  return PAGE_TEMPLATES.find(t => t.id === id) ?? PAGE_TEMPLATES[1];
 }
 
-/* ── Preview renderers (React components for on-screen preview) ── */
+/** User-pickable templates (excludes system + legacy) */
+export const PICKABLE_TEMPLATES: TemplateInfo[] = PAGE_TEMPLATES.filter(t => !t.hidden);
 
-interface PagePreviewProps {
-  page: BookPage;
-  compact?: boolean;
+/* ── ID generation ──────────────────────────────────────── */
+
+let _seq = 0;
+function newId(): string {
+  _seq += 1;
+  return `${Date.now().toString(36)}-${_seq}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function PagePreview({ page, compact = false }: PagePreviewProps) {
-  const items = page.items;
-  const h = compact ? 'h-32' : 'h-64';
+/* ── Helpers ────────────────────────────────────────────── */
 
-  switch (page.templateId) {
-    case 'full-bleed':
-      return (
-        <div className={`${h} w-full bg-white rounded-lg overflow-hidden relative`}>
-          {items[0]?.image ? (
-            <img src={items[0].image} alt={items[0].title} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center bg-theme-accent/20">
-              <Image size={compact ? 20 : 32} className="text-theme-muted" />
-            </div>
-          )}
-          {items[0]?.title && !compact && (
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-              <p className="text-white text-sm font-semibold truncate">{items[0].title}</p>
-            </div>
-          )}
-        </div>
-      );
-
-    case 'photo-text':
-      return (
-        <div className={`${h} w-full bg-white rounded-lg overflow-hidden flex flex-col`}>
-          <div className="flex-1 min-h-0">
-            {items[0]?.image ? (
-              <img src={items[0].image} alt={items[0].title} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center bg-theme-accent/20">
-                <Image size={compact ? 16 : 24} className="text-theme-muted" />
-              </div>
-            )}
-          </div>
-          <div className={`${compact ? 'p-1.5' : 'p-3'} shrink-0`}>
-            <p className={`font-semibold text-theme-text ${compact ? 'text-[8px]' : 'text-sm'} truncate`}>
-              {items[0]?.title || 'Title'}
-            </p>
-            {!compact && items[0]?.text && (
-              <p className="text-xs text-theme-muted mt-0.5 line-clamp-2">{items[0].text}</p>
-            )}
-          </div>
-        </div>
-      );
-
-    case 'two-photo':
-      return (
-        <div className={`${h} w-full bg-white rounded-lg overflow-hidden flex gap-0.5`}>
-          {[0, 1].map(i => (
-            <div key={i} className="flex-1 min-w-0">
-              {items[i]?.image ? (
-                <img src={items[i].image} alt={items[i]?.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-theme-accent/20">
-                  <Image size={compact ? 14 : 20} className="text-theme-muted" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'collage-4':
-      return (
-        <div className={`${h} w-full bg-white rounded-lg overflow-hidden grid grid-cols-2 grid-rows-2 gap-0.5`}>
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className="min-w-0 min-h-0">
-              {items[i]?.image ? (
-                <img src={items[i].image} alt={items[i]?.title} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-theme-accent/20">
-                  <Image size={compact ? 10 : 16} className="text-theme-muted" />
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      );
-
-    case 'text-only':
-      return (
-        <div className={`${h} w-full bg-white rounded-lg overflow-hidden ${compact ? 'p-2' : 'p-4'} flex flex-col justify-center`}>
-          <p className={`font-semibold text-theme-text ${compact ? 'text-[8px]' : 'text-base'} truncate`}>
-            {page.heading || items[0]?.title || 'Heading'}
-          </p>
-          <p className={`text-theme-muted ${compact ? 'text-[6px] line-clamp-3' : 'text-sm line-clamp-6'} mt-1`}>
-            {items[0]?.text || 'Your text here...'}
-          </p>
-        </div>
-      );
-
-    case 'month-title':
-      return (
-        <div className={`${h} w-full bg-white rounded-lg overflow-hidden flex flex-col items-center justify-center ${compact ? 'p-2' : 'p-6'}`}>
-          {items[0]?.image && (
-            <div className={`${compact ? 'w-8 h-8' : 'w-16 h-16'} rounded-full overflow-hidden mb-2`}>
-              <img src={items[0].image} alt="" className="w-full h-full object-cover" />
-            </div>
-          )}
-          <p className={`font-bold text-theme-text ${compact ? 'text-[9px]' : 'text-xl'} text-center`}>
-            {page.heading || 'Month Title'}
-          </p>
-        </div>
-      );
-  }
-}
-
-/* ── Helper: create an empty page from template ── */
-
-export function createEmptyPage(templateId: PageTemplateId, heading?: string): BookPage {
-  const items: PageContentItem[] = [];
+export function createEmptyPage(
+  templateId: PageTemplateId,
+  opts?: { heading?: string; decoration?: DecorationKind; locked?: boolean },
+): BookPage {
   return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: newId(),
     templateId,
-    items,
-    heading,
+    items: [],
+    heading: opts?.heading,
+    decoration: opts?.decoration,
+    locked: opts?.locked,
   };
 }
-
-/* ── Helper: create page from content item ── */
 
 export function createPageFromItem(item: PageContentItem, templateId?: PageTemplateId): BookPage {
-  const tid = templateId ?? (item.image ? 'photo-text' : 'text-only');
+  const tid: PageTemplateId = templateId ?? (item.image ? 'photo-quote' : 'quote-only');
   return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+    id: newId(),
     templateId: tid,
     items: [item],
-    heading: undefined,
   };
+}
+
+/* ── Default starter book for newly-created projects ── */
+
+/**
+ * Returns a 32-page (Lulu print minimum) starter book with a curated mix of
+ * templates and decorations. Page 1 is a locked blank flyleaf, page 2 is the
+ * title/stats page, page 32 is a closing quote, and the rest cycle through
+ * photo, polaroid, grid, and quote layouts.
+ */
+export function createDefaultPages(): BookPage[] {
+  type Recipe = { templateId: PageTemplateId; heading?: string; decoration?: DecorationKind; locked?: boolean };
+
+  const decoCycle: DecorationKind[] = ['sparkles', 'moon-stars', 'rainbow', 'sun', 'hearts', 'floral'];
+  // Templates to cycle through for the "story" pages between the front matter and closing.
+  const storyCycle: PageTemplateId[] = [
+    'full-photo',
+    'photo-quote',
+    'two-photo-stack',
+    'photo-quote',
+    'grid-4',
+    'full-photo',
+    'polaroid',
+    'photo-quote',
+    'two-photo-stack',
+    'grid-6',
+  ];
+
+  const recipes: Recipe[] = [
+    // 1. Locked blank flyleaf
+    { templateId: 'blank-locked', locked: true },
+    // 2. Title page with birth stats
+    { templateId: 'title-stats', heading: 'Hello, Baby!' },
+  ];
+
+  // Pages 3..30 = 28 story pages cycling through templates + decorations.
+  for (let i = 0; i < 28; i++) {
+    const tid = storyCycle[i % storyCycle.length];
+    const supportsDeco =
+      tid === 'photo-quote' || tid === 'quote-only' || tid === 'polaroid';
+    recipes.push({
+      templateId: tid,
+      decoration: supportsDeco ? decoCycle[i % decoCycle.length] : undefined,
+    });
+  }
+
+  // 31. Closing quote
+  recipes.push({ templateId: 'quote-only', decoration: 'floral' });
+  // 32. Locked blank back flyleaf
+  recipes.push({ templateId: 'blank-locked', locked: true });
+
+  return recipes.map(r => createEmptyPage(r.templateId, r));
 }

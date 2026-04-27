@@ -5,25 +5,27 @@ import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
 import { useMilestones } from '@/hooks/useMilestones';
 import { useJournal } from '@/hooks/useJournal';
-import { PageShell } from '@/components/PageShell';
-import { PageHeader } from '@/components/PageHeader';
+// PageShell removed — editor uses fixed viewport layout
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Card';
 import { Modal } from '@/components/Modal';
-import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
-  PAGE_TEMPLATES, PagePreview, createEmptyPage, createPageFromItem, getTemplateInfo,
+  PICKABLE_TEMPLATES, createEmptyPage, getTemplateInfo,
 } from './PageTemplates';
+import { SpreadView, type SpreadSlotTapEvent } from './SpreadView';
+import { ArrangePagesView } from './ArrangePagesView';
+import { PhotosSheet } from './sheets/PhotosSheet';
+import { LayoutsSheet } from './sheets/LayoutsSheet';
+import { TextSheet } from './sheets/TextSheet';
+import { StatsSheet, type StatsUpdate } from './sheets/StatsSheet';
 import type {
-  BookProject, BookPage, PageTemplateId, PageContentItem,
-  FoodEntry, Milestone, JournalEntry,
+  BookProject, BookPage, PageTemplateId, PageContentItem, ImageOffset,
+  FoodEntry, Milestone, JournalEntry, PrintProductSlug,
 } from '@/types';
-import { REACTIONS, MILESTONE_CATEGORIES } from '@/types';
+import { REACTIONS, MILESTONE_CATEGORIES, getJournalImages, journalEntryDateMs } from '@/types';
 import {
-  ArrowLeft, Plus, Trash2, ChevronUp, ChevronDown,
-  BookOpen, UtensilsCrossed, Trophy, BookText,
-  Layers, PenTool, Image as ImageIcon,
+  ArrowLeft, Plus, Image as ImageIcon, LayoutGrid, Lightbulb, Droplets,
+  ChevronLeft, ChevronRight, MoreHorizontal, Trash2, Copy,
 } from 'lucide-react';
 
 /* ── Content item builder helpers ────────────────────────── */
@@ -52,18 +54,34 @@ function milestoneToContentItem(m: Milestone): PageContentItem {
   };
 }
 
-function journalToContentItem(j: JournalEntry): PageContentItem {
-  return {
+function journalToContentItems(j: JournalEntry): PageContentItem[] {
+  const imgs = getJournalImages(j);
+  const baseText = j.text + (j.highlights.length ? '\n\nHighlights: ' + j.highlights.join(', ') : '');
+  if (imgs.length === 0) {
+    return [{
+      sourceType: 'journal',
+      sourceId: j.id,
+      image: null,
+      title: j.monthLabel,
+      subtitle: j.monthKey,
+      text: baseText,
+    }];
+  }
+  return imgs.map((img, idx) => ({
     sourceType: 'journal',
-    sourceId: j.id,
-    image: j.image,
+    sourceId: imgs.length > 1 ? `${j.id}#${idx}` : j.id,
+    image: img,
     title: j.monthLabel,
-    subtitle: j.monthKey,
-    text: j.text + (j.highlights.length ? '\n\nHighlights: ' + j.highlights.join(', ') : ''),
-  };
+    subtitle: imgs.length > 1 ? `${j.monthKey} (${idx + 1}/${imgs.length})` : j.monthKey,
+    text: baseText,
+  }));
 }
 
-/* ── BookEditor Page ─────────────────────────────────────── */
+/* ── View modes ──────────────────────────────────────────── */
+
+type ViewMode = 'spread' | 'page' | 'arrange';
+
+/* ── BookEditor Page (NEW) ───────────────────────────────── */
 
 export function BookEditorPage() {
   const { projectId } = useParams<{ projectId: string }>();
@@ -75,35 +93,42 @@ export function BookEditorPage() {
   const { entries: journalEntries } = useJournal();
 
   const [project, setProject] = useState<BookProject | null>(null);
-  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [showContentBrowser, setShowContentBrowser] = useState(false);
-  const [showPageEditor, setShowPageEditor] = useState(false);
-  const [editingPageId, setEditingPageId] = useState<string | null>(null);
-  const [contentFilter, setContentFilter] = useState<'all' | 'foods' | 'milestones' | 'journal'>('all');
-  const [showCoverEditor, setShowCoverEditor] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('spread');
+  const [spreadIndex, setSpreadIndex] = useState(0);
 
-  // Load project from hook data
+  // Sheet states
+  const [showPhotos, setShowPhotos] = useState(false);
+  const [showLayouts, setShowLayouts] = useState(false);
+  const [showText, setShowText] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showCoverEditor, setShowCoverEditor] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+
+  // Active editing target
+  const [activePageId, setActivePageId] = useState<string | null>(null);
+  const [activeSlotIndex, setActiveSlotIndex] = useState(0);
+
   useEffect(() => {
     const found = projects.find(p => p.id === projectId);
     if (found) setProject(found);
   }, [projects, projectId]);
 
-  // Content items for the browser
+  // Content items (with dateMs for chronological sorting)
   const allContentItems = useMemo(() => {
-    const items: (PageContentItem & { key: string })[] = [];
-    if (contentFilter === 'all' || contentFilter === 'foods') {
-      for (const e of entries) items.push({ ...foodToContentItem(e), key: `food-${e.id}` });
-    }
-    if (contentFilter === 'all' || contentFilter === 'milestones') {
-      for (const m of milestones) items.push({ ...milestoneToContentItem(m), key: `milestone-${m.id}` });
-    }
-    if (contentFilter === 'all' || contentFilter === 'journal') {
-      for (const j of journalEntries) items.push({ ...journalToContentItem(j), key: `journal-${j.id}` });
+    const items: (PageContentItem & { key: string; dateMs: number })[] = [];
+    for (const e of entries) items.push({ ...foodToContentItem(e), key: `food-${e.id}`, dateMs: e.createdAt });
+    for (const m of milestones) items.push({ ...milestoneToContentItem(m), key: `milestone-${m.id}`, dateMs: m.achievedAt });
+    for (const j of journalEntries) {
+      const dateMs = journalEntryDateMs(j);
+      const jItems = journalToContentItems(j);
+      for (const it of jItems) {
+        items.push({ ...it, key: `${it.sourceType}-${it.sourceId}`, dateMs });
+      }
     }
     return items;
-  }, [entries, milestones, journalEntries, contentFilter]);
+  }, [entries, milestones, journalEntries]);
 
-  // IDs already used in the book
   const usedSourceIds = useMemo(() => {
     if (!project) return new Set<string>();
     const ids = new Set<string>();
@@ -115,568 +140,622 @@ export function BookEditorPage() {
     return ids;
   }, [project]);
 
+  // Helpers
+  const getActivePage = useCallback((): BookPage | null => {
+    if (!project || !activePageId) return null;
+    return project.pages.find(p => p.id === activePageId) ?? null;
+  }, [project, activePageId]);
+
+  // Handler: slot tapped on spread
+  const handleSlotTap = useCallback((e: SpreadSlotTapEvent) => {
+    if (!project) return;
+    const tappedPage = project.pages.find(p => p.id === e.pageId);
+    if (!tappedPage || tappedPage.locked) return; // No editing on locked pages
+    setActivePageId(e.pageId);
+    setActiveSlotIndex(e.slotIndex);
+    // Title page → dedicated stats editor
+    if (tappedPage.templateId === 'title-stats') {
+      setShowStats(true);
+      return;
+    }
+    if (e.slotKind === 'image') {
+      setShowPhotos(true);
+    } else {
+      setShowText(true);
+    }
+  }, [project]);
+
+  // Handler: persist image-offset (drag-to-pan) for a slot
+  const handleImageOffsetChange = useCallback(async (pageId: string, slotIndex: number, offset: ImageOffset) => {
+    if (!project) return;
+    const page = project.pages.find(p => p.id === pageId);
+    if (!page || page.locked) return;
+    const item = page.items[slotIndex];
+    if (!item) return;
+    const newItems = [...page.items];
+    newItems[slotIndex] = { ...item, imageOffset: offset };
+    const updated = { ...page, items: newItems };
+    await updateProject({ ...project, pages: project.pages.map(p => p.id === pageId ? updated : p) });
+  }, [project, updateProject]);
+
+  // Handler: select a photo from the photos sheet
+  const handlePhotoSelect = useCallback(async (item: PageContentItem) => {
+    if (!project || !activePageId) return;
+    const page = project.pages.find(p => p.id === activePageId);
+    if (!page) return;
+    const template = getTemplateInfo(page.templateId);
+
+    // Replace existing item at slot index, or add if slot is empty
+    const newItems = [...page.items];
+    if (activeSlotIndex < newItems.length) {
+      newItems[activeSlotIndex] = item;
+    } else if (newItems.length < template.maxItems) {
+      // Fill slots up to the target index
+      while (newItems.length < activeSlotIndex) {
+        newItems.push({ sourceType: 'custom', sourceId: `empty-${Date.now()}`, image: null, title: '', subtitle: '', text: '' });
+      }
+      newItems.push(item);
+    }
+
+    const updated = { ...page, items: newItems };
+    await updateProject({ ...project, pages: project.pages.map(p => p.id === activePageId ? updated : p) });
+    setShowPhotos(false);
+  }, [project, activePageId, activeSlotIndex, updateProject]);
+
+  // Handler: autofill empty slots across all pages (chronological — oldest first)
+  const handleAutofill = useCallback(async () => {
+    if (!project) return;
+    const unusedItems = allContentItems
+      .filter(i => !usedSourceIds.has(i.key) && i.image)
+      .sort((a, b) => a.dateMs - b.dateMs);
+    let idx = 0;
+    const newPages = project.pages.map(page => {
+      if (page.locked) return page;
+      const template = getTemplateInfo(page.templateId);
+      const newItems = [...page.items];
+      while (newItems.length < template.maxItems && idx < unusedItems.length) {
+        newItems.push(unusedItems[idx++]);
+      }
+      return { ...page, items: newItems };
+    });
+    await updateProject({ ...project, pages: newPages });
+    setShowPhotos(false);
+  }, [project, allContentItems, usedSourceIds, updateProject]);
+
+  // Handler: text save
+  const handleTextSave = useCallback(async (updates: { heading?: string; title?: string; text?: string }) => {
+    if (!project || !activePageId) return;
+    const page = project.pages.find(p => p.id === activePageId);
+    if (!page) return;
+
+    let newPage = { ...page };
+    if (updates.heading !== undefined) newPage.heading = updates.heading;
+
+    const newItems = [...newPage.items];
+    if (newItems.length === 0) {
+      // Create a custom item for text-only pages
+      newItems.push({
+        sourceType: 'custom',
+        sourceId: `custom-${Date.now()}`,
+        image: null,
+        title: updates.title ?? '',
+        subtitle: '',
+        text: updates.text ?? '',
+      });
+    } else {
+      const item = { ...newItems[activeSlotIndex] ?? newItems[0] };
+      if (updates.title !== undefined) item.title = updates.title;
+      if (updates.text !== undefined) item.text = updates.text;
+      newItems[activeSlotIndex < newItems.length ? activeSlotIndex : 0] = item;
+    }
+    newPage.items = newItems;
+
+    await updateProject({ ...project, pages: project.pages.map(p => p.id === activePageId ? newPage : p) });
+  }, [project, activePageId, activeSlotIndex, updateProject]);
+
+  // Handler: stats save (title-stats template)
+  const handleStatsSave = useCallback(async (updates: StatsUpdate) => {
+    if (!project || !activePageId) return;
+    const page = project.pages.find(p => p.id === activePageId);
+    if (!page) return;
+    const newPage: BookPage = {
+      ...page,
+      heading: updates.heading ?? page.heading,
+      stats: updates.stats ?? page.stats,
+    };
+    await updateProject({ ...project, pages: project.pages.map(p => p.id === activePageId ? newPage : p) });
+  }, [project, activePageId, updateProject]);
+
+  // Handler: change layout of active page
+  const handleChangeLayout = useCallback(async (templateId: PageTemplateId) => {
+    if (!project || !activePageId) return;
+    const page = project.pages.find(p => p.id === activePageId);
+    if (!page) return;
+    const template = getTemplateInfo(templateId);
+    const clampedItems = page.items.slice(0, template.maxItems);
+    const updated = { ...page, templateId, items: clampedItems };
+    await updateProject({ ...project, pages: project.pages.map(p => p.id === activePageId ? updated : p) });
+  }, [project, activePageId, updateProject]);
+
+  // Handler: add empty page
   const handleAddEmptyPage = useCallback(async (templateId: PageTemplateId) => {
     if (!projectId) return;
     const page = createEmptyPage(templateId);
     await addPage(projectId, page);
     setShowTemplatePicker(false);
-    // Open the appropriate editor for the new page
-    setEditingPageId(page.id);
-    if (templateId === 'text-only' || templateId === 'month-title') {
-      setShowPageEditor(true);
-    } else {
-      setShowContentBrowser(true);
+    // Navigate to the spread containing the new page (last page).
+    // Spread 0 = cover, Spread N (N>=1) = pages[(N-1)*2..(N-1)*2+1]
+    if (project) {
+      const newPageCount = project.pages.length + 1;
+      const newSpread = 1 + Math.floor((newPageCount - 1) / 2);
+      setSpreadIndex(newSpread);
     }
-  }, [projectId, addPage]);
+  }, [projectId, project, addPage]);
 
-  const handleAddContentItem = useCallback(async (item: PageContentItem) => {
-    if (!projectId || !editingPageId || !project) return;
-    const page = project.pages.find(p => p.id === editingPageId);
-    if (!page) return;
-    const template = getTemplateInfo(page.templateId);
-    if (page.items.length >= template.maxItems) return;
-
-    const updatedPage: BookPage = { ...page, items: [...page.items, item] };
-    const updatedProject = {
-      ...project,
-      pages: project.pages.map(p => p.id === editingPageId ? updatedPage : p),
-    };
-    await updateProject(updatedProject);
-  }, [projectId, editingPageId, project, updateProject]);
-
-  const handleQuickAddItem = useCallback(async (item: PageContentItem) => {
-    if (!projectId) return;
-    const page = createPageFromItem(item);
-    await addPage(projectId, page);
-  }, [projectId, addPage]);
-
-  const handleUpdatePage = useCallback(async (updatedPage: BookPage) => {
+  // Handler: reorder pages
+  const handleReorder = useCallback(async (orderedIds: string[]) => {
     if (!project) return;
-    const updatedProject = {
-      ...project,
-      pages: project.pages.map(p => p.id === updatedPage.id ? updatedPage : p),
-    };
-    await updateProject(updatedProject);
-  }, [project, updateProject]);
+    await reorderPages(project.id, orderedIds);
+  }, [project, reorderPages]);
 
-  const handlePageClick = useCallback((page: BookPage) => {
-    setEditingPageId(page.id);
-    // Text-only and month-title open the page editor; others open content browser
-    if (page.templateId === 'text-only' || page.templateId === 'month-title' || page.templateId === 'photo-text') {
-      setShowPageEditor(true);
-    } else {
-      setShowContentBrowser(true);
-    }
-  }, []);
-
+  // Handler: remove page
   const handleRemovePage = useCallback(async (pageId: string) => {
     if (!projectId) return;
     await removePage(projectId, pageId);
   }, [projectId, removePage]);
 
-  const handleMovePage = useCallback(async (pageId: string, direction: 'up' | 'down') => {
-    if (!project) return;
-    const ids = project.pages.map(p => p.id);
-    const idx = ids.indexOf(pageId);
-    if (idx < 0) return;
-    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= ids.length) return;
-    [ids[idx], ids[newIdx]] = [ids[newIdx], ids[idx]];
-    await reorderPages(project.id, ids);
-  }, [project, reorderPages]);
+  // Handler: delete the currently-active page (from More menu)
+  const handleDeleteCurrentPage = useCallback(async () => {
+    if (!project || !activePageId) return;
+    const page = project.pages.find(p => p.id === activePageId);
+    if (!page || page.locked) return;
+    setShowMoreMenu(false);
+    await removePage(project.id, activePageId);
+    // Step back if we ran off the end
+    const newPageCount = project.pages.length - 1;
+    const maxSpread = newPageCount === 0 ? 0 : Math.ceil(newPageCount / 2);
+    if (spreadIndex > maxSpread) setSpreadIndex(maxSpread);
+  }, [project, activePageId, removePage, spreadIndex]);
 
-  const handleUpdateCover = useCallback(async (coverUpdates: Partial<BookProject['cover']>) => {
+  // Handler: duplicate the currently-active page (from More menu)
+  const handleDuplicateCurrentPage = useCallback(async () => {
+    if (!project || !activePageId) return;
+    const page = project.pages.find(p => p.id === activePageId);
+    if (!page || page.locked) return;
+    setShowMoreMenu(false);
+    const dup = createEmptyPage(page.templateId, {
+      heading: page.heading,
+      decoration: page.decoration,
+    });
+    // Deep-copy items + stats
+    dup.items = page.items.map(it => ({ ...it, imageOffset: it.imageOffset ? { ...it.imageOffset } : undefined }));
+    if (page.stats) dup.stats = { ...page.stats };
+    await addPage(project.id, dup);
+  }, [project, activePageId, addPage]);
+
+  // Handler: update cover (and optionally SKU)
+  const handleUpdateCover = useCallback(async (coverUpdates: Partial<BookProject['cover']>, skuSlug?: BookProject['skuSlug']) => {
     if (!project) return;
-    await updateProject({ ...project, cover: { ...project.cover, ...coverUpdates } });
+    const next: BookProject = {
+      ...project,
+      cover: { ...project.cover, ...coverUpdates },
+      ...(skuSlug !== undefined ? { skuSlug } : {}),
+    };
+    await updateProject(next);
     setShowCoverEditor(false);
   }, [project, updateProject]);
 
+  // Determine active page from current spread for the layouts/text sheet
+  useEffect(() => {
+    if (!project || viewMode !== 'spread') return;
+    // Spread 0 = cover (no active page).
+    // Spread N (N>=1) = pages[(N-1)*2] (left) + pages[(N-1)*2+1] (right)
+    if (spreadIndex === 0) {
+      setActivePageId(null);
+      return;
+    }
+    const leftIdx = (spreadIndex - 1) * 2;
+    const rightIdx = leftIdx + 1;
+    setActivePageId(project.pages[rightIdx]?.id ?? project.pages[leftIdx]?.id ?? null);
+  }, [spreadIndex, project, viewMode]);
+
   if (!project) {
     return (
-      <PageShell>
-        <div className="flex items-center justify-center h-64">
-          <LoadingSpinner />
-        </div>
-      </PageShell>
+      <div className="fixed inset-0 flex items-center justify-center bg-gray-50">
+        <LoadingSpinner />
+      </div>
     );
   }
 
+  const totalSpreads = 1 + Math.max(1, Math.ceil(project.pages.length / 2));
+  const activePage = project.pages.find(p => p.id === activePageId) ?? null;
+  const canMutateActivePage = !!activePage && !activePage.locked;
+
   return (
-    <PageShell>
-      <PageHeader
-        title={project.name}
-        actions={
+    <>
+    <div className="fixed inset-0 flex flex-col bg-gray-50 overflow-hidden">
+        {/* ── Header ──────────────────────────────── */}
+        <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-100 shrink-0">
           <button
             onClick={() => navigate('/memory-book')}
-            className="w-10 h-10 rounded-full flex items-center justify-center transition-colors hover:bg-black/5 text-theme-muted"
+            className="w-9 h-9 rounded-full flex items-center justify-center hover:bg-gray-100 text-gray-500"
           >
-            <ArrowLeft size={22} />
+            <ArrowLeft size={20} />
           </button>
-        }
-      />
-
-      <div className="px-4 pb-8 space-y-6">
-        {/* Cover preview */}
-        <Card padding="md" hoverable onClick={() => setShowCoverEditor(true)}>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-20 rounded-lg overflow-hidden shrink-0 flex items-center justify-center"
-              style={{ backgroundColor: project.cover.theme === 'classic' ? '#FBF8F4' : project.cover.theme === 'pastel' ? '#FFF6F9' : '#FFFAF0' }}>
-              {project.cover.photo ? (
-                <img src={project.cover.photo} alt="" className="w-10 h-10 rounded-full object-cover" />
-              ) : (
-                <BookOpen size={24} className="text-theme-muted" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-theme-text">{project.cover.babyName}'s Memory Book</p>
-              <p className="text-xs text-theme-muted">First Year {project.cover.year}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <PenTool size={10} className="text-theme-primary" />
-                <span className="text-[10px] text-theme-primary font-medium">Edit cover</span>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* Page count + DPI info */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Layers size={16} className="text-theme-muted" />
-            <span className="text-sm font-medium text-theme-text">
-              {project.pages.length} {project.pages.length === 1 ? 'page' : 'pages'}
-            </span>
-          </div>
-          <div className="flex gap-2">
-            <Button size="sm" variant="secondary" onClick={() => setShowContentBrowser(true)}>
-              <Plus size={14} className="mr-1" /> Add Content
-            </Button>
-            <Button size="sm" onClick={() => setShowTemplatePicker(true)}>
-              <Plus size={14} className="mr-1" /> Add Page
-            </Button>
-          </div>
+          <h1 className="text-sm font-bold text-gray-800 truncate max-w-[50%]">{project.name}</h1>
+          <span className="text-xs text-gray-400 font-mono">{project.pages.length} pg</span>
         </div>
 
-        {/* Pages list */}
-        {project.pages.length === 0 ? (
-          <EmptyState
-            icon={BookOpen}
-            title="No pages yet"
-            subtitle="Add pages from templates or browse your memories to build your book."
-            action={
-              <div className="flex gap-2">
-                <Button size="sm" variant="secondary" onClick={() => setShowContentBrowser(true)}>
-                  Browse Content
-                </Button>
-                <Button size="sm" onClick={() => setShowTemplatePicker(true)}>
-                  Choose Template
-                </Button>
-              </div>
-            }
-          />
-        ) : (
-          <div className="space-y-3">
-            {project.pages.map((page, idx) => (
-              <div key={page.id} className="flex gap-3 items-start">
-                {/* Reorder + page number */}
-                <div className="flex flex-col items-center gap-1 pt-2 shrink-0">
-                  <button
-                    onClick={() => handleMovePage(page.id, 'up')}
-                    disabled={idx === 0}
-                    className="w-6 h-6 flex items-center justify-center rounded text-theme-muted hover:bg-black/5 disabled:opacity-30"
-                  >
-                    <ChevronUp size={14} />
-                  </button>
-                  <span className="text-[10px] font-mono text-theme-muted">{idx + 1}</span>
-                  <button
-                    onClick={() => handleMovePage(page.id, 'down')}
-                    disabled={idx === project.pages.length - 1}
-                    className="w-6 h-6 flex items-center justify-center rounded text-theme-muted hover:bg-black/5 disabled:opacity-30"
-                  >
-                    <ChevronDown size={14} />
-                  </button>
-                </div>
+        {/* ── View mode toggle ────────────────────── */}
+        <div className="flex items-center justify-center gap-1 py-2 bg-white border-b border-gray-100 shrink-0">
+          {(['spread', 'page', 'arrange'] as ViewMode[]).map(mode => (
+            <button
+              key={mode}
+              onClick={() => setViewMode(mode)}
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${
+                viewMode === mode
+                  ? 'bg-gray-800 text-white'
+                  : 'text-gray-500 hover:bg-gray-100'
+              }`}
+            >
+              {mode === 'spread' ? 'Spread view' : mode === 'page' ? 'Page view' : 'Arrange pages'}
+            </button>
+          ))}
+        </div>
 
-                {/* Page preview */}
-                <div className="flex-1 min-w-0">
-                  <Card padding="sm" hoverable onClick={() => handlePageClick(page)}>
-                    <PagePreview page={page} compact />
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] font-medium text-theme-muted">
-                        {getTemplateInfo(page.templateId).label}
-                        {page.items.length > 0 && ` - ${page.items.length} item${page.items.length > 1 ? 's' : ''}`}
-                      </span>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); handleRemovePage(page.id); }}
-                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-theme-muted hover:text-red-500"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </Card>
-                </div>
-              </div>
-            ))}
+        {/* ── Main content area ───────────────────── */}
+        <div className="flex-1 min-h-0 flex items-center justify-center px-2 overflow-hidden">
+          {viewMode === 'spread' && (
+            <SpreadView
+              project={project}
+              editable
+              activePageId={activePageId}
+              activeSlotIndex={activeSlotIndex}
+              onSlotTap={handleSlotTap}
+              onImageOffsetChange={handleImageOffsetChange}
+              onCoverTap={() => setShowCoverEditor(true)}
+              spreadIndex={spreadIndex}
+              onSpreadChange={setSpreadIndex}
+            />
+          )}
+
+          {viewMode === 'page' && (
+            <PageViewSingle
+              project={project}
+              activePageId={activePageId}
+              activeSlotIndex={activeSlotIndex}
+              onSlotTap={handleSlotTap}
+              onImageOffsetChange={handleImageOffsetChange}
+              onCoverTap={() => setShowCoverEditor(true)}
+              spreadIndex={spreadIndex}
+              onSpreadChange={setSpreadIndex}
+            />
+          )}
+
+          {viewMode === 'arrange' && (
+            <div className="w-full h-full overflow-y-auto py-2">
+              <ArrangePagesView
+                project={project}
+                onReorder={handleReorder}
+                onRemovePage={handleRemovePage}
+                onCoverTap={() => setShowCoverEditor(true)}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* ── Bottom toolbar (contextual tabs) ────── */}
+        {viewMode !== 'arrange' && (
+          <div className="flex items-center justify-around bg-white border-t border-gray-100 py-2 shrink-0">
+            <ToolbarBtn icon={ImageIcon} label="Photos" active={showPhotos} onClick={() => setShowPhotos(true)} />
+            <ToolbarBtn icon={LayoutGrid} label="Layouts" active={showLayouts} onClick={() => { setShowLayouts(true); }} />
+            <ToolbarBtn icon={Lightbulb} label="Idea pages" onClick={() => setShowTemplatePicker(true)} />
+            <ToolbarBtn icon={Droplets} label="Backgrounds" onClick={() => {}} disabled />
           </div>
         )}
+
+        {/* ── Bottom action bar ───────────────────── */}
+        <div className="flex items-center justify-between px-4 py-2 bg-white border-t border-gray-100 shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSpreadIndex(Math.max(0, spreadIndex - 1))}
+              disabled={spreadIndex === 0}
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 disabled:opacity-30"
+            >
+              <ChevronLeft size={18} />
+            </button>
+            <button
+              onClick={() => setSpreadIndex(Math.min(totalSpreads - 1, spreadIndex + 1))}
+              disabled={spreadIndex >= totalSpreads - 1}
+              className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100 disabled:opacity-30"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
+          <button
+            onClick={() => setShowTemplatePicker(true)}
+            className="w-10 h-10 rounded-full bg-gray-800 text-white flex items-center justify-center shadow-lg"
+          >
+            <Plus size={20} />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-600">
+              {project.pages.length}
+            </span>
+            <div className="relative">
+              <button
+                onClick={() => setShowMoreMenu(v => !v)}
+                className="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100"
+              >
+                <MoreHorizontal size={18} />
+              </button>
+              {showMoreMenu && (
+                <>
+                  {/* click-away backdrop */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowMoreMenu(false)}
+                  />
+                  <div className="absolute right-0 bottom-full mb-2 z-50 w-48 bg-white rounded-xl shadow-lg ring-1 ring-gray-200 py-1 overflow-hidden">
+                    <MenuItem
+                      icon={Copy}
+                      label="Duplicate page"
+                      disabled={!canMutateActivePage}
+                      onClick={handleDuplicateCurrentPage}
+                    />
+                    <MenuItem
+                      icon={Trash2}
+                      label="Delete page"
+                      destructive
+                      disabled={!canMutateActivePage}
+                      onClick={handleDeleteCurrentPage}
+                    />
+                    {!canMutateActivePage && (
+                      <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100">
+                        {activePage?.locked
+                          ? 'This page is locked.'
+                          : 'Open a page first (cover can\u2019t be deleted).'}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Template picker modal */}
-      <Modal isOpen={showTemplatePicker} onClose={() => setShowTemplatePicker(false)} title="Choose Page Template">
+      {/* ── Sheets ────────────────────────────────── */}
+      <PhotosSheet
+        isOpen={showPhotos}
+        onClose={() => setShowPhotos(false)}
+        items={allContentItems}
+        usedKeys={usedSourceIds}
+        onSelect={handlePhotoSelect}
+        onAutofill={handleAutofill}
+      />
+
+      <LayoutsSheet
+        isOpen={showLayouts}
+        onClose={() => setShowLayouts(false)}
+        currentPage={getActivePage()}
+        onChangeLayout={handleChangeLayout}
+      />
+
+      <TextSheet
+        isOpen={showText}
+        onClose={() => setShowText(false)}
+        page={getActivePage()}
+        itemIndex={activeSlotIndex}
+        onSave={handleTextSave}
+      />
+
+      <StatsSheet
+        isOpen={showStats}
+        onClose={() => setShowStats(false)}
+        page={getActivePage()}
+        onSave={handleStatsSave}
+      />
+
+      {/* Template picker (add new page) */}
+      <Modal isOpen={showTemplatePicker} onClose={() => setShowTemplatePicker(false)} title="Add Page">
         <div className="grid grid-cols-2 gap-3">
-          {PAGE_TEMPLATES.map(t => (
+          {PICKABLE_TEMPLATES.map(t => (
             <button
               key={t.id}
               onClick={() => handleAddEmptyPage(t.id)}
-              className="p-3 rounded-xl border border-theme-accent/60 hover:border-theme-primary transition-colors text-left"
-              style={{ backgroundColor: 'var(--color-panel)' }}
+              className="p-3 rounded-xl border border-gray-200 hover:border-theme-primary transition-colors text-left"
             >
               <t.icon size={20} className="text-theme-primary mb-2" />
-              <p className="text-sm font-semibold text-theme-text">{t.label}</p>
-              <p className="text-[10px] text-theme-muted mt-0.5">{t.description}</p>
+              <p className="text-sm font-semibold text-gray-800">{t.label}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{t.description}</p>
             </button>
           ))}
         </div>
       </Modal>
-
-      {/* Content browser modal */}
-      <Modal isOpen={showContentBrowser} onClose={() => { setShowContentBrowser(false); setEditingPageId(null); }} title={editingPageId ? 'Add to Page' : 'Add Content to Book'}>
-        {/* Filter pills */}
-        <div className="flex gap-2 mb-4 flex-wrap">
-          {([['all', 'All', null], ['foods', 'Foods', UtensilsCrossed], ['milestones', 'Milestones', Trophy], ['journal', 'Journal', BookText]] as const).map(([val, label, Icon]) => (
-            <button
-              key={val}
-              onClick={() => setContentFilter(val)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
-                contentFilter === val ? 'bg-theme-primary text-white' : 'bg-theme-panel text-theme-text hover:bg-black/5'
-              }`}
-            >
-              {Icon && <Icon size={12} />}
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* Content list */}
-        <div className="space-y-2 max-h-[60vh] overflow-y-auto">
-          {allContentItems.length === 0 ? (
-            <p className="text-sm text-theme-muted text-center py-8">No content available for this filter.</p>
-          ) : (
-            allContentItems.map(item => {
-              const isUsed = usedSourceIds.has(item.key);
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => editingPageId ? handleAddContentItem(item) : handleQuickAddItem(item)}
-                  disabled={isUsed && !!editingPageId}
-                  className={`w-full flex gap-3 p-3 rounded-xl border transition-colors text-left ${
-                    isUsed ? 'opacity-50 border-theme-accent/30' : 'border-theme-accent/60 hover:border-theme-primary'
-                  }`}
-                >
-                  {item.image ? (
-                    <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-lg bg-theme-accent/20 flex items-center justify-center shrink-0">
-                      {item.sourceType === 'food' ? <UtensilsCrossed size={16} className="text-theme-muted" /> :
-                       item.sourceType === 'milestone' ? <Trophy size={16} className="text-theme-muted" /> :
-                       <BookText size={16} className="text-theme-muted" />}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-theme-text truncate">{item.title}</p>
-                    <p className="text-[10px] text-theme-muted">{item.subtitle}</p>
-                    {isUsed && <span className="text-[9px] text-theme-primary font-medium">Already in book</span>}
-                  </div>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </Modal>
-
-      {/* Page editor modal (text editing, content management per page) */}
-      {showPageEditor && editingPageId && project && (() => {
-        const editingPage = project.pages.find(p => p.id === editingPageId);
-        if (!editingPage) return null;
-        return (
-          <PageEditorModal
-            page={editingPage}
-            allContentItems={allContentItems}
-            usedSourceIds={usedSourceIds}
-            contentFilter={contentFilter}
-            onContentFilterChange={setContentFilter}
-            onSave={async (updated) => {
-              await handleUpdatePage(updated);
-              setShowPageEditor(false);
-              setEditingPageId(null);
-            }}
-            onClose={() => { setShowPageEditor(false); setEditingPageId(null); }}
-          />
-        );
-      })()}
 
       {/* Cover editor modal */}
       <CoverEditorModal
         isOpen={showCoverEditor}
         onClose={() => setShowCoverEditor(false)}
         cover={project.cover}
+        skuSlug={project.skuSlug}
         profilePhoto={profile.photo}
+        libraryItems={allContentItems}
         onSave={handleUpdateCover}
       />
-    </PageShell>
+    </>
   );
 }
 
-/* ── Page Editor Modal ────────────────────────────────────── */
+/* ── Page view (single page, large) ──────────────────────── */
 
-function PageEditorModal({
-  page, allContentItems, usedSourceIds, contentFilter, onContentFilterChange, onSave, onClose,
+import { PageCanvas } from './PageCanvas';
+import { CoverCanvas } from './CoverCanvas';
+
+function PageViewSingle({
+  project, activePageId, activeSlotIndex, onSlotTap, onImageOffsetChange,
+  onCoverTap, spreadIndex, onSpreadChange,
 }: {
-  page: BookPage;
-  allContentItems: (PageContentItem & { key: string })[];
-  usedSourceIds: Set<string>;
-  contentFilter: 'all' | 'foods' | 'milestones' | 'journal';
-  onContentFilterChange: (f: 'all' | 'foods' | 'milestones' | 'journal') => void;
-  onSave: (page: BookPage) => void;
-  onClose: () => void;
+  project: BookProject;
+  activePageId: string | null;
+  activeSlotIndex: number;
+  onSlotTap: (e: SpreadSlotTapEvent) => void;
+  onImageOffsetChange: (pageId: string, slotIndex: number, offset: ImageOffset) => void;
+  onCoverTap: () => void;
+  spreadIndex: number;
+  onSpreadChange: (idx: number) => void;
 }) {
-  const template = getTemplateInfo(page.templateId);
-  const [heading, setHeading] = useState(page.heading ?? '');
-  const [items, setItems] = useState<PageContentItem[]>([...page.items]);
-  const [showBrowser, setShowBrowser] = useState(false);
-  const [editingItemIdx, setEditingItemIdx] = useState<number | null>(null);
+  // Index 0 = cover. Index N (N>=1) = pages[N-1].
+  const isCover = spreadIndex === 0;
+  const pageIndex = spreadIndex - 1;
+  const totalPages = project.pages.length;
+  const totalSlides = totalPages + 1;
 
-  const isTextTemplate = page.templateId === 'text-only';
-  const isMonthTitle = page.templateId === 'month-title';
-  const isPhotoText = page.templateId === 'photo-text';
-
-  const handleSave = () => {
-    onSave({ ...page, heading: heading || undefined, items });
+  const handleSlotTap = (pageId: string) => (e: { slotIndex: number; slotKind: 'image' | 'text' }) => {
+    onSlotTap({ ...e, pageId });
   };
 
-  const handleAddItem = (item: PageContentItem) => {
-    if (items.length < template.maxItems) {
-      setItems([...items, item]);
+  // Swipe
+  const touchStart = { current: null as { x: number } | null };
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStart.current = { x: e.touches[0].clientX };
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!touchStart.current) return;
+    const dx = e.changedTouches[0].clientX - touchStart.current.x;
+    if (Math.abs(dx) > 50) {
+      if (dx < 0 && spreadIndex < totalSlides - 1) onSpreadChange(spreadIndex + 1);
+      else if (dx > 0 && spreadIndex > 0) onSpreadChange(spreadIndex - 1);
     }
-    setShowBrowser(false);
+    touchStart.current = null;
   };
-
-  const handleRemoveItem = (idx: number) => {
-    setItems(items.filter((_, i) => i !== idx));
-  };
-
-  const handleUpdateItemText = (idx: number, field: 'title' | 'text', value: string) => {
-    setItems(items.map((item, i) => i === idx ? { ...item, [field]: value } : item));
-  };
-
-  // For text-only pages with no items, show a custom text item
-  if (isTextTemplate && items.length === 0 && editingItemIdx === null) {
-    // Auto-create a custom item placeholder
-    const customItem: PageContentItem = {
-      sourceType: 'custom',
-      sourceId: `custom-${Date.now()}`,
-      image: null,
-      title: '',
-      subtitle: '',
-      text: '',
-    };
-    setItems([customItem]);
-    setEditingItemIdx(0);
-  }
 
   return (
-    <Modal isOpen={true} onClose={onClose} title={`Edit ${template.label} Page`}>
-      <div className="space-y-4">
-        {/* Heading field for text-only and month-title */}
-        {(isTextTemplate || isMonthTitle) && (
-          <div>
-            <label className="text-sm font-medium text-theme-text block mb-1">
-              {isMonthTitle ? 'Month Title' : 'Heading'}
-            </label>
-            <input
-              type="text"
-              value={heading}
-              onChange={e => setHeading(e.target.value)}
-              placeholder={isMonthTitle ? 'e.g. Month 3' : 'Page heading'}
-              className="w-full px-3 py-2 rounded-xl border border-theme-accent/60 text-sm bg-transparent text-theme-text"
-            />
+    <div
+      className="flex flex-col items-center w-full max-w-[400px]"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
+      <div className="w-full shadow-lg rounded-sm overflow-hidden">
+        {isCover ? (
+          <div className="cursor-pointer" onClick={onCoverTap}>
+            <CoverCanvas cover={project.cover} skuSlug={project.skuSlug} />
           </div>
+        ) : project.pages[pageIndex] ? (
+          <PageCanvas
+            page={project.pages[pageIndex]}
+            skuSlug={project.skuSlug}
+            editable={!project.pages[pageIndex].locked}
+            active={project.pages[pageIndex].id === activePageId}
+            activeSlotIndex={project.pages[pageIndex].id === activePageId ? activeSlotIndex : undefined}
+            onSlotTap={handleSlotTap(project.pages[pageIndex].id)}
+            onImageOffsetChange={(slot, offset) => onImageOffsetChange(project.pages[pageIndex].id, slot, offset)}
+          />
+        ) : (
+          <div className="bg-gray-50" style={{ aspectRatio: '2/3' }} />
         )}
-
-        {/* Text body for text-only pages */}
-        {isTextTemplate && items.length > 0 && (
-          <div>
-            <label className="text-sm font-medium text-theme-text block mb-1">Title</label>
-            <input
-              type="text"
-              value={items[0]?.title ?? ''}
-              onChange={e => handleUpdateItemText(0, 'title', e.target.value)}
-              placeholder="Title"
-              className="w-full px-3 py-2 rounded-xl border border-theme-accent/60 text-sm bg-transparent text-theme-text"
-            />
-            <label className="text-sm font-medium text-theme-text block mb-1 mt-3">Body Text</label>
-            <textarea
-              value={items[0]?.text ?? ''}
-              onChange={e => handleUpdateItemText(0, 'text', e.target.value)}
-              placeholder="Write your text here..."
-              rows={6}
-              className="w-full px-3 py-2 rounded-xl border border-theme-accent/60 text-sm bg-transparent text-theme-text resize-none"
-            />
-          </div>
-        )}
-
-        {/* Content items for photo-text, month-title */}
-        {!isTextTemplate && (
-          <div className="space-y-3">
-            {items.length > 0 && (
-              <div>
-                <label className="text-sm font-medium text-theme-text block mb-2">Content</label>
-                {items.map((item, idx) => (
-                  <div key={idx} className="border border-theme-accent/40 rounded-xl p-3 space-y-2 mb-2">
-                    <div className="flex items-start gap-3">
-                      {item.image ? (
-                        <img src={item.image} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                      ) : (
-                        <div className="w-12 h-12 rounded-lg bg-theme-accent/20 flex items-center justify-center shrink-0">
-                          <ImageIcon size={16} className="text-theme-muted" />
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-theme-text truncate">{item.title || 'Untitled'}</p>
-                        <p className="text-[10px] text-theme-muted">{item.subtitle}</p>
-                      </div>
-                      <button
-                        onClick={() => handleRemoveItem(idx)}
-                        className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-red-50 text-theme-muted hover:text-red-500 shrink-0"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                    {/* Editable text fields for photo-text */}
-                    {isPhotoText && (
-                      <div className="space-y-2 pt-1">
-                        <input
-                          type="text"
-                          value={item.title}
-                          onChange={e => handleUpdateItemText(idx, 'title', e.target.value)}
-                          placeholder="Title"
-                          className="w-full px-2 py-1.5 rounded-lg border border-theme-accent/40 text-xs bg-transparent text-theme-text"
-                        />
-                        <textarea
-                          value={item.text}
-                          onChange={e => handleUpdateItemText(idx, 'text', e.target.value)}
-                          placeholder="Add text..."
-                          rows={3}
-                          className="w-full px-2 py-1.5 rounded-lg border border-theme-accent/40 text-xs bg-transparent text-theme-text resize-none"
-                        />
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add content button */}
-            {items.length < template.maxItems && (
-              <Button size="sm" variant="secondary" fullWidth onClick={() => setShowBrowser(true)}>
-                <Plus size={14} className="mr-1" />
-                {items.length === 0 ? 'Add Content' : 'Replace Content'}
-              </Button>
-            )}
-          </div>
-        )}
-
-        {/* Inline content browser */}
-        {showBrowser && (
-          <div className="border-t border-theme-accent/30 pt-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-theme-muted uppercase">Browse Content</span>
-              <button onClick={() => setShowBrowser(false)} className="text-xs text-theme-primary font-medium">Close</button>
-            </div>
-            <div className="flex gap-2 mb-3 flex-wrap">
-              {([['all', 'All', null], ['foods', 'Foods', UtensilsCrossed], ['milestones', 'Milestones', Trophy], ['journal', 'Journal', BookText]] as const).map(([val, label, Icon]) => (
-                <button
-                  key={val}
-                  onClick={() => onContentFilterChange(val)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all flex items-center gap-1 ${
-                    contentFilter === val ? 'bg-theme-primary text-white' : 'bg-theme-panel text-theme-text hover:bg-black/5'
-                  }`}
-                >
-                  {Icon && <Icon size={12} />}
-                  {label}
-                </button>
-              ))}
-            </div>
-            <div className="space-y-2 max-h-[40vh] overflow-y-auto">
-              {allContentItems.length === 0 ? (
-                <p className="text-sm text-theme-muted text-center py-4">No content available.</p>
-              ) : (
-                allContentItems.map(item => {
-                  const isUsed = usedSourceIds.has(item.key);
-                  return (
-                    <button
-                      key={item.key}
-                      onClick={() => handleAddItem(item)}
-                      disabled={isUsed}
-                      className={`w-full flex gap-3 p-2 rounded-xl border transition-colors text-left ${
-                        isUsed ? 'opacity-50 border-theme-accent/30' : 'border-theme-accent/60 hover:border-theme-primary'
-                      }`}
-                    >
-                      {item.image ? (
-                        <img src={item.image} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                      ) : (
-                        <div className="w-10 h-10 rounded-lg bg-theme-accent/20 flex items-center justify-center shrink-0">
-                          {item.sourceType === 'food' ? <UtensilsCrossed size={14} className="text-theme-muted" /> :
-                           item.sourceType === 'milestone' ? <Trophy size={14} className="text-theme-muted" /> :
-                           <BookText size={14} className="text-theme-muted" />}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-semibold text-theme-text truncate">{item.title}</p>
-                        <p className="text-[10px] text-theme-muted">{item.subtitle}</p>
-                        {isUsed && <span className="text-[9px] text-theme-primary font-medium">Already in book</span>}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
-
-        <Button fullWidth onClick={handleSave}>Save Page</Button>
       </div>
-    </Modal>
+      <p className="text-xs text-gray-400 mt-2">
+        {isCover ? 'Cover' : `Page ${pageIndex + 1} of ${totalPages}`}
+      </p>
+    </div>
+  );
+}
+
+/* ── Toolbar button ──────────────────────────────────────── */
+
+function MenuItem({
+  icon: Icon, label, onClick, disabled, destructive,
+}: {
+  icon: typeof ImageIcon;
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`w-full flex items-center gap-2 px-3 py-2 text-sm text-left transition-colors ${
+        disabled
+          ? 'text-gray-300 cursor-not-allowed'
+          : destructive
+            ? 'text-red-600 hover:bg-red-50'
+            : 'text-gray-700 hover:bg-gray-50'
+      }`}
+    >
+      <Icon size={16} />
+      <span>{label}</span>
+    </button>
+  );
+}function ToolbarBtn({
+  icon: Icon, label, active, onClick, disabled,
+}: {
+  icon: typeof ImageIcon;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors ${
+        active ? 'text-theme-primary' : disabled ? 'text-gray-300' : 'text-gray-500 hover:text-gray-700'
+      }`}
+    >
+      <Icon size={20} />
+      <span className="text-[9px] font-medium">{label}</span>
+    </button>
   );
 }
 
 /* ── Cover Editor Modal ──────────────────────────────────── */
 
+const COVER_FORMAT_OPTIONS: { slug: PrintProductSlug; label: string; description: string }[] = [
+  { slug: 'print-softcover', label: 'Keepsake Softcover', description: '6x9 perfect-bound' },
+  { slug: 'print-hardcover', label: 'Heirloom Hardcover', description: '8.5x8.5 case-wrap' },
+  { slug: 'print-premium', label: 'Linen Premium', description: '8.5x11 linen' },
+];
+
 function CoverEditorModal({
-  isOpen, onClose, cover, profilePhoto, onSave,
+  isOpen, onClose, cover, skuSlug, profilePhoto, libraryItems, onSave,
 }: {
   isOpen: boolean;
   onClose: () => void;
   cover: BookProject['cover'];
+  skuSlug: BookProject['skuSlug'];
   profilePhoto: string | null;
-  onSave: (updates: Partial<BookProject['cover']>) => void;
+  libraryItems: (PageContentItem & { key: string })[];
+  onSave: (updates: Partial<BookProject['cover']>, skuSlug?: BookProject['skuSlug']) => void;
 }) {
   const [babyName, setBabyName] = useState(cover.babyName);
   const [year, setYear] = useState(cover.year);
   const [theme, setTheme] = useState(cover.theme);
-  const [useProfilePhoto, setUseProfilePhoto] = useState(!!cover.photo);
+  const [photo, setPhoto] = useState<string | null>(cover.photo ?? null);
+  const [selectedSku, setSelectedSku] = useState<PrintProductSlug>(skuSlug ?? 'print-softcover');
 
   useEffect(() => {
     setBabyName(cover.babyName);
     setYear(cover.year);
     setTheme(cover.theme);
-    setUseProfilePhoto(!!cover.photo);
-  }, [cover]);
+    setPhoto(cover.photo ?? null);
+    setSelectedSku(skuSlug ?? 'print-softcover');
+  }, [cover, skuSlug]);
 
   const themeOptions: { value: typeof theme; label: string; color: string }[] = [
     { value: 'classic', label: 'Classic', color: '#8FB996' },
     { value: 'pastel', label: 'Pastel', color: '#E8A0BF' },
     { value: 'playful', label: 'Playful', color: '#E8A44A' },
   ];
+
+  // Library images (photos from foods/milestones/journal that have an image)
+  const libraryPhotos = libraryItems.filter(i => !!i.image);
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Edit Cover">
@@ -699,6 +778,29 @@ function CoverEditorModal({
             className="w-full px-3 py-2 rounded-xl border border-theme-accent/60 text-sm bg-transparent text-theme-text"
           />
         </div>
+
+        {/* Format picker */}
+        <div>
+          <label className="text-sm font-medium text-theme-text block mb-2">Format</label>
+          <div className="space-y-2">
+            {COVER_FORMAT_OPTIONS.map(opt => (
+              <button
+                key={opt.slug}
+                onClick={() => setSelectedSku(opt.slug)}
+                className={`w-full flex items-center gap-3 p-2.5 rounded-xl border-2 transition-all text-left ${
+                  selectedSku === opt.slug ? 'border-theme-primary' : 'border-theme-accent/40'
+                }`}
+              >
+                <div className="flex-1">
+                  <p className="text-xs font-semibold text-theme-text">{opt.label}</p>
+                  <p className="text-[10px] text-theme-muted">{opt.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Theme picker */}
         <div>
           <label className="text-sm font-medium text-theme-text block mb-2">Cover Theme</label>
           <div className="flex gap-3">
@@ -716,23 +818,58 @@ function CoverEditorModal({
             ))}
           </div>
         </div>
-        {profilePhoto && (
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={useProfilePhoto}
-              onChange={e => setUseProfilePhoto(e.target.checked)}
-              className="rounded"
-            />
-            <span className="text-sm text-theme-text">Use profile photo on cover</span>
-          </label>
-        )}
+
+        {/* Cover photo picker */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-sm font-medium text-theme-text">Cover Photo</label>
+            {photo && (
+              <button
+                onClick={() => setPhoto(null)}
+                className="text-[10px] text-theme-muted hover:text-red-500 font-medium"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1">
+            {profilePhoto && (
+              <button
+                onClick={() => setPhoto(profilePhoto)}
+                className={`shrink-0 relative w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  photo === profilePhoto ? 'border-theme-primary' : 'border-transparent'
+                }`}
+                title="Profile photo"
+              >
+                <img src={profilePhoto} alt="" className="w-full h-full object-cover" />
+                <span className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] py-0.5 text-center">
+                  Profile
+                </span>
+              </button>
+            )}
+            {libraryPhotos.map(item => (
+              <button
+                key={item.key}
+                onClick={() => setPhoto(item.image!)}
+                className={`shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                  photo === item.image ? 'border-theme-primary' : 'border-transparent'
+                }`}
+                title={item.title}
+              >
+                <img src={item.image!} alt={item.title} className="w-full h-full object-cover" />
+              </button>
+            ))}
+            {!profilePhoto && libraryPhotos.length === 0 && (
+              <p className="text-[10px] text-theme-muted py-2">
+                No photos available. Add foods, milestones, or journal entries with photos.
+              </p>
+            )}
+          </div>
+        </div>
+
         <Button fullWidth onClick={() => onSave({
-          babyName,
-          year,
-          theme,
-          photo: useProfilePhoto ? profilePhoto : null,
-        })}>
+          babyName, year, theme, photo,
+        }, selectedSku)}>
           Save Cover
         </Button>
       </div>

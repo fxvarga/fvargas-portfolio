@@ -1,4 +1,5 @@
-import type { JournalEntry } from '@/types';
+import { Camera } from 'lucide-react';
+import { getJournalImages, type JournalEntry } from '@/types';
 
 interface JournalCardProps {
   entry: JournalEntry;
@@ -6,6 +7,8 @@ interface JournalCardProps {
 }
 
 export function JournalCard({ entry, onClick }: JournalCardProps) {
+  const images = getJournalImages(entry);
+  const cover = images[0];
   const dateLabel = (() => {
     const [year, month] = entry.monthKey.split('-').map(Number);
     return new Date(year, month - 1).toLocaleDateString(undefined, {
@@ -22,13 +25,18 @@ export function JournalCard({ entry, onClick }: JournalCardProps) {
     >
       <div className="flex gap-0">
         {/* Image column */}
-        {entry.image && (
-          <div className="w-24 shrink-0">
+        {cover && (
+          <div className="w-24 shrink-0 relative">
             <img
-              src={entry.image}
+              src={cover}
               alt={entry.monthLabel}
               className="w-full h-full object-cover min-h-[7rem]"
             />
+            {images.length > 1 && (
+              <span className="absolute bottom-1 right-1 inline-flex items-center gap-0.5 text-[9px] font-bold bg-black/60 text-white px-1.5 py-0.5 rounded">
+                <Camera size={9} /> {images.length}
+              </span>
+            )}
           </div>
         )}
 

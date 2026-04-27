@@ -13,6 +13,7 @@ import { JournalCard } from './JournalCard';
 import { JournalDetail } from './JournalDetail';
 import { BookOpen, CalendarDays, Sparkles, Camera } from 'lucide-react';
 import type { JournalEntry } from '@/types';
+import { getJournalImages } from '@/types';
 
 export function JournalPage() {
   const { profile } = useProfile();
@@ -45,7 +46,7 @@ export function JournalPage() {
           metrics={[
             { label: 'Months', value: entries.length, icon: CalendarDays },
             { label: 'Highlights', value: entries.reduce((acc, e) => acc + e.highlights.length, 0), icon: Sparkles },
-            { label: 'Photos', value: entries.filter(e => e.image).length, icon: Camera },
+            { label: 'Photos', value: entries.reduce((acc, e) => acc + getJournalImages(e).length, 0), icon: Camera },
           ]}
         />
       </div>

@@ -10,7 +10,7 @@ import { Card } from '@/components/Card';
 import { Modal } from '@/components/Modal';
 import { EmptyState } from '@/components/EmptyState';
 import { generateInteriorPdf, generateCoverPdf, checkDpiWarnings } from './PdfGenerator';
-import type { BookProject, PrintProduct, ShippingOption, CoverTheme } from '@/types';
+import type { BookProject, PrintProduct, PrintProductSlug, ShippingOption, CoverTheme } from '@/types';
 import {
   BookOpen, Plus, Printer, Trash2, Package,
   AlertTriangle, Truck, DollarSign, Loader, ShoppingBag,
@@ -67,13 +67,13 @@ export function PrintTab() {
     api.getPrintProducts().then(setProducts).catch(() => {});
   }, []);
 
-  const handleCreateProject = useCallback(async (name: string) => {
+  const handleCreateProject = useCallback(async (name: string, skuSlug: PrintProductSlug) => {
     const project = await createProject(name, {
       babyName: profile.name || 'Baby',
       year: new Date().getFullYear().toString(),
       theme: 'classic' as CoverTheme,
       photo: profile.photo,
-    });
+    }, skuSlug);
     setShowNewProject(false);
     navigate(`/book-editor/${project.id}`);
   }, [createProject, profile, navigate]);
@@ -116,6 +116,27 @@ export function PrintTab() {
               </Button>
             }
           />
+          {/* Show formats inside the empty state so first-time users can preview their options. */}
+          <div className="mt-6">
+            <h3 className="text-xs font-semibold text-theme-muted uppercase tracking-wide mb-2">Available Formats</h3>
+            <div className="divide-y divide-theme-accent/30">
+              {products.map(p => (
+                <div key={p.slug} className="flex items-center gap-3 py-3">
+                  <BookOpen size={16} className="text-theme-muted shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-theme-text">{p.name}</p>
+                    <p className="text-[11px] text-theme-muted">{p.description}</p>
+                  </div>
+                  <p className="text-sm text-theme-muted shrink-0">
+                    from ${p.basePriceUsd.toFixed(2)}
+                  </p>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-theme-muted text-center mt-2">
+              Every physical book includes all 3 digital products free
+            </p>
+          </div>
         </Card>
       ) : (
         <div className="space-y-3">
@@ -135,34 +156,13 @@ export function PrintTab() {
       {/* Past orders */}
       {canPrint && <OrderHistory />}
 
-      {/* Available formats — informational list */}
-      <div>
-        <h3 className="text-xs font-semibold text-theme-muted uppercase tracking-wide mb-2">Available Formats</h3>
-        <div className="divide-y divide-theme-accent/30">
-          {products.map(p => (
-            <div key={p.slug} className="flex items-center gap-3 py-3">
-              <BookOpen size={16} className="text-theme-muted shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-theme-text">{p.name}</p>
-                <p className="text-[11px] text-theme-muted">{p.description}</p>
-              </div>
-              <p className="text-sm text-theme-muted shrink-0">
-                from ${p.basePriceUsd.toFixed(2)}
-              </p>
-            </div>
-          ))}
-        </div>
-        <p className="text-[10px] text-theme-muted text-center mt-2">
-          Every physical book includes all 3 digital products free
-        </p>
-      </div>
-
       {/* New project modal */}
       <NewProjectModal
         isOpen={showNewProject}
         onClose={() => setShowNewProject(false)}
         onConfirm={handleCreateProject}
         defaultName={`${profile.name || 'Baby'}'s Memory Book`}
+        products={products}
       />
 
       {/* Checkout modal */}
@@ -254,22 +254,26 @@ function ProjectCard({ project, products, onEdit, onPrint, onDelete }: {
             </div>
           )}
         </div>
-        <div className="flex gap-1 shrink-0">
-          <button
-            onClick={(e) => { e.stopPropagation(); onPrint(); }}
-            disabled={!canPrint}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-theme-primary/10 text-theme-primary disabled:opacity-30"
-            title={canPrint ? 'Print this book' : `Need at least ${minPages} pages`}
-          >
-            <Printer size={16} />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 text-theme-muted hover:text-red-500"
-          >
-            <Trash2 size={14} />
-          </button>
-        </div>
+        {/* Delete stays as a small icon top-right; the prominent Print CTA lives in the footer below. */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-50 text-theme-muted hover:text-red-500 shrink-0"
+          title="Delete this book"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {/* Prominent Print CTA */}
+      <div className="mt-3 pt-3 border-t border-theme-accent/30" onClick={(e) => e.stopPropagation()}>
+        <Button
+          fullWidth
+          onClick={onPrint}
+          disabled={!canPrint}
+        >
+          <Printer size={16} className="mr-2" />
+          Print This Book
+        </Button>
       </div>
     </Card>
   );
@@ -277,13 +281,15 @@ function ProjectCard({ project, products, onEdit, onPrint, onDelete }: {
 
 /* ── New Project Modal ───────────────────────────────────── */
 
-function NewProjectModal({ isOpen, onClose, onConfirm, defaultName }: {
+function NewProjectModal({ isOpen, onClose, onConfirm, defaultName, products }: {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (name: string) => void;
+  onConfirm: (name: string, skuSlug: PrintProductSlug) => void;
   defaultName: string;
+  products: PrintProduct[];
 }) {
   const [name, setName] = useState(defaultName);
+  const [selectedSku, setSelectedSku] = useState<PrintProductSlug>('print-softcover');
 
   useEffect(() => { setName(defaultName); }, [defaultName]);
 
@@ -300,7 +306,29 @@ function NewProjectModal({ isOpen, onClose, onConfirm, defaultName }: {
             placeholder="My Memory Book"
           />
         </div>
-        <Button fullWidth onClick={() => onConfirm(name)} disabled={!name.trim()}>
+        <div>
+          <label className="text-sm font-medium text-theme-text block mb-2">Format</label>
+          <div className="space-y-2">
+            {products.map(p => (
+              <button
+                key={p.slug}
+                onClick={() => setSelectedSku(p.slug)}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                  selectedSku === p.slug ? 'border-theme-primary' : 'border-theme-accent/40'
+                }`}
+              >
+                <BookOpen size={18} className={selectedSku === p.slug ? 'text-theme-primary' : 'text-theme-muted'} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-theme-text">{p.name}</p>
+                  <p className="text-[10px] text-theme-muted">{p.description}</p>
+                </div>
+                <p className="text-sm font-bold text-theme-primary">${p.basePriceUsd.toFixed(2)}</p>
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-theme-muted mt-1">You can change the format later.</p>
+        </div>
+        <Button fullWidth onClick={() => onConfirm(name, selectedSku)} disabled={!name.trim()}>
           Create Book
         </Button>
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { bookProjectsDb } from '@/lib/db';
 import { generateId } from '@/lib/imageUtils';
 import type { BookProject, CoverConfig, BookPage, PrintProductSlug } from '@/types';
+import { createDefaultPages } from '@/features/print-book/PageTemplates';
 
 export function useBookProjects() {
   const [projects, setProjects] = useState<BookProject[]>([]);
@@ -17,13 +18,13 @@ export function useBookProjects() {
     reload();
   }, [reload]);
 
-  const createProject = useCallback(async (name: string, cover: CoverConfig): Promise<BookProject> => {
+  const createProject = useCallback(async (name: string, cover: CoverConfig, skuSlug: PrintProductSlug | null = 'print-softcover'): Promise<BookProject> => {
     const project: BookProject = {
       id: generateId(),
       name,
       cover,
-      pages: [],
-      skuSlug: null,
+      pages: createDefaultPages(),
+      skuSlug,
       createdAt: Date.now(),
       updatedAt: Date.now(),
     };

@@ -1,7 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
-import { UtensilsCrossed, Trophy, BookOpen, Camera, Clapperboard, Lock } from 'lucide-react';
+import { UtensilsCrossed, Trophy, BookOpen, BookMarked, Clapperboard, Lock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 /** Slugs used for nav display — includes free features */
@@ -15,7 +15,7 @@ const MODULE_NAV: { slug: NavSlug; icon: LucideIcon; label: string; path: string
   { slug: 'first-foods', icon: UtensilsCrossed, label: 'Foods', path: '/home' },
   { slug: 'milestones', icon: Trophy, label: 'Milestones', path: '/milestones' },
   { slug: 'monthly-journal', icon: BookOpen, label: 'Journal', path: '/journal' },
-  { slug: 'memory-book', icon: Camera, label: 'Book', path: '/memory-book' },
+  { slug: 'memory-book', icon: BookMarked, label: 'Books', path: '/memory-book' },
 ];
 
 interface ModuleNavBarProps {
