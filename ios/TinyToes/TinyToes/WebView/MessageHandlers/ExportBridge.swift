@@ -24,15 +24,15 @@ class ExportBridge: NSObject, WKScriptMessageHandler {
         switch action {
         case "shareFile":
           try await handleShareFile(payload: payload, webView: webView)
-          webView?.evaluateJavaScript("window.__nativeCallback('\(id)', null, true)")
+          try await webView?.evaluateJavaScript("window.__nativeCallback('\(id)', null, true)")
 
         default:
           let escaped = "Unknown export action: \(action)"
-          webView?.evaluateJavaScript("window.__nativeCallback('\(id)', '\(escaped)', null)")
+          try await webView?.evaluateJavaScript("window.__nativeCallback('\(id)', '\(escaped)', null)")
         }
       } catch {
         let escaped = error.localizedDescription.replacingOccurrences(of: "'", with: "\\'")
-        webView?.evaluateJavaScript("window.__nativeCallback('\(id)', '\(escaped)', null)")
+        try? await webView?.evaluateJavaScript("window.__nativeCallback('\(id)', '\(escaped)', null)")
       }
     }
   }
@@ -45,7 +45,8 @@ class ExportBridge: NSObject, WKScriptMessageHandler {
       throw ExportError.invalidPayload
     }
 
-    let mimeType = payload["mimeType"] as? String ?? "application/octet-stream"
+    let _mimeType = payload["mimeType"] as? String ?? "application/octet-stream"
+    _ = _mimeType  // reserved for future use (e.g. UTType mapping)
 
     // Write to temp file
     let tempDir = FileManager.default.temporaryDirectory

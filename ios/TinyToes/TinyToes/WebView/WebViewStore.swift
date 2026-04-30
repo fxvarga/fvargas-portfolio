@@ -30,7 +30,6 @@ class WebViewStore: ObservableObject {
     userContent.addUserScript(bridgeScript)
 
     let webView = WKWebView(frame: .zero, configuration: config)
-    webView.isInspectable = true  // allow Safari Web Inspector in debug
     #if DEBUG
     if #available(iOS 16.4, *) {
       webView.isInspectable = true
