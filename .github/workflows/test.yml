@@ -24,12 +24,13 @@ jobs:
       - name: Install pnpm
         run: corepack prepare pnpm@latest --activate
 
-      - name: Install dependencies (root workspace)
-        run: pnpm install
+      - name: Install dependencies
+        working-directory: ./frontend/tinytoes-app
+        run: pnpm install --no-workspace
 
       - name: Build PWA
         working-directory: ./frontend/tinytoes-app
-        run: pnpm build
+        run: npx tsc -b && npx vite build
 
       - name: Sync web assets to iOS bundle
         run: |
