@@ -198,6 +198,78 @@ const RENDERERS: Record<DecorationKind, () => React.ReactNode> = {
       <path d="M 62 55 Q 82 48 82 70 Q 70 70 62 60" fill="#FFFCF6" />
     </g>
   ),
+  bib: () => (
+    <g fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      {/* Neck strap */}
+      <path d="M 40 22 Q 50 14 60 22" />
+      {/* Bib outline (rounded shield) */}
+      <path d="M 30 28 Q 50 22 70 28 L 72 60 Q 70 78 50 80 Q 30 78 28 60 Z" fill="#FFFCF6" />
+      {/* Scalloped lower edge */}
+      <path d="M 30 72 q 4 4 8 0 q 4 4 8 0 q 4 4 8 0 q 4 4 8 0 q 4 4 8 0" fill="none" />
+      {/* Heart in center */}
+      <path d="M 50 56 C 44 50, 40 54, 44 60 C 46 63, 50 66, 50 66 C 50 66, 54 63, 56 60 C 60 54, 56 50, 50 56 Z" fill="currentColor" stroke="none" />
+      {/* Tiny dots around */}
+      <circle cx={22} cy={32} r={0.8} fill="currentColor" stroke="none" />
+      <circle cx={78} cy={32} r={0.8} fill="currentColor" stroke="none" />
+      <circle cx={20} cy={50} r={0.6} fill="currentColor" stroke="none" />
+      <circle cx={80} cy={50} r={0.6} fill="currentColor" stroke="none" />
+    </g>
+  ),
+};
+
+/* ── Organic blob backdrop (used behind decorations + photo accents) ──── */
+
+export type BlobShape = 'pebble' | 'arch' | 'oval';
+
+/** A soft organic blob shape used as a backdrop tint behind decorations
+ *  and as accent shapes near photos. Uses `currentColor` for fill. */
+export function Blob({
+  shape = 'pebble',
+  className = '',
+  style,
+  size = '100%',
+  color,
+  opacity = 1,
+}: {
+  shape?: BlobShape;
+  className?: string;
+  style?: React.CSSProperties;
+  size?: string | number;
+  color?: string;
+  opacity?: number;
+}) {
+  const merged: React.CSSProperties = {
+    width: size,
+    height: size,
+    color,
+    display: 'block',
+    opacity,
+    ...style,
+  };
+  return (
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" className={className} style={merged} aria-hidden="true">
+      {BLOB_PATHS[shape]}
+    </svg>
+  );
+}
+
+const BLOB_PATHS: Record<BlobShape, React.ReactNode> = {
+  // Soft asymmetric pebble — main organic shape (peach/cream backdrops)
+  pebble: (
+    <path
+      fill="currentColor"
+      d="M 28 12 Q 8 24 8 48 Q 6 72 26 84 Q 50 94 72 84 Q 94 74 92 50 Q 94 24 72 14 Q 50 6 28 12 Z"
+    />
+  ),
+  // Tombstone / arch shape (used behind sailboat in image 010)
+  arch: (
+    <path
+      fill="currentColor"
+      d="M 20 90 L 20 40 Q 20 12 50 12 Q 80 12 80 40 L 80 90 Q 50 96 20 90 Z"
+    />
+  ),
+  // Plain rounded oval
+  oval: <ellipse cx={50} cy={50} rx={42} ry={36} fill="currentColor" />,
 };
 
 /* ── Tiny shape helpers ──────────────────────────────── */
@@ -250,4 +322,5 @@ export const DECORATIONS: { kind: DecorationKind; label: string }[] = [
   { kind: 'cupcake',     label: 'Cupcake' },
   { kind: 'floral',      label: 'Floral' },
   { kind: 'angel',       label: 'Angel' },
+  { kind: 'bib',         label: 'Bib' },
 ];

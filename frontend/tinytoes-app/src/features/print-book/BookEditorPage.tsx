@@ -150,7 +150,7 @@ export function BookEditorPage() {
   const handleSlotTap = useCallback((e: SpreadSlotTapEvent) => {
     if (!project) return;
     const tappedPage = project.pages.find(p => p.id === e.pageId);
-    if (!tappedPage || tappedPage.locked) return; // No editing on locked pages
+    if (!tappedPage) return;
     setActivePageId(e.pageId);
     setActiveSlotIndex(e.slotIndex);
     // Title page → dedicated stats editor
@@ -169,7 +169,7 @@ export function BookEditorPage() {
   const handleImageOffsetChange = useCallback(async (pageId: string, slotIndex: number, offset: ImageOffset) => {
     if (!project) return;
     const page = project.pages.find(p => p.id === pageId);
-    if (!page || page.locked) return;
+    if (!page) return;
     const item = page.items[slotIndex];
     if (!item) return;
     const newItems = [...page.items];
@@ -210,7 +210,6 @@ export function BookEditorPage() {
       .sort((a, b) => a.dateMs - b.dateMs);
     let idx = 0;
     const newPages = project.pages.map(page => {
-      if (page.locked) return page;
       const template = getTemplateInfo(page.templateId);
       const newItems = [...page.items];
       while (newItems.length < template.maxItems && idx < unusedItems.length) {
@@ -515,7 +514,7 @@ export function BookEditorPage() {
                     {!canMutateActivePage && (
                       <p className="px-3 py-2 text-[10px] text-gray-400 border-t border-gray-100">
                         {activePage?.locked
-                          ? 'This page is locked.'
+                          ? 'This page cannot be deleted or reordered.'
                           : 'Open a page first (cover can\u2019t be deleted).'}
                       </p>
                     )}
@@ -648,7 +647,7 @@ function PageViewSingle({
           <PageCanvas
             page={project.pages[pageIndex]}
             skuSlug={project.skuSlug}
-            editable={!project.pages[pageIndex].locked}
+            editable={true}
             active={project.pages[pageIndex].id === activePageId}
             activeSlotIndex={project.pages[pageIndex].id === activePageId ? activeSlotIndex : undefined}
             onSlotTap={handleSlotTap(project.pages[pageIndex].id)}

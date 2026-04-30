@@ -110,7 +110,7 @@ export function SpreadView({
                 <PageCanvas
                   page={spread.left}
                   skuSlug={project.skuSlug}
-                  editable={editable && !spread.left.locked}
+                  editable={editable}
                   active={spread.left.id === activePageId}
                   activeSlotIndex={spread.left.id === activePageId ? activeSlotIndex : undefined}
                   onSlotTap={handleSlotTap(spread.left.id)}
@@ -130,7 +130,7 @@ export function SpreadView({
                 <PageCanvas
                   page={spread.right}
                   skuSlug={project.skuSlug}
-                  editable={editable && !spread.right.locked}
+                  editable={editable}
                   active={spread.right.id === activePageId}
                   activeSlotIndex={spread.right.id === activePageId ? activeSlotIndex : undefined}
                   onSlotTap={handleSlotTap(spread.right.id)}

@@ -8,12 +8,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import type { BookProject, BookPage, CoverConfig, ImageOffset, DecorationKind } from '@/types';
 import { TRIM_SIZES, BLEED, MARGIN, COVER_THEMES, NURSERY, templateScale } from './bookConstants';
-import { Decoration } from './Decorations';
+import { Decoration, Blob as BlobDeco, type BlobShape } from './Decorations';
 
 import robotoRegularUrl    from '@/assets/fonts/Roboto-Regular.ttf?url';
 import robotoBoldUrl       from '@/assets/fonts/Roboto-Bold.ttf?url';
-import caveatRegularUrl    from '@/assets/fonts/Caveat-Regular.ttf?url';
-import caveatBoldUrl       from '@/assets/fonts/Caveat-Bold.ttf?url';
+import caveatRegularUrl    from '@/assets/fonts/PatrickHand-Regular.ttf?url';
+import caveatBoldUrl       from '@/assets/fonts/PatrickHand-Regular.ttf?url';
 import fredokaRegularUrl   from '@/assets/fonts/Fredoka-Regular.ttf?url';
 import fredokaSemiBoldUrl  from '@/assets/fonts/Fredoka-SemiBold.ttf?url';
 import patrickHandUrl      from '@/assets/fonts/PatrickHand-Regular.ttf?url';
@@ -170,6 +170,57 @@ async function drawDecoration(
   }
 }
 
+/* ── Blob backdrop rasterization (organic shape behind decorations) ───── */
+
+const _blobCache = new Map<string, Uint8Array>();
+
+async function rasterizeBlob(shape: BlobShape, color: string, sizePx = 384): Promise<Uint8Array> {
+  const cacheKey = `${shape}|${color}|${sizePx}`;
+  const hit = _blobCache.get(cacheKey);
+  if (hit) return hit;
+
+  const svgString = renderToStaticMarkup(
+    createElement(BlobDeco, { shape, color, size: sizePx, style: { color } }),
+  );
+  const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  try {
+    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error('SVG decode failed'));
+      im.src = url;
+    });
+    const canvas = document.createElement('canvas');
+    canvas.width = sizePx;
+    canvas.height = sizePx;
+    const ctx = canvas.getContext('2d')!;
+    ctx.clearRect(0, 0, sizePx, sizePx);
+    ctx.drawImage(img, 0, 0, sizePx, sizePx);
+    const pngBlob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(b => b ? resolve(b) : reject(new Error('toBlob failed')), 'image/png');
+    });
+    const bytes = new Uint8Array(await pngBlob.arrayBuffer());
+    _blobCache.set(cacheKey, bytes);
+    return bytes;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function drawBlob(
+  doc: PDFDocument, page: PDFPage, shape: BlobShape, color: string,
+  x: number, y: number, w: number, h: number, opacity = 1,
+) {
+  try {
+    const bytes = await rasterizeBlob(shape, color);
+    const img = await doc.embedPng(bytes);
+    page.drawImage(img, { x, y, width: w, height: h, opacity });
+  } catch {
+    // Silently skip if rasterization fails
+  }
+}
+
 /* ── Color helpers ──────────────────────────────────────── */
 
 function hexToRgb(hex: string): ReturnType<typeof rgb> {
@@ -193,11 +244,20 @@ const C = {
 
 /* ── Text helpers ───────────────────────────────────────── */
 
+// When true, replace all text with gray placeholder bars
+const TEXT_PLACEHOLDER_MODE = false;
+const PLACEHOLDER_COLOR = rgb(0.82, 0.82, 0.82); // light gray
+
 function drawCenteredText(
   page: PDFPage, text: string, cx: number, y: number,
   size: number, font: PDFFont, color: ReturnType<typeof rgb>,
 ) {
   const w = font.widthOfTextAtSize(text, size);
+  if (TEXT_PLACEHOLDER_MODE) {
+    const barH = size * 0.7;
+    page.drawRectangle({ x: cx - w / 2, y: y + size * 0.1, width: w, height: barH, color: PLACEHOLDER_COLOR });
+    return;
+  }
   page.drawText(text, { x: cx - w / 2, y, size, font, color });
 }
 
@@ -207,10 +267,9 @@ function drawWrappedText(
   fontSize: number, font: PDFFont, color: ReturnType<typeof rgb>,
   options: { lineHeight?: number; align?: 'left' | 'center'; minY?: number } = {},
 ) {
-  const lineHeight = options.lineHeight ?? fontSize * 1.4;
+  const lineHeight = options.lineHeight ?? fontSize * 1.2;
   const minY = options.minY ?? BLEED + MARGIN;
   const align = options.align ?? 'left';
-  // Split on whitespace AND preserve explicit \n line breaks
   const paragraphs = text.split(/\n/);
   let y = startY;
   for (const para of paragraphs) {
@@ -220,8 +279,14 @@ function drawWrappedText(
       const test = line ? `${line} ${word}` : word;
       const w = font.widthOfTextAtSize(test, fontSize);
       if (w > maxWidth && line) {
-        const drawX = align === 'center' ? x + (maxWidth - font.widthOfTextAtSize(line, fontSize)) / 2 : x;
-        page.drawText(line, { x: drawX, y, size: fontSize, font, color });
+        const lineW = font.widthOfTextAtSize(line, fontSize);
+        const drawX = align === 'center' ? x + (maxWidth - lineW) / 2 : x;
+        if (TEXT_PLACEHOLDER_MODE) {
+          const barH = fontSize * 0.7;
+          page.drawRectangle({ x: drawX, y: y + fontSize * 0.1, width: lineW, height: barH, color: PLACEHOLDER_COLOR });
+        } else {
+          page.drawText(line, { x: drawX, y, size: fontSize, font, color });
+        }
         y -= lineHeight;
         if (y < minY) return;
         line = word;
@@ -230,12 +295,41 @@ function drawWrappedText(
       }
     }
     if (line) {
-      const drawX = align === 'center' ? x + (maxWidth - font.widthOfTextAtSize(line, fontSize)) / 2 : x;
-      page.drawText(line, { x: drawX, y, size: fontSize, font, color });
+      const lineW = font.widthOfTextAtSize(line, fontSize);
+      const drawX = align === 'center' ? x + (maxWidth - lineW) / 2 : x;
+      if (TEXT_PLACEHOLDER_MODE) {
+        const barH = fontSize * 0.7;
+        page.drawRectangle({ x: drawX, y: y + fontSize * 0.1, width: lineW, height: barH, color: PLACEHOLDER_COLOR });
+      } else {
+        page.drawText(line, { x: drawX, y, size: fontSize, font, color });
+      }
       y -= lineHeight;
       if (y < minY) return;
     }
   }
+}
+
+function measureWrappedLines(
+  text: string, maxWidth: number, fontSize: number, font: PDFFont,
+): number {
+  const paragraphs = text.split(/\n/);
+  let lines = 0;
+  for (const para of paragraphs) {
+    if (!para.trim()) { lines += 1; continue; }
+    const words = para.split(/\s+/);
+    let line = '';
+    for (const word of words) {
+      const test = line ? `${line} ${word}` : word;
+      if (font.widthOfTextAtSize(test, fontSize) > maxWidth && line) {
+        lines += 1;
+        line = word;
+      } else {
+        line = test;
+      }
+    }
+    if (line) lines += 1;
+  }
+  return Math.max(1, lines);
 }
 
 /* ── Generate interior PDF ──────────────────────────────── */
@@ -284,58 +378,74 @@ async function renderPageTemplate(
     /* ── New nursery templates ─────────────────────── */
 
     case 'blank-locked': {
-      // Lock-shape glyph + "INTENTIONALLY LEFT BLANK" centered, very subtle.
-      // Preview uses a Lock icon at 8% of page width; mirror with simple primitives.
-      const cx = w / 2;
-      const cy = h / 2;
-      const lockSize = w * 0.08;
-      const bodyW = lockSize * 0.78;
-      const bodyH = lockSize * 0.55;
-      const bodyX = cx - bodyW / 2;
-      const bodyY = cy + lockSize * 0.10;
-      const shackleR = bodyW * 0.34;
-      const shackleCx = cx;
-      const shackleCy = bodyY + bodyH + shackleR * 0.55;
-      // Lock shackle (drawn as a stroked ring, then knocked out by body rectangle below)
-      page.drawCircle({ x: shackleCx, y: shackleCy, size: shackleR, borderColor: C.whisper, borderWidth: 1.2 });
-      // Lock body
-      page.drawRectangle({
-        x: bodyX, y: bodyY, width: bodyW, height: bodyH,
-        color: C.cream, borderColor: C.whisper, borderWidth: 1.2,
-      });
-      const textSize = 9 * ts;
-      const text1 = 'THIS PAGE INTENTIONALLY';
-      const text2 = 'LEFT BLANK';
-      drawCenteredText(page, text1, w / 2, cy - lockSize * 0.6,        textSize, fonts.display, C.whisper);
-      drawCenteredText(page, text2, w / 2, cy - lockSize * 0.6 - textSize * 1.4, textSize, fonts.display, C.whisper);
+      // Intentionally rendered as a plain cream page (background already drawn
+      // by the caller before the switch). No lock icon, no text — matches the
+      // auto-pad blank that Lulu adds for even page count.
       break;
     }
 
     case 'title-stats': {
+      // Layout per final_insp/001: 2 photos stacked left half + bib + heading + stats column right
       const heading = (bookPage.heading || 'Hello, Baby!').replace(/^hello,?\s*/i, '').trim() || 'BABY!';
-      const helloSize = 56 * ts;
-      const nameSize  = 64 * ts;
-      // "hello," in script
-      drawCenteredText(page, 'hello,', w / 2, h * 0.62, helloSize, fonts.script, C.pink);
-      // Big chunky display name
-      drawCenteredText(page, heading.toUpperCase(), w / 2, h * 0.50, nameSize, fonts.displaySemi, C.charcoal);
 
-      // Decorative divider with heart
-      const dividerY = h * 0.42;
-      const dividerHalfW = safeW * 0.32;
-      const heartSize = 24 * ts;
+      const gutter = safeW * 0.04;
+      const leftW = safeW * 0.46;
+      const rightX = safeX + leftW + gutter;
+      const rightW = safeW - leftW - gutter;
+
+      // ── Left: 2 photos stacked
+      const photoGap = safeH * 0.02;
+      const photoH = (safeH - photoGap) / 2;
+      for (let i = 0; i < 2; i++) {
+        const py = safeY + (1 - i) * (photoH + photoGap);
+        if (items[i]?.image) {
+          const img = await embedImage(doc, items[i].image!);
+          drawImageCoverClipped(page, img, safeX, py, leftW, photoH, items[i].imageOffset);
+        } else {
+          page.drawRectangle({ x: safeX, y: py, width: leftW, height: photoH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+
+      // ── Right column
+      const rcx = rightX + rightW / 2;
+      let cursorY = safeY + safeH;
+
+      // Bib decoration at top
+      const bibSize = rightW * 0.42;
+      cursorY -= bibSize + safeH * 0.01;
+      await drawDecoration(doc, page, 'bib', NURSERY.peach,
+        rcx - bibSize / 2, cursorY, bibSize, bibSize, 0.95);
+
+      // "hello," script
+      const helloSize = 28 * ts;
+      cursorY -= helloSize * 0.6;
+      drawCenteredText(page, 'hello,', rcx, cursorY, helloSize, fonts.script, C.pink);
+
+      // Big chunky display name (auto-fit to width)
+      const nameText = heading.toUpperCase();
+      let nameSize = 44 * ts;
+      while (fonts.displaySemi.widthOfTextAtSize(nameText, nameSize) > rightW * 0.95 && nameSize > 14) {
+        nameSize -= 1;
+      }
+      cursorY -= nameSize * 1.05;
+      drawCenteredText(page, nameText, rcx, cursorY, nameSize, fonts.displaySemi, C.charcoal);
+
+      // Tiny divider with heart
+      const dividerY = cursorY - nameSize * 0.5;
+      const dividerHalfW = rightW * 0.30;
+      const heartSize = 14 * ts;
       page.drawLine({
-        start: { x: w / 2 - dividerHalfW, y: dividerY }, end: { x: w / 2 - heartSize / 2, y: dividerY },
+        start: { x: rcx - dividerHalfW, y: dividerY }, end: { x: rcx - heartSize / 2 - 2, y: dividerY },
         thickness: 0.6, color: C.sage,
       });
       page.drawLine({
-        start: { x: w / 2 + heartSize / 2, y: dividerY }, end: { x: w / 2 + dividerHalfW, y: dividerY },
+        start: { x: rcx + heartSize / 2 + 2, y: dividerY }, end: { x: rcx + dividerHalfW, y: dividerY },
         thickness: 0.6, color: C.sage,
       });
       await drawDecoration(doc, page, 'hearts', NURSERY.pink,
-        w / 2 - heartSize / 2, dividerY - heartSize / 2, heartSize, heartSize);
+        rcx - heartSize / 2, dividerY - heartSize / 2, heartSize, heartSize);
 
-      // Stats grid
+      // Stats single column
       const stats = bookPage.stats;
       if (stats) {
         const labels: { key: keyof NonNullable<typeof stats>; label: string }[] = [
@@ -344,18 +454,17 @@ async function renderPageTemplate(
           { key: 'weight',    label: 'WEIGHT' },
           { key: 'length',    label: 'LENGTH' },
         ];
-        const startY = h * 0.32;
-        const colWidth = safeW / 2;
         const labelSize = 8 * ts;
-        const valueSize = 14 * ts;
-        const rowGap = (labelSize + valueSize) * 1.6;
+        const valueSize = 13 * ts;
+        const labelToValue = labelSize * 0.5 + valueSize;
+        // Distribute remaining vertical space evenly
+        const top = dividerY - heartSize - 12 * ts;
+        const bottom = safeY + 4 * ts;
+        const rowGap = (top - bottom) / labels.length;
         labels.forEach((s, i) => {
-          const col = i % 2;
-          const row = Math.floor(i / 2);
-          const cx = safeX + col * colWidth + colWidth / 2;
-          const ly = startY - row * rowGap;
-          drawCenteredText(page, s.label, cx, ly, labelSize, fonts.displaySemi, C.pencil);
-          drawCenteredText(page, stats[s.key] || '—', cx, ly - valueSize - 2, valueSize, fonts.hand, C.charcoal);
+          const ly = top - i * rowGap - labelSize;
+          drawCenteredText(page, s.label, rcx, ly, labelSize, fonts.displaySemi, C.pencil);
+          drawCenteredText(page, stats[s.key] || '—', rcx, ly - labelToValue, valueSize, fonts.hand, C.charcoal);
         });
       }
       break;
@@ -390,13 +499,20 @@ async function renderPageTemplate(
         await drawDecoration(doc, page, bookPage.decoration, NURSERY.sage,
           w - w * 0.06 - decoSize, captionH * 0.12, decoSize, decoSize, 0.85);
       }
-      // Quote (script) — preview uses 28*scale, lineHeight 1.15
+      // Quote (script) — vertically centered in caption block
       const quote = bookPage.heading || items[0]?.text || items[0]?.title || '';
       if (quote) {
         const fontSize = 28 * ts;
-        drawWrappedText(page, quote, safeX, captionH / 2 + fontSize / 2,
+        const lineHeight = fontSize * 1.15;
+        const lines = measureWrappedLines(quote, safeW, fontSize, fonts.script);
+        // Block height: first line uses full fontSize (cap height ~ fontSize),
+        // each additional line adds one lineHeight. Center this block in captionH.
+        const blockH = fontSize + (lines - 1) * lineHeight;
+        // startY is baseline of FIRST line. Center: captionH/2 + blockH/2 - fontSize.
+        const startY = captionH / 2 + blockH / 2 - fontSize;
+        drawWrappedText(page, quote, safeX, startY,
           safeW, fontSize, fonts.script, C.charcoal,
-          { align: 'center', lineHeight: fontSize * 1.15, minY: 8 });
+          { align: 'center', lineHeight, minY: 8 });
       }
       break;
     }
@@ -472,12 +588,16 @@ async function renderPageTemplate(
 
     case 'polaroid': {
       // Match preview: 4 polaroids with frames + tilts, positioned via top/left/width %.
+      // Scale frame widths down on wider trims so the bottom row doesn't overflow.
+      const refAspect = 6 / 9;
+      const trimAspect = w / h;
+      const fitScale = Math.min(1, refAspect / trimAspect);
       const tilts = [-4, 3, -2, 5];
       const polPos = [
-        { topPct: 0.08, leftPct: 0.08, widthPct: 0.42 },
-        { topPct: 0.12, leftPct: 0.52, widthPct: 0.40 },
-        { topPct: 0.52, leftPct: 0.06, widthPct: 0.40 },
-        { topPct: 0.50, leftPct: 0.52, widthPct: 0.42 },
+        { topPct: 0.08, leftPct: 0.08, widthPct: 0.42 * fitScale },
+        { topPct: 0.12, leftPct: 0.52, widthPct: 0.40 * fitScale },
+        { topPct: 0.52, leftPct: 0.06, widthPct: 0.40 * fitScale },
+        { topPct: 0.50, leftPct: 0.52, widthPct: 0.42 * fitScale },
       ];
       const frameAspect = 1.18; // height / width (matches preview aspect-ratio: 1 / 1.18)
       // Optional decoration top-right
@@ -547,9 +667,17 @@ async function renderPageTemplate(
       }
       if (quote) {
         const fontSize = 44 * ts;
-        drawWrappedText(page, quote, safeX, h * 0.55,
+        const lineHeight = fontSize * 1.1;
+        const lines = measureWrappedLines(quote, safeW, fontSize, fonts.script);
+        const blockH = fontSize + (lines - 1) * lineHeight;
+        // Available band sits between bottom decoration top edge and top decoration bottom edge.
+        const topDecoBottom  = h - h * 0.14 - w * 0.30;   // matches top decoration positioning
+        const botDecoTop     = h * 0.14 + w * 0.24;        // matches bottom decoration positioning
+        const bandCenter     = (topDecoBottom + botDecoTop) / 2;
+        const startY = bandCenter + blockH / 2 - fontSize;
+        drawWrappedText(page, quote, safeX, startY,
           safeW, fontSize, fonts.script, C.charcoal,
-          { align: 'center', lineHeight: fontSize * 1.1, minY: h * 0.25 });
+          { align: 'center', lineHeight, minY: botDecoTop });
       }
       // Bottom decoration: preview width 24%, positioned 14% from bottom, opacity 0.7
       if (bookPage.decoration) {
@@ -557,6 +685,494 @@ async function renderPageTemplate(
         await drawDecoration(doc, page, bookPage.decoration, NURSERY.peach,
           (w - dSize) / 2, h * 0.14, dSize, dSize, 0.7);
       }
+      break;
+    }
+
+    /* ── Mixbook-style memory book templates (round 2e) ─── */
+
+    case 'photo-blob-quote': {
+      // Per final_insp/002, 024: centered photo (upper portion) with peach blob
+      // accent behind top-right corner, caption text at bottom center.
+      const photoW = safeW * 0.72;
+      const photoH = safeH * 0.58;
+      const photoX = safeX + (safeW - photoW) / 2;
+      // Photo sits in upper-center area, offset down slightly from top
+      const photoY = safeY + safeH - photoH - safeH * 0.22;
+
+      // Peach blob accent — sits behind photo, overlapping top-right corner
+      const blobSize = safeW * 0.32;
+      const blobX = photoX + photoW - blobSize * 0.45;
+      const blobY = photoY + photoH - blobSize * 0.55;
+      await drawBlob(doc, page, bookPage.blobShape ?? 'pebble', NURSERY.peach, blobX, blobY, blobSize, blobSize, 0.85);
+      // Decoration on blob
+      if (bookPage.decoration) {
+        const dSize = blobSize * 0.55;
+        await drawDecoration(doc, page, bookPage.decoration, NURSERY.charcoal,
+          blobX + (blobSize - dSize) / 2, blobY + (blobSize - dSize) / 2, dSize, dSize);
+      }
+
+      // Photo (drawn after blob so it overlaps)
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, photoX, photoY, photoW, photoH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: photoX, y: photoY, width: photoW, height: photoH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+
+      // Caption below photo
+      const quote = bookPage.heading || items[0]?.text || '';
+      if (quote) {
+        const fontSize = 28 * ts;
+        const lineHeight = fontSize * 1.15;
+        const bandTop = photoY - safeH * 0.03;
+        const bandBot = safeY;
+        const lines = measureWrappedLines(quote, safeW, fontSize, fonts.script);
+        const blockH = fontSize + (lines - 1) * lineHeight;
+        const startY = (bandTop + bandBot) / 2 + blockH / 2 - fontSize;
+        drawWrappedText(page, quote, safeX, startY, safeW, fontSize, fonts.script, C.charcoal,
+          { align: 'center', lineHeight, minY: bandBot });
+      }
+      break;
+    }
+
+    case 'quote-deco-photo-split': {
+      // Per final_insp/006, 020: half page = decoration cluster + display+script
+      // text; other half = single full-bleed photo (goes to page edge).
+      const photoSide: 'left' | 'right' = bookPage.photoSide ?? 'right';
+      const halfW = w * 0.50;
+      const photoX = photoSide === 'right' ? w - halfW : 0;
+      const textX  = photoSide === 'right' ? safeX : safeX + safeW - (safeW * 0.46);
+      const textW  = safeW * 0.46;
+
+      // Photo — full bleed on its side
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, photoX, 0, halfW, h, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: photoX, y: 0, width: halfW, height: h, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+
+      // Text half — decoration cluster on top, then big display + script below
+      const tcx = textX + textW / 2;
+      let cursorY = safeY + safeH * 0.78;
+
+      if (bookPage.decoration) {
+        const dSize = textW * 0.42;
+        cursorY -= dSize;
+        await drawDecoration(doc, page, bookPage.decoration, NURSERY.pink,
+          tcx - dSize / 2, cursorY, dSize, dSize, 0.95);
+      }
+
+      // Split heading: first part = display caps, last word = script accent
+      const heading = bookPage.heading || 'LOVE YOU\nso much!';
+      const parts = heading.split('\n');
+      const displayText = (parts[0] || '').toUpperCase();
+      const scriptText = parts[1] || '';
+
+      let displaySize = 38 * ts;
+      while (fonts.displaySemi.widthOfTextAtSize(displayText, displaySize) > textW * 0.92 && displaySize > 12) {
+        displaySize -= 1;
+      }
+      cursorY -= displaySize * 1.1 + safeH * 0.04;
+      drawCenteredText(page, displayText, tcx, cursorY, displaySize, fonts.displaySemi, C.charcoal);
+
+      if (scriptText) {
+        const scriptSize = 32 * ts;
+        cursorY -= scriptSize * 1.1;
+        drawCenteredText(page, scriptText, tcx, cursorY, scriptSize, fonts.script, C.pink);
+      }
+      break;
+    }
+
+    case 'grid-5-asym': {
+      // Per final_insp/003, 004, 028: 3 small left + 2 large right.
+      // Full bleed — photos go to page edges, only thin gap between them.
+      const ga5 = 6; // thin gap between photos
+      const leftW5 = (w - ga5) * 0.42;
+      const rightW5 = w - ga5 - leftW5;
+
+      // Left: 3 stacked
+      const leftCellH5 = (h - 2 * ga5) / 3;
+      for (let i = 0; i < 3; i++) {
+        const cy = h - (i + 1) * leftCellH5 - i * ga5;
+        if (items[i]?.image) {
+          const img = await embedImage(doc, items[i].image!);
+          drawImageCoverClipped(page, img, 0, cy, leftW5, leftCellH5, items[i].imageOffset);
+        } else {
+          page.drawRectangle({ x: 0, y: cy, width: leftW5, height: leftCellH5, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+      // Right: 2 stacked larger
+      const rightCellH5 = (h - ga5) / 2;
+      const rightX5 = leftW5 + ga5;
+      for (let i = 0; i < 2; i++) {
+        const cy = h - (i + 1) * rightCellH5 - i * ga5;
+        const idx = 3 + i;
+        if (items[idx]?.image) {
+          const img = await embedImage(doc, items[idx].image!);
+          drawImageCoverClipped(page, img, rightX5, cy, rightW5, rightCellH5, items[idx].imageOffset);
+        } else {
+          page.drawRectangle({ x: rightX5, y: cy, width: rightW5, height: rightCellH5, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+      break;
+    }
+
+    case 'grid-9-deco-center': {
+      // Per final_insp/010: 3×3 grid where center cell = decoration on arch blob.
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.012;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const cellW = (innerW - 2 * gap) / 3;
+      const cellH = (innerH - 2 * gap) / 3;
+      let photoIdx = 0;
+      for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+          const cx = innerX + col * (cellW + gap);
+          const cy = innerY + (2 - row) * (cellH + gap);
+          if (row === 1 && col === 1) {
+            // Decoration on arch blob (center cell)
+            await drawBlob(doc, page, 'arch', NURSERY.peach, cx, cy, cellW, cellH, 0.9);
+            if (bookPage.decoration) {
+              const dSize = Math.min(cellW, cellH) * 0.65;
+              await drawDecoration(doc, page, bookPage.decoration, NURSERY.charcoal,
+                cx + (cellW - dSize) / 2, cy + (cellH - dSize) / 2, dSize, dSize);
+            }
+          } else {
+            if (items[photoIdx]?.image) {
+              const img = await embedImage(doc, items[photoIdx].image!);
+              drawImageCoverClipped(page, img, cx, cy, cellW, cellH, items[photoIdx].imageOffset);
+            } else {
+              page.drawRectangle({ x: cx, y: cy, width: cellW, height: cellH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+            }
+            photoIdx++;
+          }
+        }
+      }
+      break;
+    }
+
+    case 'grid-deco-corner': {
+      // Per final_insp/007, 015, 022: 4-grid where one cell = decoration on blob.
+      // Photos go to full bleed (no padding).
+      const gap_dc = w * 0.012;
+      const cellW_dc = (w - gap_dc) / 2;
+      const cellH_dc = (h - gap_dc) / 2;
+      const decoCorner = bookPage.decoCorner ?? 3; // 0=TL,1=TR,2=BL,3=BR (visual rows)
+      let photoIdx = 0;
+      for (let i = 0; i < 4; i++) {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const cx = col * (cellW_dc + gap_dc);
+        const cy = (1 - row) * (cellH_dc + gap_dc);
+        if (i === decoCorner) {
+          const blobShape = bookPage.blobShape ?? 'pebble';
+          await drawBlob(doc, page, blobShape, NURSERY.peach, cx, cy, cellW_dc, cellH_dc, 0.9);
+          if (bookPage.decoration) {
+            const dSize = Math.min(cellW_dc, cellH_dc) * 0.6;
+            await drawDecoration(doc, page, bookPage.decoration, NURSERY.charcoal,
+              cx + (cellW_dc - dSize) / 2, cy + (cellH_dc - dSize) / 2, dSize, dSize);
+          }
+        } else {
+          if (items[photoIdx]?.image) {
+            const img = await embedImage(doc, items[photoIdx].image!);
+            drawImageCoverClipped(page, img, cx, cy, cellW_dc, cellH_dc, items[photoIdx].imageOffset);
+          } else {
+            page.drawRectangle({ x: cx, y: cy, width: cellW_dc, height: cellH_dc, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+          }
+          photoIdx++;
+        }
+      }
+      break;
+    }
+
+    case 'quote-deco-grid-3': {
+      // Per final_insp/013, 011: deco+quote in left half + 3 photos right (1 large top + 2 small bottom).
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.015;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const halfW = (innerW - gap) / 2;
+
+      // Left half: deco + quote
+      const lcx = innerX + halfW / 2;
+      let cursorY = innerY + innerH * 0.78;
+      if (bookPage.decoration) {
+        const dSize = halfW * 0.50;
+        cursorY -= dSize;
+        await drawDecoration(doc, page, bookPage.decoration, NURSERY.pink,
+          lcx - dSize / 2, cursorY, dSize, dSize, 0.95);
+      }
+      const quote = bookPage.heading || '';
+      if (quote) {
+        const fontSize = 26 * ts;
+        const lineHeight = fontSize * 1.15;
+        cursorY -= fontSize * 1.5;
+        drawWrappedText(page, quote, innerX, cursorY, halfW, fontSize, fonts.script, C.charcoal,
+          { align: 'center', lineHeight, minY: innerY });
+      }
+
+      // Right half: 1 large top + 2 small bottom
+      const rightX = innerX + halfW + gap;
+      const topH = (innerH - gap) * 0.55;
+      const botH = innerH - gap - topH;
+      const botCellW = (halfW - gap) / 2;
+      // Top large
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image!);
+        drawImageCoverClipped(page, img, rightX, innerY + botH + gap, halfW, topH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: rightX, y: innerY + botH + gap, width: halfW, height: topH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Bottom 2
+      for (let i = 0; i < 2; i++) {
+        const bx = rightX + i * (botCellW + gap);
+        const idx = 1 + i;
+        if (items[idx]?.image) {
+          const img = await embedImage(doc, items[idx].image!);
+          drawImageCoverClipped(page, img, bx, innerY, botCellW, botH, items[idx].imageOffset);
+        } else {
+          page.drawRectangle({ x: bx, y: innerY, width: botCellW, height: botH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+      break;
+    }
+
+    case 'photo-sparkle': {
+      // Per final_insp/008: single photo centered/offset with sparkle scatter decorations
+      const photoW = safeW * 0.75;
+      const photoH = safeH * 0.70;
+      const photoX = safeX + safeW * 0.02;
+      const photoY = safeY + safeH - photoH - safeH * 0.02;
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, photoX, photoY, photoW, photoH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: photoX, y: photoY, width: photoW, height: photoH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Sparkle clusters bottom-right
+      const sparkSize = safeW * 0.22;
+      await drawDecoration(doc, page, 'sparkles', NURSERY.charcoal,
+        safeX + safeW - sparkSize - safeW * 0.04, safeY + safeH * 0.04, sparkSize, sparkSize, 0.9);
+      break;
+    }
+
+    case 'grid-3-deco-text': {
+      // Per final_insp/009: 2×2 grid where one cell = deco + text (rainbow + "sweet dreams LITTLE ONE")
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.015;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const cellW = (innerW - gap) / 2;
+      const cellH = (innerH - gap) / 2;
+      const dtCorner = bookPage.decoCorner ?? 3; // which cell gets deco+text
+      let photoIdx = 0;
+      for (let i = 0; i < 4; i++) {
+        const col = i % 2;
+        const row = Math.floor(i / 2);
+        const cx = innerX + col * (cellW + gap);
+        const cy = innerY + (1 - row) * (cellH + gap);
+        if (i === dtCorner) {
+          // Deco + text cell
+          if (bookPage.decoration) {
+            const dSize = Math.min(cellW, cellH) * 0.50;
+            await drawDecoration(doc, page, bookPage.decoration, NURSERY.charcoal,
+              cx + (cellW - dSize) / 2, cy + cellH * 0.35, dSize, dSize);
+          }
+          // Text would go below deco — skipped for now (HIDE_TEXT)
+        } else {
+          if (items[photoIdx]?.image) {
+            const img = await embedImage(doc, items[photoIdx].image!);
+            drawImageCoverClipped(page, img, cx, cy, cellW, cellH, items[photoIdx].imageOffset);
+          } else {
+            page.drawRectangle({ x: cx, y: cy, width: cellW, height: cellH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+          }
+          photoIdx++;
+        }
+      }
+      break;
+    }
+
+    case 'two-photo-text': {
+      // Per final_insp/013: wide photo top spanning full width, smaller photo bottom-right, text bottom-left
+      const gap_tp = w * 0.012;
+      const topH_tp = h * 0.52;
+      const botH_tp = h - topH_tp - gap_tp;
+      const botHalfW = (w - gap_tp) / 2;
+      // Top wide photo (full bleed width)
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, 0, botH_tp + gap_tp, w, topH_tp, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: 0, y: botH_tp + gap_tp, width: w, height: topH_tp, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Bottom-right photo
+      const photoSideTP: 'left' | 'right' = bookPage.photoSide ?? 'right';
+      const botPhotoX = photoSideTP === 'right' ? botHalfW + gap_tp : 0;
+      if (items[1]?.image) {
+        const img = await embedImage(doc, items[1].image);
+        drawImageCoverClipped(page, img, botPhotoX, 0, botHalfW, botH_tp, items[1].imageOffset);
+      } else {
+        page.drawRectangle({ x: botPhotoX, y: 0, width: botHalfW, height: botH_tp, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Text bottom-left — skipped for now (HIDE_TEXT)
+      break;
+    }
+
+    case 'grid-1big-2small-deco': {
+      // Per final_insp/017, 023: 1 big photo left + 2 small right + deco in one corner
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.015;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const bigW = innerW * 0.55;
+      const smallW = innerW - bigW - gap;
+      const smallH = (innerH - 2 * gap) / 3;
+      const bigX = innerX;
+      const rightX = innerX + bigW + gap;
+      // Big photo left (full height)
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, bigX, innerY, bigW, innerH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: bigX, y: innerY, width: bigW, height: innerH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // 2 small photos right (top 2 cells) + deco in bottom-right
+      for (let i = 0; i < 2; i++) {
+        const cy = innerY + (2 - i) * (smallH + gap);
+        const idx = 1 + i;
+        if (items[idx]?.image) {
+          const img = await embedImage(doc, items[idx].image!);
+          drawImageCoverClipped(page, img, rightX, cy, smallW, smallH, items[idx].imageOffset);
+        } else {
+          page.drawRectangle({ x: rightX, y: cy, width: smallW, height: smallH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+      // Deco in bottom-right cell
+      const decoY = innerY;
+      const blobShape = bookPage.blobShape ?? 'pebble';
+      await drawBlob(doc, page, blobShape, NURSERY.peach, rightX, decoY, smallW, smallH, 0.9);
+      if (bookPage.decoration) {
+        const dSize = Math.min(smallW, smallH) * 0.6;
+        await drawDecoration(doc, page, bookPage.decoration, NURSERY.charcoal,
+          rightX + (smallW - dSize) / 2, decoY + (smallH - dSize) / 2, dSize, dSize);
+      }
+      break;
+    }
+
+    case 'photo-1big-2small-text': {
+      // Per final_insp/018: 1 big photo left + 2 small right + text bottom-left
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.015;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const topH = innerH * 0.55;
+      const botH = innerH - topH - gap;
+      // Big photo top-left (spans ~60% width)
+      const bigW = innerW * 0.58;
+      const smallW = (innerW - bigW - gap);
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, innerX, innerY + botH + gap, bigW, topH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: innerX, y: innerY + botH + gap, width: bigW, height: topH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // 2 small photos right column
+      const rightX = innerX + bigW + gap;
+      const smallCellH = (innerH - gap) / 2;
+      for (let i = 0; i < 2; i++) {
+        const cy = innerY + (1 - i) * (smallCellH + gap);
+        const idx = 1 + i;
+        if (items[idx]?.image) {
+          const img = await embedImage(doc, items[idx].image!);
+          drawImageCoverClipped(page, img, rightX, cy, smallW, smallCellH, items[idx].imageOffset);
+        } else {
+          page.drawRectangle({ x: rightX, y: cy, width: smallW, height: smallCellH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+      // Text bottom-left — skipped for now (HIDE_TEXT)
+      break;
+    }
+
+    case 'grid-3-top-bottom': {
+      // Per final_insp/025: 1 large photo spanning full width top, 2 small bottom
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.015;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const topH = innerH * 0.58;
+      const botH = innerH - topH - gap;
+      const botCellW = (innerW - gap) / 2;
+      // Top large
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, innerX, innerY + botH + gap, innerW, topH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: innerX, y: innerY + botH + gap, width: innerW, height: topH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Bottom 2
+      for (let i = 0; i < 2; i++) {
+        const bx = innerX + i * (botCellW + gap);
+        const idx = 1 + i;
+        if (items[idx]?.image) {
+          const img = await embedImage(doc, items[idx].image!);
+          drawImageCoverClipped(page, img, bx, innerY, botCellW, botH, items[idx].imageOffset);
+        } else {
+          page.drawRectangle({ x: bx, y: innerY, width: botCellW, height: botH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+        }
+      }
+      break;
+    }
+
+    case 'two-photo-deco-text': {
+      // Per final_insp/026: small photo TL + large photo right spanning both rows + deco BL + text BL
+      const pad = safeW * 0.02;
+      const gap = safeW * 0.015;
+      const innerX = safeX + pad;
+      const innerY = safeY + pad;
+      const innerW = safeW - 2 * pad;
+      const innerH = safeH - 2 * pad;
+      const leftW = innerW * 0.38;
+      const rightW = innerW - leftW - gap;
+      const topH = innerH * 0.48;
+      const botH = innerH - topH - gap;
+      // Small photo top-left
+      if (items[0]?.image) {
+        const img = await embedImage(doc, items[0].image);
+        drawImageCoverClipped(page, img, innerX, innerY + botH + gap, leftW, topH, items[0].imageOffset);
+      } else {
+        page.drawRectangle({ x: innerX, y: innerY + botH + gap, width: leftW, height: topH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Large photo right (full height)
+      if (items[1]?.image) {
+        const img = await embedImage(doc, items[1].image);
+        drawImageCoverClipped(page, img, innerX + leftW + gap, innerY, rightW, innerH, items[1].imageOffset);
+      } else {
+        page.drawRectangle({ x: innerX + leftW + gap, y: innerY, width: rightW, height: innerH, color: C.ivory, borderColor: C.whisper, borderWidth: 0.5 });
+      }
+      // Deco on blob bottom-left
+      const blobShape = bookPage.blobShape ?? 'pebble';
+      const blobSize = Math.min(leftW, botH) * 0.75;
+      await drawBlob(doc, page, blobShape, NURSERY.pink, innerX + leftW * 0.12, innerY + botH * 0.15, blobSize, blobSize, 0.85);
+      if (bookPage.decoration) {
+        const dSize = blobSize * 0.65;
+        await drawDecoration(doc, page, bookPage.decoration, NURSERY.charcoal,
+          innerX + leftW * 0.12 + (blobSize - dSize) / 2, innerY + botH * 0.15 + (blobSize - dSize) / 2, dSize, dSize);
+      }
+      // Text bottom-left — skipped for now (HIDE_TEXT)
       break;
     }
 
@@ -579,10 +1195,20 @@ async function renderPageTemplate(
       }
       const textY = safeY + safeH - photoH - 20;
       if (items[0]?.title) {
-        page.drawText(items[0].title, { x: safeX, y: textY, size: 14, font: fonts.displaySemi, color: C.charcoal });
+        if (TEXT_PLACEHOLDER_MODE) {
+          const tw = fonts.displaySemi.widthOfTextAtSize(items[0].title, 14);
+          page.drawRectangle({ x: safeX, y: textY + 2, width: tw, height: 10, color: PLACEHOLDER_COLOR });
+        } else {
+          page.drawText(items[0].title, { x: safeX, y: textY, size: 14, font: fonts.displaySemi, color: C.charcoal });
+        }
       }
       if (items[0]?.subtitle) {
-        page.drawText(items[0].subtitle, { x: safeX, y: textY - 16, size: 9, font: fonts.body, color: C.pencil });
+        if (TEXT_PLACEHOLDER_MODE) {
+          const tw = fonts.body.widthOfTextAtSize(items[0].subtitle, 9);
+          page.drawRectangle({ x: safeX, y: textY - 14, width: tw, height: 7, color: PLACEHOLDER_COLOR });
+        } else {
+          page.drawText(items[0].subtitle, { x: safeX, y: textY - 16, size: 9, font: fonts.body, color: C.pencil });
+        }
       }
       if (items[0]?.text) {
         drawWrappedText(page, items[0].text, safeX, textY - 36, safeW, 10, fonts.hand, C.pencil);
@@ -624,7 +1250,12 @@ async function renderPageTemplate(
       let y = safeY + safeH - 20;
       const heading = bookPage.heading || items[0]?.title;
       if (heading) {
-        page.drawText(heading, { x: safeX, y, size: 18, font: fonts.displaySemi, color: C.charcoal });
+        if (TEXT_PLACEHOLDER_MODE) {
+          const tw = fonts.displaySemi.widthOfTextAtSize(heading, 18);
+          page.drawRectangle({ x: safeX, y: y + 2, width: tw, height: 13, color: PLACEHOLDER_COLOR });
+        } else {
+          page.drawText(heading, { x: safeX, y, size: 18, font: fonts.displaySemi, color: C.charcoal });
+        }
         y -= 28;
       }
       if (items[0]?.text) {
@@ -716,14 +1347,25 @@ export async function generateCoverPdf(
   /* ── Spine text ── */
   const spineText = `${cover.babyName || 'Baby'}'s Memory Book`;
   const spineSize = 9;
-  page.drawText(spineText, {
-    x: coverWidthPt / 2 + 3.5,
-    y: coverHeightPt / 2 - fonts.displaySemi.widthOfTextAtSize(spineText, spineSize) / 2,
-    size: spineSize,
-    font: fonts.displaySemi,
-    color: C.charcoal,
-    rotate: degrees(90),
-  });
+  if (TEXT_PLACEHOLDER_MODE) {
+    const spineW = fonts.displaySemi.widthOfTextAtSize(spineText, spineSize);
+    page.drawRectangle({
+      x: coverWidthPt / 2 - 3,
+      y: coverHeightPt / 2 - spineW / 2,
+      width: 7,
+      height: spineW,
+      color: PLACEHOLDER_COLOR,
+    });
+  } else {
+    page.drawText(spineText, {
+      x: coverWidthPt / 2 + 3.5,
+      y: coverHeightPt / 2 - fonts.displaySemi.widthOfTextAtSize(spineText, spineSize) / 2,
+      size: spineSize,
+      font: fonts.displaySemi,
+      color: C.charcoal,
+      rotate: degrees(90),
+    });
+  }
 
   return doc.save();
 }

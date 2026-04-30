@@ -2,7 +2,7 @@ import { useRef, useEffect, useState, useCallback, type CSSProperties, type Poin
 import type { BookPage, PageContentItem, ImageOffset } from '@/types';
 import { getTrimSize, MARGIN, NURSERY, FONTS } from './bookConstants';
 import { Decoration } from './Decorations';
-import { ImagePlus, Lock } from 'lucide-react';
+import { ImagePlus } from 'lucide-react';
 
 /* ── Types ──────────────────────────────────────────────── */
 
@@ -67,7 +67,12 @@ export function PageCanvas({
     || page.templateId === 'polaroid'
     || page.templateId === 'quote-only'
     || page.templateId === 'blank-locked'
-    || page.templateId === 'title-stats';
+    || page.templateId === 'title-stats'
+    || page.templateId === 'grid-5-asym'
+    || page.templateId === 'grid-deco-corner'
+    || page.templateId === 'grid-3-deco-text'
+    || page.templateId === 'grid-3-top-bottom'
+    || page.templateId === 'grid-9-deco-center';
 
   return (
     <div
@@ -82,7 +87,7 @@ export function PageCanvas({
         isBleed ? (
           <div className="absolute inset-0">
             <TemplateRenderer
-              page={page} scale={scale} editable={editable}
+              page={page} scale={scale} trimAspect={trim.widthPt / trim.heightPt} editable={editable}
               onSlotTap={onSlotTap} onImageOffsetChange={onImageOffsetChange}
               compact={compact} activeSlotIndex={activeSlotIndex}
             />
@@ -90,7 +95,7 @@ export function PageCanvas({
         ) : (
           <div style={safeStyle}>
             <TemplateRenderer
-              page={page} scale={scale} editable={editable}
+              page={page} scale={scale} trimAspect={trim.widthPt / trim.heightPt} editable={editable}
               onSlotTap={onSlotTap} onImageOffsetChange={onImageOffsetChange}
               compact={compact} activeSlotIndex={activeSlotIndex}
             />
@@ -106,6 +111,7 @@ export function PageCanvas({
 interface RendererProps {
   page: BookPage;
   scale: number;
+  trimAspect: number;
   editable: boolean;
   onSlotTap?: (e: SlotTapEvent) => void;
   onImageOffsetChange?: (slotIndex: number, offset: ImageOffset) => void;
@@ -114,7 +120,7 @@ interface RendererProps {
 }
 
 function TemplateRenderer(props: RendererProps) {
-  const { page, scale, editable, onSlotTap, onImageOffsetChange, compact, activeSlotIndex } = props;
+  const { page, scale, trimAspect, editable, onSlotTap, onImageOffsetChange, compact, activeSlotIndex } = props;
   const items = page.items;
 
   const handleTap = (slotIndex: number, slotKind: 'image' | 'text') => {
@@ -137,20 +143,8 @@ function TemplateRenderer(props: RendererProps) {
     /* ── New nursery templates ─────────────────────── */
 
     case 'blank-locked':
-      return (
-        <div className="w-full h-full flex flex-col items-center justify-center"
-             style={{ color: NURSERY.whisper }}>
-          <Lock style={{ width: '8%', height: '8%', minWidth: 16, minHeight: 16 }} />
-          <p className="mt-[3%] tracking-widest uppercase"
-             style={{ fontFamily: FONTS.display, fontSize: Math.max(7, 9 * scale), letterSpacing: '0.2em' }}>
-            This page intentionally
-          </p>
-          <p className="tracking-widest uppercase"
-             style={{ fontFamily: FONTS.display, fontSize: Math.max(7, 9 * scale), letterSpacing: '0.2em' }}>
-            left blank
-          </p>
-        </div>
-      );
+      // Rendered as plain cream — matches the PDF and the auto-pad blank page.
+      return <div className="w-full h-full" />;
 
     case 'title-stats': {
       const heading = page.heading || 'Hello, Baby!';
@@ -265,11 +259,15 @@ function TemplateRenderer(props: RendererProps) {
 
     case 'polaroid': {
       const tilts = ['-4deg', '3deg', '-2deg', '5deg'];
+      // Scale frame widths down on wider trims so the bottom row doesn't overflow.
+      // Reference aspect = 6/9 ≈ 0.667; on squarer trims, shrink proportionally.
+      const refAspect = 6 / 9;
+      const fitScale = Math.min(1, refAspect / trimAspect);
       const positions = [
-        { top: '8%',  left: '8%',  width: '42%' },
-        { top: '12%', left: '52%', width: '40%' },
-        { top: '52%', left: '6%',  width: '40%' },
-        { top: '50%', left: '52%', width: '42%' },
+        { top: '8%',  left: '8%',  width: `${42 * fitScale}%` },
+        { top: '12%', left: '52%', width: `${40 * fitScale}%` },
+        { top: '52%', left: '6%',  width: `${40 * fitScale}%` },
+        { top: '50%', left: '52%', width: `${42 * fitScale}%` },
       ];
       return (
         <div className="absolute inset-0">
@@ -320,6 +318,331 @@ function TemplateRenderer(props: RendererProps) {
               <Decoration kind={page.decoration} size="100%" />
             </div>
           )}
+        </div>
+      );
+    }
+
+    /* ── Mixbook-style memory book templates ──── */
+
+    case 'photo-blob-quote': {
+      const quote = page.heading || 'LOVE at first sight';
+      return (
+        <div className="w-full h-full relative flex flex-col items-center p-[6%]">
+          <div className="relative w-[75%] flex-[6] min-h-0">
+            {page.blobShape !== undefined && (
+              <div className="absolute -top-[8%] -right-[12%] w-[40%] h-[40%] rounded-full"
+                   style={{ backgroundColor: NURSERY.peach, opacity: 0.25 }} />
+            )}
+            <ImageSlot {...slotProps(0)} className="absolute inset-0 rounded-md" />
+          </div>
+          <div className="flex-[3] flex flex-col items-center justify-center mt-[4%]"
+               onClick={() => editable && handleTap(0, 'text')}>
+            {page.decoration && (
+              <div className="mb-[4%]" style={{ width: '20%' }}>
+                <Decoration kind={page.decoration} size="100%" color={NURSERY.pink} />
+              </div>
+            )}
+            <p className="text-center" style={{
+              fontFamily: FONTS.script, fontSize: Math.max(10, 20 * scale),
+              color: NURSERY.pencil, lineHeight: 1.1,
+            }}>{quote.replace(/[A-Z]{2,}/g, '').trim()}</p>
+            <p className="text-center" style={{
+              fontFamily: FONTS.display, fontWeight: 600,
+              fontSize: Math.max(14, 36 * scale), color: NURSERY.charcoal, lineHeight: 1,
+            }}>{(quote.match(/[A-Z]{2,}/g) || ['LOVE']).join(' ')}</p>
+          </div>
+        </div>
+      );
+    }
+
+    case 'quote-deco-photo-split': {
+      const quote = page.heading || 'you are my SUNSHINE';
+      const photoLeft = page.photoSide === 'left';
+      const photoEl = (
+        <div className="flex-1 min-w-0 relative">
+          <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+        </div>
+      );
+      const textEl = (
+        <div className="flex-1 min-w-0 flex flex-col items-center justify-center p-[6%]"
+             onClick={() => editable && handleTap(0, 'text')}>
+          {page.decoration && (
+            <div className="mb-[6%]" style={{ width: '30%' }}>
+              <Decoration kind={page.decoration} size="100%" color={NURSERY.peach} />
+            </div>
+          )}
+          <p style={{ fontFamily: FONTS.script, fontSize: Math.max(10, 18 * scale), color: NURSERY.pencil }}>
+            {quote.replace(/[A-Z]{2,}/g, '').trim()}
+          </p>
+          <p style={{ fontFamily: FONTS.display, fontWeight: 600, fontSize: Math.max(16, 40 * scale), color: NURSERY.charcoal }}>
+            {(quote.match(/[A-Z]{2,}/g) || ['']).join(' ')}
+          </p>
+        </div>
+      );
+      return (
+        <div className="w-full h-full flex">
+          {photoLeft ? <>{photoEl}{textEl}</> : <>{textEl}{photoEl}</>}
+        </div>
+      );
+    }
+
+    case 'grid-5-asym':
+      return (
+        <div className="absolute inset-0 flex gap-[1%]">
+          <div className="flex-[2] flex flex-col gap-[1%]">
+            {[0, 1, 2].map(i => (
+              <div key={i} className="flex-1 relative min-h-0">
+                <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+              </div>
+            ))}
+          </div>
+          <div className="flex-[3] flex flex-col gap-[1%]">
+            {[3, 4].map(i => (
+              <div key={i} className="flex-1 relative min-h-0">
+                <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'grid-9-deco-center':
+      return (
+        <div className="absolute inset-0 grid grid-cols-3 grid-rows-3 gap-[1%]">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="relative min-w-0 min-h-0">
+              <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+            </div>
+          ))}
+          <div className="relative flex items-center justify-center" style={{ backgroundColor: NURSERY.peach + '33' }}>
+            {page.decoration && <Decoration kind={page.decoration} size="60%" color={NURSERY.sage} />}
+          </div>
+          {[4, 5, 6, 7].map(i => (
+            <div key={i} className="relative min-w-0 min-h-0">
+              <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+            </div>
+          ))}
+        </div>
+      );
+
+    case 'grid-deco-corner': {
+      const corner = page.decoCorner ?? 3;
+      const cells = [0, 1, 2].map(i => (
+        <div key={i} className="relative min-w-0 min-h-0">
+          <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+        </div>
+      ));
+      const decoCell = (
+        <div key="deco" className="relative flex items-center justify-center" style={{ backgroundColor: NURSERY.peach + '22' }}>
+          {page.decoration && <Decoration kind={page.decoration} size="55%" color={NURSERY.sage} />}
+        </div>
+      );
+      // Insert deco cell at corner position (0=TL,1=TR,2=BL,3=BR)
+      const all = [...cells];
+      all.splice(corner, 0, decoCell);
+      return (
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[1%]">
+          {all}
+        </div>
+      );
+    }
+
+    case 'photo-sparkle':
+      return (
+        <div className="w-full h-full relative p-[8%]">
+          <div className="absolute" style={{ top: '6%', right: '10%', width: '12%', opacity: 0.6 }}>
+            <Decoration kind="sparkles" size="100%" color={NURSERY.butter} />
+          </div>
+          <div className="absolute" style={{ bottom: '8%', left: '8%', width: '10%', opacity: 0.5 }}>
+            <Decoration kind="sparkles" size="100%" color={NURSERY.butter} />
+          </div>
+          <div className="relative w-full h-full rounded-md overflow-hidden">
+            <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+          </div>
+        </div>
+      );
+
+    case 'grid-3-deco-text': {
+      const decoCorner = page.decoCorner ?? 3;
+      const photoSlots = [0, 1, 2].map(i => (
+        <div key={i} className="relative min-w-0 min-h-0">
+          <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+        </div>
+      ));
+      const decoSlot = (
+        <div key="deco" className="relative flex flex-col items-center justify-center p-[8%]"
+             style={{ backgroundColor: NURSERY.cream }}>
+          {page.decoration && <Decoration kind={page.decoration} size="50%" color={NURSERY.peach} />}
+          <p className="mt-[8%] text-center" style={{
+            fontFamily: FONTS.script, fontSize: Math.max(8, 12 * scale), color: NURSERY.pencil,
+          }}>little moments</p>
+        </div>
+      );
+      const all = [...photoSlots];
+      all.splice(decoCorner, 0, decoSlot);
+      return (
+        <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-[1%]">
+          {all}
+        </div>
+      );
+    }
+
+    case 'two-photo-text': {
+      const photoRight = page.photoSide === 'right';
+      const photosEl = (
+        <div className="flex-[3] flex flex-col gap-[2%]">
+          {[0, 1].map(i => (
+            <div key={i} className="flex-1 relative min-h-0">
+              <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+            </div>
+          ))}
+        </div>
+      );
+      const textEl = (
+        <div className="flex-[2] flex flex-col items-center justify-center p-[6%]"
+             onClick={() => editable && handleTap(0, 'text')}>
+          <p style={{ fontFamily: FONTS.script, fontSize: Math.max(10, 18 * scale), color: NURSERY.pencil }}>
+            tiny hands,
+          </p>
+          <p style={{ fontFamily: FONTS.display, fontWeight: 600, fontSize: Math.max(14, 32 * scale), color: NURSERY.charcoal }}>
+            FULL HEARTS
+          </p>
+        </div>
+      );
+      return (
+        <div className="w-full h-full flex gap-[2%] p-[3%]">
+          {photoRight ? <>{textEl}{photosEl}</> : <>{photosEl}{textEl}</>}
+        </div>
+      );
+    }
+
+    case 'quote-deco-grid-3': {
+      const quote = page.heading || "can't wait to WATCH YOU GROW";
+      return (
+        <div className="w-full h-full flex gap-[2%] p-[3%]">
+          <div className="flex-1 flex flex-col items-center justify-center p-[4%]"
+               onClick={() => editable && handleTap(0, 'text')}>
+            {page.decoration && (
+              <div className="mb-[6%]" style={{ width: '35%' }}>
+                <Decoration kind={page.decoration} size="100%" color={NURSERY.sage} />
+              </div>
+            )}
+            <p style={{ fontFamily: FONTS.script, fontSize: Math.max(9, 16 * scale), color: NURSERY.pencil }}>
+              {quote.replace(/[A-Z]{2,}/g, '').trim()}
+            </p>
+            <p style={{ fontFamily: FONTS.display, fontWeight: 600, fontSize: Math.max(14, 30 * scale), color: NURSERY.charcoal, lineHeight: 1.1 }}>
+              {(quote.match(/[A-Z]{2,}/g) || ['']).join('\n')}
+            </p>
+          </div>
+          <div className="flex-1 flex flex-col gap-[2%]">
+            <div className="flex-[3] relative min-h-0">
+              <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+            </div>
+            <div className="flex-[2] flex gap-[2%]">
+              {[1, 2].map(i => (
+                <div key={i} className="flex-1 relative min-w-0">
+                  <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    case 'grid-1big-2small-deco':
+      return (
+        <div className="w-full h-full flex gap-[2%] p-[3%]">
+          <div className="flex-[3] relative min-w-0">
+            <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+          </div>
+          <div className="flex-[2] flex flex-col gap-[2%]">
+            {[1, 2].map(i => (
+              <div key={i} className="flex-1 relative min-h-0">
+                <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+              </div>
+            ))}
+            {page.decoration && (
+              <div className="flex-1 flex items-center justify-center" style={{ backgroundColor: NURSERY.peach + '22', borderRadius: '8px' }}>
+                <Decoration kind={page.decoration} size="60%" color={NURSERY.sage} />
+              </div>
+            )}
+          </div>
+        </div>
+      );
+
+    case 'photo-1big-2small-text': {
+      const quote = page.heading || 'our little ANGEL';
+      return (
+        <div className="w-full h-full flex flex-col gap-[2%] p-[3%]">
+          <div className="flex-[3] flex gap-[2%]">
+            <div className="flex-[3] relative min-w-0">
+              <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+            </div>
+            <div className="flex-[2] flex flex-col gap-[2%]">
+              <div className="flex-1 relative min-h-0">
+                <ImageSlot {...slotProps(1)} className="absolute inset-0" />
+              </div>
+              <div className="flex-1 relative min-h-0">
+                <ImageSlot {...slotProps(2)} className="absolute inset-0" />
+              </div>
+            </div>
+          </div>
+          <div className="flex-[1] flex items-center px-[4%]"
+               onClick={() => editable && handleTap(0, 'text')}>
+            <p style={{ fontFamily: FONTS.script, fontSize: Math.max(10, 18 * scale), color: NURSERY.pencil }}>
+              {quote.replace(/[A-Z]{2,}/g, '').trim()}
+            </p>
+            <p className="ml-[3%]" style={{ fontFamily: FONTS.display, fontWeight: 600, fontSize: Math.max(14, 32 * scale), color: NURSERY.charcoal }}>
+              {(quote.match(/[A-Z]{2,}/g) || ['']).join(' ')}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    case 'grid-3-top-bottom':
+      return (
+        <div className="absolute inset-0 flex flex-col gap-[1%]">
+          <div className="flex-[3] relative min-h-0">
+            <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+          </div>
+          <div className="flex-[2] flex gap-[1%]">
+            {[1, 2].map(i => (
+              <div key={i} className="flex-1 relative min-w-0">
+                <ImageSlot {...slotProps(i)} className="absolute inset-0" />
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+
+    case 'two-photo-deco-text': {
+      const quote = page.heading || 'BLESSED beyond measure';
+      return (
+        <div className="w-full h-full flex gap-[2%] p-[3%]">
+          <div className="flex-[2] flex flex-col gap-[2%]">
+            <div className="flex-[2] relative min-h-0">
+              <ImageSlot {...slotProps(0)} className="absolute inset-0" />
+            </div>
+            <div className="flex-1 flex flex-col items-start justify-center px-[4%]"
+                 onClick={() => editable && handleTap(0, 'text')}>
+              <p style={{ fontFamily: FONTS.display, fontWeight: 600, fontSize: Math.max(12, 26 * scale), color: NURSERY.charcoal }}>
+                {(quote.match(/[A-Z]{2,}/g) || ['BLESSED']).join(' ')}
+              </p>
+              <p style={{ fontFamily: FONTS.script, fontSize: Math.max(9, 16 * scale), color: NURSERY.pencil }}>
+                {quote.replace(/[A-Z]{2,}/g, '').trim()}
+              </p>
+              {page.decoration && (
+                <div className="mt-[6%]" style={{ width: '35%' }}>
+                  <Decoration kind={page.decoration} size="100%" color={NURSERY.peach} />
+                </div>
+              )}
+            </div>
+          </div>
+          <div className="flex-[3] relative min-w-0">
+            <ImageSlot {...slotProps(1)} className="absolute inset-0" />
+          </div>
         </div>
       );
     }

@@ -18,8 +18,8 @@ export function LayoutsSheet({ isOpen, onClose, currentPage, onChangeLayout }: L
       {locked ? (
         <div className="py-8 flex flex-col items-center text-center text-gray-500">
           <Lock size={28} className="mb-2 text-gray-400" />
-          <p className="text-sm font-semibold">Inside cover is locked</p>
-          <p className="text-xs text-gray-400 mt-1">This page is intentionally left blank.</p>
+          <p className="text-sm font-semibold">Layout is fixed</p>
+          <p className="text-xs text-gray-400 mt-1">This page's layout cannot be changed.</p>
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-3">

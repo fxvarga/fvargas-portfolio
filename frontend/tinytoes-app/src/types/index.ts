@@ -108,6 +108,21 @@ export type PageTemplateId =
   | 'polaroid'
   // Text-driven
   | 'quote-only'
+  // Mixbook-style memory book (round 2e)
+  | 'photo-blob-quote'        // single photo + offset blob + display/script caption
+  | 'quote-deco-photo-split'  // half photo, half (deco + big display + script accent)
+  | 'grid-5-asym'             // 3 small left + 2 large right
+  | 'grid-9-deco-center'      // 3×3 photos with center = decoration on blob
+  | 'grid-deco-corner'        // 4-grid where bottom-right is decoration on blob
+  | 'quote-deco-grid-3'       // deco+quote in one quadrant + 3 photos in others
+  // Mixbook round 2e — additional templates
+  | 'photo-sparkle'           // single offset photo + sparkle decorations (no blob)
+  | 'grid-3-deco-text'        // 2×2 with one cell = deco + text
+  | 'two-photo-text'          // 2 photos stacked + text area on opposite side
+  | 'grid-1big-2small-deco'   // 1 big photo left + 2 small right + deco in corner
+  | 'photo-1big-2small-text'  // 1 big photo + 2 small + text area
+  | 'grid-3-top-bottom'       // 1 large top + 2 small bottom
+  | 'two-photo-deco-text'     // 2 asymmetric photos + deco on blob + text
   // Legacy (kept for back-compat with existing projects)
   | 'full-bleed'
   | 'photo-text'
@@ -129,7 +144,8 @@ export type DecorationKind =
   | 'elephant'
   | 'cupcake'
   | 'floral'
-  | 'angel';
+  | 'angel'
+  | 'bib';
 
 /** Per-image positioning when an image fills its slot (object-fit: cover).
  * Offsets are percentages (-50..50) relative to slot center; scale 1+. */
@@ -165,6 +181,12 @@ export interface BookPage {
   heading?: string;
   /** Decoration motif applied to this page (if template supports it) */
   decoration?: DecorationKind;
+  /** Which corner the decoration occupies (0=TL,1=TR,2=BL,3=BR). Default 3. */
+  decoCorner?: 0 | 1 | 2 | 3;
+  /** Which side the photo is on for split layouts. Default 'right'. */
+  photoSide?: 'left' | 'right';
+  /** Blob shape override for decoration backdrop */
+  blobShape?: 'pebble' | 'arch' | 'oval';
   /** Locked pages cannot be edited, deleted, or reordered */
   locked?: boolean;
   /** Optional birth-stats payload (used by title-stats template) */
