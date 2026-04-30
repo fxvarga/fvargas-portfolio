@@ -243,3 +243,6 @@ local.settings.json
 local.settings.json
 bin/
 obj/
+
+# TinyToes app - unignore src/lib
+!frontend/tinytoes-app/src/lib/
