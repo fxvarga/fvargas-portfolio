@@ -1,6 +1,47 @@
 @import 'tailwindcss';
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
+/* ──── Nursery print-book fonts (self-hosted, also embedded in PDF) ──── */
+/* "Caveat" CSS family is aliased to PatrickHand to keep editor preview in
+ * sync with PDF output. Caveat/Pacifico ship OpenType layout features that
+ * pdf-lib mis-renders (gaps inside words), so we render the friendly
+ * handwritten style with a single, simply-shaped font everywhere. */
+@font-face {
+  font-family: 'Caveat';
+  src: url('./assets/fonts/PatrickHand-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Caveat';
+  src: url('./assets/fonts/PatrickHand-Regular.ttf') format('truetype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('./assets/fonts/Fredoka-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Fredoka';
+  src: url('./assets/fonts/Fredoka-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Patrick Hand';
+  src: url('./assets/fonts/PatrickHand-Regular.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
   --color-theme-bg: var(--color-background);
   --color-theme-panel: var(--color-panel);

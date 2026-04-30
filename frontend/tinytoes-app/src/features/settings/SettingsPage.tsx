@@ -262,7 +262,7 @@ export function SettingsPage() {
 
         {/* Version */}
         <p className="text-center text-xs pt-4 text-theme-muted">
-          TinyToesAndUs v1.0.0
+          TinyToesAndUs v1.1.0-{__BUILD_TIME__}
         </p>
       </div>
 

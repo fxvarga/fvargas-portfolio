@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { isNativeApp } from '@/lib/storage-adapter';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -51,8 +52,8 @@ export function useInstallPrompt() {
   }, [deferredPrompt]);
 
   return {
-    canPrompt: !!deferredPrompt,
-    isInstalled,
+    canPrompt: !!deferredPrompt && !isNativeApp(),
+    isInstalled: isInstalled || isNativeApp(),
     isIOS,
     promptInstall,
   };

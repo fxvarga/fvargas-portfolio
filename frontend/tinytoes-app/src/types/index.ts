@@ -95,12 +95,65 @@ export interface PrintProduct {
 }
 
 export type PageTemplateId =
+  // Locked / system
+  | 'blank-locked'
+  // Hero / opening
+  | 'title-stats'
+  // Photo-driven
+  | 'full-photo'
+  | 'photo-quote'
+  | 'two-photo-stack'
+  | 'grid-4'
+  | 'grid-6'
+  | 'polaroid'
+  // Text-driven
+  | 'quote-only'
+  // Mixbook-style memory book (round 2e)
+  | 'photo-blob-quote'        // single photo + offset blob + display/script caption
+  | 'quote-deco-photo-split'  // half photo, half (deco + big display + script accent)
+  | 'grid-5-asym'             // 3 small left + 2 large right
+  | 'grid-9-deco-center'      // 3×3 photos with center = decoration on blob
+  | 'grid-deco-corner'        // 4-grid where bottom-right is decoration on blob
+  | 'quote-deco-grid-3'       // deco+quote in one quadrant + 3 photos in others
+  // Mixbook round 2e — additional templates
+  | 'photo-sparkle'           // single offset photo + sparkle decorations (no blob)
+  | 'grid-3-deco-text'        // 2×2 with one cell = deco + text
+  | 'two-photo-text'          // 2 photos stacked + text area on opposite side
+  | 'grid-1big-2small-deco'   // 1 big photo left + 2 small right + deco in corner
+  | 'photo-1big-2small-text'  // 1 big photo + 2 small + text area
+  | 'grid-3-top-bottom'       // 1 large top + 2 small bottom
+  | 'two-photo-deco-text'     // 2 asymmetric photos + deco on blob + text
+  // Legacy (kept for back-compat with existing projects)
   | 'full-bleed'
   | 'photo-text'
   | 'two-photo'
   | 'collage-4'
   | 'text-only'
   | 'month-title';
+
+/** Decoration mascot/motif for photo-quote and quote-only pages */
+export type DecorationKind =
+  | 'sparkles'
+  | 'hearts'
+  | 'moon-stars'
+  | 'sun'
+  | 'rainbow'
+  | 'sailboat'
+  | 'lion'
+  | 'giraffe'
+  | 'elephant'
+  | 'cupcake'
+  | 'floral'
+  | 'angel'
+  | 'bib';
+
+/** Per-image positioning when an image fills its slot (object-fit: cover).
+ * Offsets are percentages (-50..50) relative to slot center; scale 1+. */
+export interface ImageOffset {
+  x: number;
+  y: number;
+  scale: number;
+}
 
 export interface PageContentItem {
   /** Source item type */
@@ -115,6 +168,8 @@ export interface PageContentItem {
   subtitle: string;
   /** Body text (notes, journal text, etc.) */
   text: string;
+  /** Optional pan/zoom offset for the filled image */
+  imageOffset?: ImageOffset;
 }
 
 export interface BookPage {
@@ -124,6 +179,23 @@ export interface BookPage {
   items: PageContentItem[];
   /** Optional custom caption / heading override */
   heading?: string;
+  /** Decoration motif applied to this page (if template supports it) */
+  decoration?: DecorationKind;
+  /** Which corner the decoration occupies (0=TL,1=TR,2=BL,3=BR). Default 3. */
+  decoCorner?: 0 | 1 | 2 | 3;
+  /** Which side the photo is on for split layouts. Default 'right'. */
+  photoSide?: 'left' | 'right';
+  /** Blob shape override for decoration backdrop */
+  blobShape?: 'pebble' | 'arch' | 'oval';
+  /** Locked pages cannot be edited, deleted, or reordered */
+  locked?: boolean;
+  /** Optional birth-stats payload (used by title-stats template) */
+  stats?: {
+    birthDate?: string;   // ISO date or "August 1, 2026"
+    birthTime?: string;   // "9:42 am"
+    weight?: string;      // "7 lb 4 oz"
+    length?: string;      // "20 in"
+  };
 }
 
 export type CoverTheme = 'classic' | 'pastel' | 'playful';
@@ -224,7 +296,24 @@ export interface JournalEntry {
   monthLabel: string; // "Month 1", "Month 2", etc.
   text: string;
   highlights: string[]; // short highlight items
+  /** @deprecated Use `images`. Kept for back-compat with older entries. */
   image: string | null;
+  /** Multiple photos per month (preferred). First image acts as cover. */
+  images?: string[];
   createdAt: number;
   updatedAt: number;
+}
+
+/** Returns all images for a journal entry, merging legacy `image` with new `images[]`. */
+export function getJournalImages(entry: JournalEntry): string[] {
+  const all = entry.images ? [...entry.images] : [];
+  if (entry.image && !all.includes(entry.image)) all.unshift(entry.image);
+  return all;
+}
+
+/** Returns ms timestamp for the start of the month referenced by a journal entry's monthKey. */
+export function journalEntryDateMs(entry: JournalEntry): number {
+  const [year, month] = entry.monthKey.split('-').map(Number);
+  if (!year || !month) return entry.createdAt;
+  return new Date(year, month - 1, 1).getTime();
 }

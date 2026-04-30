@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Modal } from '@/components/Modal';
 import { Input } from '@/components/Input';
 import { TextArea } from '@/components/TextArea';
 import { Button } from '@/components/Button';
-import { PhotoUpload } from '@/components/PhotoUpload';
-import { generateId } from '@/lib/imageUtils';
-import type { JournalEntry } from '@/types';
+import { generateId, compressImage } from '@/lib/imageUtils';
+import { getJournalImages, type JournalEntry } from '@/types';
+import { Plus, X, ImagePlus } from 'lucide-react';
 
 interface AddJournalSheetProps {
   isOpen: boolean;
@@ -53,7 +53,9 @@ export function AddJournalSheet({
   const [text, setText] = useState('');
   const [highlightInput, setHighlightInput] = useState('');
   const [highlights, setHighlights] = useState<string[]>([]);
-  const [image, setImage] = useState<string | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -66,7 +68,7 @@ export function AddJournalSheet({
       setMonthLabel(editEntry.monthLabel);
       setText(editEntry.text);
       setHighlights(editEntry.highlights);
-      setImage(editEntry.image);
+      setImages(getJournalImages(editEntry));
       setError(null);
       setIsSaving(false);
       setHighlightInput('');
@@ -79,7 +81,7 @@ export function AddJournalSheet({
     setText('');
     setHighlights([]);
     setHighlightInput('');
-    setImage(null);
+    setImages([]);
     setError(null);
     setIsSaving(false);
   };
@@ -101,6 +103,26 @@ export function AddJournalSheet({
     setHighlights(prev => prev.filter((_, i) => i !== index));
   };
 
+  const handleAddImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setIsUploading(true);
+    setError(null);
+    try {
+      const compressed = await Promise.all(files.map(f => compressImage(f)));
+      setImages(prev => [...prev, ...compressed]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process images.');
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     setError(null);
 
@@ -112,6 +134,8 @@ export function AddJournalSheet({
     setIsSaving(true);
     try {
       const label = monthLabel.trim() || monthKeyToLabel(monthKey);
+      // First image is also stored in legacy `image` for back-compat with older readers
+      const cover = images[0] ?? null;
 
       if (isEditing && onUpdate) {
         const updated: JournalEntry = {
@@ -120,7 +144,8 @@ export function AddJournalSheet({
           monthLabel: label,
           text: text.trim(),
           highlights,
-          image,
+          image: cover,
+          images,
           updatedAt: Date.now(),
         };
         await onUpdate(updated);
@@ -131,7 +156,8 @@ export function AddJournalSheet({
           monthLabel: label,
           text: text.trim(),
           highlights,
-          image,
+          image: cover,
+          images,
           createdAt: Date.now(),
           updatedAt: Date.now(),
         };
@@ -148,8 +174,69 @@ export function AddJournalSheet({
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title={isEditing ? 'Edit Journal Entry' : 'New Journal Entry'}>
       <div className="space-y-5">
-        {/* Photo */}
-        <PhotoUpload value={image} onChange={setImage} />
+        {/* Photos (multi) */}
+        <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--color-text)' }}>
+            Photos
+          </label>
+          <div className="grid grid-cols-3 gap-2">
+            {images.map((src, i) => (
+              <div key={i} className="relative aspect-square rounded-xl overflow-hidden bg-theme-accent/20">
+                <img src={src} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                {i === 0 && (
+                  <span className="absolute top-1 left-1 text-[9px] font-bold uppercase tracking-wide bg-black/60 text-white px-1.5 py-0.5 rounded">
+                    Cover
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => removeImage(i)}
+                  className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-red-500"
+                  aria-label="Remove photo"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="aspect-square rounded-xl border-2 border-dashed flex flex-col items-center justify-center gap-1 transition-colors hover:border-theme-primary disabled:opacity-50"
+              style={{ borderColor: 'var(--color-accent)', color: 'var(--color-muted)' }}
+            >
+              {isUploading ? (
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24" fill="none">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+              ) : images.length === 0 ? (
+                <>
+                  <ImagePlus size={20} />
+                  <span className="text-[10px] font-medium">Add photos</span>
+                </>
+              ) : (
+                <>
+                  <Plus size={20} />
+                  <span className="text-[10px] font-medium">Add more</span>
+                </>
+              )}
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleAddImages}
+            className="hidden"
+          />
+          {images.length > 1 && (
+            <p className="text-[10px] text-theme-muted mt-1">
+              {images.length} photos &middot; first one is used as the cover.
+            </p>
+          )}
+        </div>
 
         {/* Month picker */}
         <div>

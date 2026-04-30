@@ -91,3 +91,48 @@ jobs:
 
       - name: Run Build
         run: pnpm build
+
+  ios-build:
+    name: Build iOS App (Simulator)
+    if: github.event_name == 'push'
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install pnpm
+        run: corepack prepare pnpm@latest --activate
+
+      - name: Install dependencies
+        working-directory: ./frontend/tinytoes-app
+        run: pnpm install
+
+      - name: Build PWA
+        working-directory: ./frontend/tinytoes-app
+        run: pnpm build
+
+      - name: Sync web assets to iOS bundle
+        run: |
+          chmod +x ios/TinyToes/Scripts/sync-web-assets.sh
+          ios/TinyToes/Scripts/sync-web-assets.sh
+
+      - name: Build iOS app (Simulator)
+        working-directory: ./ios/TinyToes
+        run: |
+          xcodebuild \
+            -project TinyToes.xcodeproj \
+            -scheme TinyToes \
+            -configuration Release \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            CODE_SIGN_IDENTITY="-" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
