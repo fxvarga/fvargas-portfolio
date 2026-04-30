@@ -18,15 +18,9 @@ jobs:
         with:
           node-version: 18
 
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install pnpm
-        run: corepack prepare pnpm@latest --activate
-
       - name: Install dependencies
         working-directory: ./frontend/tinytoes-app
-        run: pnpm install --no-workspace
+        run: npm install
 
       - name: Build PWA
         working-directory: ./frontend/tinytoes-app
