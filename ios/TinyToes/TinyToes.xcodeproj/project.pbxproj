@@ -17,6 +17,7 @@
 		A1000008 /* StorageKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* StorageKeys.swift */; };
 		A1000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009 /* Assets.xcassets */; };
 		A100000A /* www in Resources */ = {isa = PBXBuildFile; fileRef = A200000A /* www */; };
+		A100000B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A200000C /* LaunchScreen.storyboard */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +32,7 @@
 		A2000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A200000A /* www */ = {isa = PBXFileReference; lastKnownFileType = folder; path = www; sourceTree = "<group>"; };
 		A200000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A200000C /* LaunchScreen.storyboard */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A3000001 /* TinyToes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TinyToes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -62,6 +64,7 @@
 				A5000009 /* Bundle */,
 				A2000009 /* Assets.xcassets */,
 				A200000B /* Info.plist */,
+				A200000C /* LaunchScreen.storyboard */,
 			);
 			path = TinyToes;
 			sourceTree = "<group>";
@@ -179,6 +182,7 @@
 			files = (
 				A1000009 /* Assets.xcassets in Resources */,
 				A100000A /* www in Resources */,
+				A100000B /* LaunchScreen.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
