@@ -1,100 +1,12 @@
-name: Run Vitest Tests and Build (Frontend)
+name: Build iOS App
 
 on:
   push:
     branches: [main]
-  pull_request:
-    branches: [main]
 
 jobs:
-  setup:
-    name: Setup Dependencies
-    runs-on: ubuntu-latest
-    outputs:
-      cache-hit: ${{ steps.cache.outputs.cache-hit }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install pnpm
-        run: corepack prepare pnpm@latest --activate
-
-      - name: Install dependencies
-        working-directory: ./frontend/portfolio-react
-        run: pnpm install
-
-  test:
-    name: Run Vitest Tests
-    needs: setup
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./frontend/portfolio-react
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install pnpm
-        run: corepack prepare pnpm@latest --activate
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run Vitest
-        run: pnpm vitest run --coverage
-
-  build:
-    name: Build Project
-    needs: setup
-    runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: ./frontend/portfolio-react
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - name: Enable Corepack
-        run: corepack enable
-
-      - name: Install pnpm
-        run: corepack prepare pnpm@latest --activate
-
-      - name: Install dependencies
-        run: pnpm install
-
-      - name: Run Build
-        run: pnpm build
-
   ios-build:
     name: Build iOS App (Simulator)
-    if: github.event_name == 'push'
     runs-on: macos-latest
 
     steps:
@@ -112,8 +24,7 @@ jobs:
       - name: Install pnpm
         run: corepack prepare pnpm@latest --activate
 
-      - name: Install dependencies
-        working-directory: ./frontend/tinytoes-app
+      - name: Install dependencies (root workspace)
         run: pnpm install
 
       - name: Build PWA
