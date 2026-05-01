@@ -33,7 +33,8 @@ const createSvg = (size) => {
   const f = s / 512; // scale factor
 
   // Rounded-rect background (iOS-safe, fills the square)
-  const bgRx = 100 * f; // corner radius
+  // For 1024px iOS icon, use rx=0 to avoid alpha channel issues with App Store
+  const bgRx = size === 1024 ? 0 : 100 * f; // corner radius
 
   // Foot sole — slightly shifted down from center
   const padCx = cx;
