@@ -70,9 +70,25 @@ struct ContentView: View {
       if let wwwURL = Bundle.main.url(forResource: "www", withExtension: nil) {
         debugLog.append("www dir: \(wwwURL.path)")
         if let files = try? FileManager.default.contentsOfDirectory(atPath: wwwURL.path) {
-          debugLog.append("www files (\(files.count)): \(files.prefix(15).joined(separator: ", "))")
+          debugLog.append("www files (\(files.count)): \(files.joined(separator: ", "))")
         } else {
           debugLog.append("ERROR: cannot list www dir")
+        }
+
+        // Check assets subdirectory
+        let assetsPath = wwwURL.path + "/assets"
+        if let assetFiles = try? FileManager.default.contentsOfDirectory(atPath: assetsPath) {
+          debugLog.append("assets/ (\(assetFiles.count)): \(assetFiles.joined(separator: ", "))")
+        } else {
+          debugLog.append("ERROR: www/assets/ NOT FOUND")
+        }
+
+        // Check icons subdirectory
+        let iconsPath = wwwURL.path + "/icons"
+        if let iconFiles = try? FileManager.default.contentsOfDirectory(atPath: iconsPath) {
+          debugLog.append("icons/ (\(iconFiles.count)): \(iconFiles.joined(separator: ", "))")
+        } else {
+          debugLog.append("icons/ not found (ok)")
         }
       } else {
         debugLog.append("ERROR: www dir NOT FOUND in bundle")
@@ -81,8 +97,15 @@ struct ContentView: View {
       if let indexURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "www") {
         debugLog.append("index.html FOUND: \(indexURL.path)")
         if let html = try? String(contentsOf: indexURL, encoding: .utf8) {
-          let preview = String(html.prefix(200))
-          debugLog.append("HTML preview: \(preview)")
+          debugLog.append("HTML length: \(html.count)")
+          // Show the full HTML so we can see script/link src paths
+          let lines = html.components(separatedBy: "\n")
+          for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.contains("script") || trimmed.contains("link") || trimmed.contains("src=") || trimmed.contains("href=") {
+              debugLog.append("  \(trimmed)")
+            }
+          }
         }
       } else {
         debugLog.append("ERROR: index.html NOT FOUND in www/")

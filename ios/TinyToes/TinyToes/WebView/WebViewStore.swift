@@ -61,6 +61,16 @@ class WebViewStore: ObservableObject {
   (function() {
     window.__TINYTOES_NATIVE = true;
 
+    // Early error capture — catches script load failures
+    window.__TT_ERRORS = [];
+    window.onerror = function(msg, source, line, col, error) {
+      window.__TT_ERRORS.push('ERR: ' + msg + ' @ ' + source + ':' + line);
+      return false;
+    };
+    window.addEventListener('unhandledrejection', function(e) {
+      window.__TT_ERRORS.push('PROMISE: ' + String(e.reason));
+    });
+
     // Pending promise callbacks keyed by request ID
     const _pending = {};
     let _nextId = 1;

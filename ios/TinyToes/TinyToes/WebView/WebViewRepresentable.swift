@@ -51,41 +51,44 @@ struct WebViewRepresentable: UIViewRepresentable {
           protocol: location.protocol,
           title: document.title,
           bodyChildren: document.body ? document.body.children.length : -1,
-          bodyHTML: document.body ? document.body.innerHTML.substring(0, 300) : 'NO BODY',
-          rootDiv: document.getElementById('root') ? document.getElementById('root').innerHTML.substring(0, 200) : 'NO #root'
+          bodyHTML: document.body ? document.body.innerHTML.substring(0, 500) : 'NO BODY',
+          rootDiv: document.getElementById('root') ? document.getElementById('root').innerHTML.substring(0, 300) : 'NO #root',
+          scripts: Array.from(document.querySelectorAll('script')).map(function(s) { return s.src || s.textContent.substring(0, 80); }),
+          links: Array.from(document.querySelectorAll('link')).map(function(l) { return l.href; }),
+          errors: window.__TT_ERRORS || []
         };
-        document.title = 'DBG:' + JSON.stringify(info);
+        return JSON.stringify(info);
       })();
       """
-      webView.evaluateJavaScript(debugJS) { _, error in
+      webView.evaluateJavaScript(debugJS) { result, error in
+        if let json = result as? String {
+          self.log("PAGE STATE: \(json)")
+        }
         if let error = error {
           self.log("JS EVAL ERROR: \(error.localizedDescription)")
         }
       }
 
-      // Read back the debug info from title
-      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-        webView.evaluateJavaScript("document.title") { result, error in
-          if let title = result as? String {
-            self.log("PAGE STATE: \(title)")
-          }
-          if let error = error {
-            self.log("TITLE READ ERROR: \(error.localizedDescription)")
+      // Poll for errors after 2 seconds (React may fail async)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+        let pollJS = """
+        (function() {
+          var root = document.getElementById('root');
+          return JSON.stringify({
+            rootChildren: root ? root.children.length : -1,
+            rootHTML: root ? root.innerHTML.substring(0, 300) : 'NO ROOT',
+            errors: window.__TT_ERRORS || [],
+            allScripts: Array.from(document.querySelectorAll('script')).length,
+            readyState: document.readyState
+          });
+        })();
+        """
+        webView.evaluateJavaScript(pollJS) { result, error in
+          if let json = result as? String {
+            self.log("POLL 2s: \(json)")
           }
         }
       }
-
-      // Also capture any JS errors
-      let errorCatchJS = """
-      window.onerror = function(msg, source, line, col, error) {
-        document.title = 'JSERR:' + msg + ' at ' + source + ':' + line;
-        return false;
-      };
-      window.addEventListener('unhandledrejection', function(e) {
-        document.title = 'PROMISE_ERR:' + e.reason;
-      });
-      """
-      webView.evaluateJavaScript(errorCatchJS, completionHandler: nil)
     }
 
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
