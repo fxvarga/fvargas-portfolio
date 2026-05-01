@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter } from 'react-router-dom';
 import { RouteGuard } from '@/components/RouteGuard';
 import { LandingPage } from '@/features/landing/LandingPage';
 import { ClaimPage } from '@/features/claim/ClaimPage';
@@ -17,7 +17,11 @@ import { YearRecapPage } from '@/features/year-recap/YearRecapPage';
 import { SettingsPage } from '@/features/settings/SettingsPage';
 import { StorePage } from '@/features/store/StorePage';
 
-export const router = createBrowserRouter([
+const isNative = typeof window !== 'undefined' &&
+  ((window as any).__TINYTOES_NATIVE || window.location.protocol === 'file:');
+const createRouter = isNative ? createHashRouter : createBrowserRouter;
+
+export const router = createRouter([
   {
     path: '/',
     element: <LandingPage />,
