@@ -120,6 +120,7 @@ jobs:
           mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
           PP_UUID=$(/usr/libexec/PlistBuddy -c "Print UUID" /dev/stdin <<< $(security cms -D -i "$PP_PATH"))
           cp "$PP_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/"$PP_UUID".mobileprovision
+          echo "PP_UUID=$PP_UUID" >> $GITHUB_ENV
 
       - name: Archive for distribution
         if: env.HAS_SECRETS == 'true'
@@ -135,6 +136,8 @@ jobs:
             -archivePath $RUNNER_TEMP/TinyToes.xcarchive \
             DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
             CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
+            PROVISIONING_PROFILE="$PP_UUID" \
             archive
 
       - name: Export IPA
