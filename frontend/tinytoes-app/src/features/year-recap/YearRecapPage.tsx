@@ -172,7 +172,7 @@ export function YearRecapPage() {
               <RevealSection delay={480}>
                 <div className="text-center py-4">
                   <p className="text-xs text-theme-muted">
-                    Made with love by TinyToes
+                    Made with love by FV
                   </p>
                 </div>
               </RevealSection>
