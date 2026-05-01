@@ -40,10 +40,14 @@ class WebViewStore: ObservableObject {
 
   /// Load the bundled web app, falling back to remote URL.
   func loadApp() {
+    print("[TinyToes] loadApp() called")
     if let indexURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "www") {
-      webView.loadFileURL(indexURL, allowingReadAccessTo: indexURL.deletingLastPathComponent())
+      let accessDir = indexURL.deletingLastPathComponent()
+      print("[TinyToes] Loading local file: \(indexURL)")
+      print("[TinyToes] Access dir: \(accessDir)")
+      webView.loadFileURL(indexURL, allowingReadAccessTo: accessDir)
     } else {
-      // Fallback to remote
+      print("[TinyToes] www/index.html NOT FOUND — falling back to remote")
       let remoteURL = URL(string: "https://tinytoes.fvargas.com")!
       webView.load(URLRequest(url: remoteURL))
     }
