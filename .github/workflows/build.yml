@@ -192,18 +192,6 @@ jobs:
             -authenticationKeyID "$APPLE_API_KEY_ID" \
             -authenticationKeyIssuerID "$APPLE_API_ISSUER_ID"
 
-      - name: Upload to TestFlight
-        if: env.HAS_SECRETS == 'true'
-        env:
-          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
-          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
-        run: |
-          xcrun altool --upload-app \
-            -f $RUNNER_TEMP/export/TinyToes.ipa \
-            -t ios \
-            --apiKey "$APPLE_API_KEY_ID" \
-            --apiIssuer "$APPLE_API_ISSUER_ID"
-
       - name: Clean up keychain
         if: always() && env.HAS_SECRETS == 'true'
         run: security delete-keychain $RUNNER_TEMP/app-signing.keychain-db || true
