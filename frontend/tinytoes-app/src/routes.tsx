@@ -18,7 +18,7 @@ import { SettingsPage } from '@/features/settings/SettingsPage';
 import { StorePage } from '@/features/store/StorePage';
 
 const isNative = typeof window !== 'undefined' &&
-  ((window as any).__TINYTOES_NATIVE || window.location.protocol === 'file:');
+  ((window as any).__TINYTOES_NATIVE || window.location.protocol === 'file:' || window.location.protocol === 'app:');
 const createRouter = isNative ? createHashRouter : createBrowserRouter;
 
 export const router = createRouter([

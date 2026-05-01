@@ -116,9 +116,8 @@ struct ContentView: View {
         }
       }
 
-      debugLog.append("Calling loadApp()...")
+      debugLog.append("Loading via app:// scheme")
       webViewStore.loadApp()
-      debugLog.append("loadApp() returned")
     }
   }
 }

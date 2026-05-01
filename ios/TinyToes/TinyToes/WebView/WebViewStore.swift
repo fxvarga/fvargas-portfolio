@@ -7,10 +7,14 @@ class WebViewStore: ObservableObject {
 
   private let storageBridge = StorageBridge()
   private let exportBridge = ExportBridge()
+  private let schemeHandler = LocalSchemeHandler()
 
   init() {
     let config = WKWebViewConfiguration()
     config.preferences.javaScriptCanOpenWindowsAutomatically = false
+
+    // Register custom URL scheme to serve local files with a proper origin
+    config.setURLSchemeHandler(schemeHandler, forURLScheme: LocalSchemeHandler.scheme)
 
     // Allow inline media playback (no fullscreen requirement)
     config.allowsInlineMediaPlayback = true
@@ -38,16 +42,16 @@ class WebViewStore: ObservableObject {
     self.webView = webView
   }
 
-  /// Load the bundled web app, falling back to remote URL.
+  /// Load the app via custom scheme (app://localhost/).
+  /// Falls back to remote URL if www/ is not in the bundle.
   func loadApp() {
     print("[TinyToes] loadApp() called")
-    if let indexURL = Bundle.main.url(forResource: "index", withExtension: "html", subdirectory: "www") {
-      let accessDir = indexURL.deletingLastPathComponent()
-      print("[TinyToes] Loading local file: \(indexURL)")
-      print("[TinyToes] Access dir: \(accessDir)")
-      webView.loadFileURL(indexURL, allowingReadAccessTo: accessDir)
+    if Bundle.main.url(forResource: "www", withExtension: nil) != nil {
+      let appURL = LocalSchemeHandler.baseURL
+      print("[TinyToes] Loading via custom scheme: \(appURL)")
+      webView.load(URLRequest(url: appURL))
     } else {
-      print("[TinyToes] www/index.html NOT FOUND — falling back to remote")
+      print("[TinyToes] www/ NOT FOUND — falling back to remote")
       let remoteURL = URL(string: "https://tinytoes.fvargas.com")!
       webView.load(URLRequest(url: remoteURL))
     }

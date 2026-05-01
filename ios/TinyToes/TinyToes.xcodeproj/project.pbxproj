@@ -15,6 +15,7 @@
 		A1000006 /* ExportBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006 /* ExportBridge.swift */; };
 		A1000007 /* NativeStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007 /* NativeStorage.swift */; };
 		A1000008 /* StorageKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* StorageKeys.swift */; };
+		A100000B /* LocalSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000C /* LocalSchemeHandler.swift */; };
 		A1000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009 /* Assets.xcassets */; };
 		A100000A /* www in Resources */ = {isa = PBXBuildFile; fileRef = A200000A /* www */; };
 /* End PBXBuildFile section */
@@ -31,6 +32,7 @@
 		A2000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A200000A /* www */ = {isa = PBXFileReference; lastKnownFileType = folder; path = www; sourceTree = "<group>"; };
 		A200000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A200000C /* LocalSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSchemeHandler.swift; sourceTree = "<group>"; };
 		A3000001 /* TinyToes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TinyToes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -80,6 +82,7 @@
 			children = (
 				A2000003 /* WebViewStore.swift */,
 				A2000004 /* WebViewRepresentable.swift */,
+				A200000C /* LocalSchemeHandler.swift */,
 				A5000005 /* MessageHandlers */,
 			);
 			path = WebView;
@@ -197,6 +200,7 @@
 				A1000006 /* ExportBridge.swift in Sources */,
 				A1000007 /* NativeStorage.swift in Sources */,
 				A1000008 /* StorageKeys.swift in Sources */,
+				A100000B /* LocalSchemeHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
