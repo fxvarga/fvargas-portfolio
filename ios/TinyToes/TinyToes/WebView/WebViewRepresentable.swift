@@ -10,6 +10,7 @@ struct WebViewRepresentable: UIViewRepresentable {
     let webView = store.webView
     webView.navigationDelegate = context.coordinator
     webView.scrollView.contentInsetAdjustmentBehavior = .never
+    webView.scrollView.bounces = false
     webView.isOpaque = true
     webView.backgroundColor = .white
     context.coordinator.debugLog = $debugLog

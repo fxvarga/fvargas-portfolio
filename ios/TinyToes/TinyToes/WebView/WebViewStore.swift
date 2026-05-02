@@ -72,6 +72,11 @@ class WebViewStore: ObservableObject {
   (function() {
     window.__TINYTOES_NATIVE = true;
 
+    // Fix iOS viewport: override min-h-screen to use dynamic viewport height
+    var style = document.createElement('style');
+    style.textContent = '.min-h-screen { min-height: 100dvh !important; }';
+    (document.head || document.documentElement).appendChild(style);
+
     // Early error capture — catches script load failures
     window.__TT_ERRORS = [];
     window.onerror = function(msg, source, line, col, error) {
