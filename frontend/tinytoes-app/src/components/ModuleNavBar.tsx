@@ -1,6 +1,7 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { isNativeApp } from '@/lib/storage-adapter';
 import { UtensilsCrossed, Trophy, BookOpen, BookMarked, Clapperboard, Lock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -40,7 +41,9 @@ export function ModuleNavBar({ activeSlug }: ModuleNavBarProps) {
       <div className="flex items-stretch justify-around h-[3.5rem]">
         {MODULE_NAV.map(mod => {
           const isFreeFeature = FREE_FEATURE_SLUGS.includes(mod.slug);
-          const owned = isFreeFeature ? hasAnyCoreProduct() : entitlements.includes(mod.slug);
+          // On iOS native, first-foods is always accessible (trial mode with 5 free images)
+          const isNativeTrial = isNativeApp() && mod.slug === 'first-foods';
+          const owned = isNativeTrial || (isFreeFeature ? hasAnyCoreProduct() : entitlements.includes(mod.slug));
           const isActive = mod.slug === activeSlug;
           return (
             <button
