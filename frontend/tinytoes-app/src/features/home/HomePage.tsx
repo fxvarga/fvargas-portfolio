@@ -2,6 +2,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
+import { useTrialImages } from '@/hooks/useTrialImages';
+import { useAuth } from '@/hooks/useAuth';
+import { useEntitlements } from '@/hooks/useEntitlements';
 import { ModuleNavBar } from '@/components/ModuleNavBar';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -10,6 +13,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { MetricsBar } from '@/components/MetricsBar';
 import type { FilterPill } from '@/components/MetricsBar';
+import { IOSPaywall } from '@/components/IOSPaywall';
 import { EntryCard } from './EntryCard';
 import { AddEntrySheet } from '@/features/entry/AddEntrySheet';
 import { EntryDetailView } from '@/features/entry/EntryDetailView';
@@ -29,6 +33,8 @@ const FOOD_FILTERS: FilterPill<FilterType>[] = [
 export function HomePage() {
   const navigate = useNavigate();
   const { profile, isLoading: profileLoading } = useProfile();
+  const { isAuthenticated } = useAuth();
+  const { refresh: refreshEntitlements, hasAnyCoreProduct } = useEntitlements(isAuthenticated);
   const {
     filteredEntries,
     isLoading: entriesLoading,
@@ -39,15 +45,30 @@ export function HomePage() {
     deleteEntry,
     stats,
   } = useEntries();
+  const trial = useTrialImages();
 
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [editingEntry, setEditingEntry] = useState<FoodEntry | null>(null);
   const [selectedEntry, setSelectedEntry] = useState<FoodEntry | null>(null);
   const [showBackupNudge, setShowBackupNudge] = useState(false);
+  const [showPaywall, setShowPaywall] = useState(false);
 
   const handleRestored = useCallback(() => {
     window.location.reload();
   }, []);
+
+  /** Wraps addEntry to enforce trial limit on native iOS */
+  const handleAddEntry = useCallback(async (entry: FoodEntry) => {
+    // On native iOS, check trial limit if not entitled
+    if (trial.isNative && !hasAnyCoreProduct() && entry.image) {
+      if (!trial.canAddImage) {
+        setShowPaywall(true);
+        return;
+      }
+      trial.increment();
+    }
+    await addEntry(entry);
+  }, [addEntry, trial, hasAnyCoreProduct]);
 
   useEffect(() => {
     if (!profileLoading && !profile.onboardingComplete) {
@@ -161,14 +182,20 @@ export function HomePage() {
         )}
       </div>
 
-      {/* FAB */}
-      <FAB onClick={() => setShowAddSheet(true)} label="Add Entry" />
+      {/* FAB — on iOS, show paywall if trial exhausted and not entitled */}
+      <FAB onClick={() => {
+        if (trial.isNative && !hasAnyCoreProduct() && !trial.canAddImage) {
+          setShowPaywall(true);
+        } else {
+          setShowAddSheet(true);
+        }
+      }} label="Add Entry" />
 
       {/* Add / Edit Entry Sheet */}
       <AddEntrySheet
         isOpen={showAddSheet || !!editingEntry}
         onClose={() => { setShowAddSheet(false); setEditingEntry(null); }}
-        onAdd={addEntry}
+        onAdd={handleAddEntry}
         onUpdate={updateEntry}
         editEntry={editingEntry}
       />
@@ -189,6 +216,30 @@ export function HomePage() {
             setSelectedEntry(null);
           }}
         />
+      )}
+
+      {/* iOS Paywall */}
+      {showPaywall && (
+        <IOSPaywall
+          trialRemaining={trial.remaining}
+          trialLimit={trial.trialLimit}
+          onUnlocked={() => {
+            setShowPaywall(false);
+            refreshEntitlements();
+          }}
+          onEnterCode={() => {
+            setShowPaywall(false);
+            navigate('/claim');
+          }}
+        />
+      )}
+
+      {/* Trial remaining banner (iOS only) */}
+      {trial.isNative && !hasAnyCoreProduct() && trial.canAddImage && trial.remaining <= 2 && (
+        <div className="fixed bottom-20 left-4 right-4 z-40 rounded-xl p-3 text-center text-sm font-medium shadow-lg"
+             style={{ backgroundColor: 'var(--color-primary-light, #fef3c7)', color: 'var(--color-primary, #f59e0b)' }}>
+          {trial.remaining} free image{trial.remaining !== 1 ? 's' : ''} remaining
+        </div>
       )}
     </PageShell>
   );

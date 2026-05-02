@@ -18,6 +18,11 @@ declare global {
     nativeExport?: {
       shareFile(filename: string, base64Data: string, mimeType: string): Promise<boolean>;
     };
+    nativeIAP?: {
+      purchase(): Promise<{ transactionId: string; purchased: boolean }>;
+      restore(): Promise<{ transactionId: string; purchased: boolean }>;
+      getStatus(): Promise<{ transactionId: string; purchased: boolean; price: string }>;
+    };
   }
 }
 

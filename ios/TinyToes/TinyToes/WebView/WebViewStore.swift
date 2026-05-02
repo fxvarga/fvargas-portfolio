@@ -8,6 +8,8 @@ class WebViewStore: ObservableObject {
   private let storageBridge = StorageBridge()
   private let exportBridge = ExportBridge()
   private let schemeHandler = LocalSchemeHandler()
+  private let storeKitManager = StoreKitManager()
+  private var iapBridge: IAPBridge?
 
   init() {
     let config = WKWebViewConfiguration()
@@ -24,6 +26,10 @@ class WebViewStore: ObservableObject {
     let userContent = config.userContentController
     userContent.add(storageBridge, name: StorageBridge.handlerName)
     userContent.add(exportBridge, name: ExportBridge.handlerName)
+
+    let iap = IAPBridge(storeKitManager: storeKitManager)
+    userContent.add(iap, name: IAPBridge.handlerName)
+    self.iapBridge = iap
 
     // Inject the native bridge JS shim before any page scripts run
     let bridgeScript = WKUserScript(
@@ -114,6 +120,12 @@ class WebViewStore: ObservableObject {
     window.nativeExport = {
       shareFile: (filename, base64Data, mimeType) =>
         callNative('export', 'shareFile', { filename, base64Data, mimeType }),
+    };
+
+    window.nativeIAP = {
+      purchase: () => callNative('iap', 'purchase', {}),
+      restore: () => callNative('iap', 'restore', {}),
+      getStatus: () => callNative('iap', 'getStatus', {}),
     };
   })();
   """

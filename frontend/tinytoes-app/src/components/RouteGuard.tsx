@@ -1,9 +1,16 @@
 import { type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { isNativeApp } from '@/lib/storage-adapter';
 
 export function RouteGuard({ children }: { children: ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
+
+  // iOS native app: allow access without auth (trial mode).
+  // Paywall is handled at the feature level, not the route level.
+  if (isNativeApp()) {
+    return <>{children}</>;
+  }
 
   if (isLoading) {
     return (

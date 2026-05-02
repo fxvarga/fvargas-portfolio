@@ -119,4 +119,12 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ email }),
     }),
+
+  // --- Apple IAP ---
+
+  verifyApple: (transactionId: string) =>
+    request<{ products: string[] }>('/apple/verify', {
+      method: 'POST',
+      body: JSON.stringify({ transactionId }),
+    }),
 };

@@ -1,4 +1,4 @@
-import { createBrowserRouter, createHashRouter } from 'react-router-dom';
+import { createBrowserRouter, createHashRouter, Navigate } from 'react-router-dom';
 import { RouteGuard } from '@/components/RouteGuard';
 import { LandingPage } from '@/features/landing/LandingPage';
 import { ClaimPage } from '@/features/claim/ClaimPage';
@@ -24,7 +24,7 @@ const createRouter = isNative ? createHashRouter : createBrowserRouter;
 export const router = createRouter([
   {
     path: '/',
-    element: <LandingPage />,
+    element: isNative ? <Navigate to="/onboarding" replace /> : <LandingPage />,
   },
   {
     path: '/claim',

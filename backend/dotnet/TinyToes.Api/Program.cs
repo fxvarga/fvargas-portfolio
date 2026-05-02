@@ -18,6 +18,7 @@ builder.Services.AddDbContext<TinyToesDbContext>(options =>
 
 // Services
 builder.Services.AddScoped<ClaimService>();
+builder.Services.AddScoped<AppleVerificationService>();
 builder.Services.AddSingleton<GraphEmailService>();
 builder.Services.AddScoped<StripeWebhookService>();
 builder.Services.AddSingleton<BlobStorageService>();
@@ -68,6 +69,7 @@ app.UseRateLimiter();
 
 // Endpoints
 app.MapClaimEndpoints();
+app.MapAppleEndpoints();
 app.MapCheckoutEndpoints();
 app.MapStripeEndpoints();
 app.MapAdminEndpoints();

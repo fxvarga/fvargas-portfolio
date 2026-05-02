@@ -16,6 +16,9 @@
 		A1000007 /* NativeStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000007 /* NativeStorage.swift */; };
 		A1000008 /* StorageKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000008 /* StorageKeys.swift */; };
 		A100000B /* LocalSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000C /* LocalSchemeHandler.swift */; };
+		A100000C /* StoreKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000D /* StoreKitManager.swift */; };
+		A100000D /* IAPBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A200000E /* IAPBridge.swift */; };
+		A100000E /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A200000F /* Products.storekit */; };
 		A1000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009 /* Assets.xcassets */; };
 		A100000A /* www in Resources */ = {isa = PBXBuildFile; fileRef = A200000A /* www */; };
 /* End PBXBuildFile section */
@@ -33,6 +36,9 @@
 		A200000A /* www */ = {isa = PBXFileReference; lastKnownFileType = folder; path = www; sourceTree = "<group>"; };
 		A200000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A200000C /* LocalSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalSchemeHandler.swift; sourceTree = "<group>"; };
+		A200000D /* StoreKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitManager.swift; sourceTree = "<group>"; };
+		A200000E /* IAPBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IAPBridge.swift; sourceTree = "<group>"; };
+		A200000F /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 		A3000001 /* TinyToes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TinyToes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -61,6 +67,7 @@
 				A5000003 /* App */,
 				A5000004 /* WebView */,
 				A5000007 /* Storage */,
+				A500000B /* StoreKit */,
 				A5000009 /* Bundle */,
 				A2000009 /* Assets.xcassets */,
 				A200000B /* Info.plist */,
@@ -93,6 +100,7 @@
 			children = (
 				A2000005 /* StorageBridge.swift */,
 				A2000006 /* ExportBridge.swift */,
+				A200000E /* IAPBridge.swift */,
 			);
 			path = MessageHandlers;
 			sourceTree = "<group>";
@@ -112,6 +120,15 @@
 				A200000A /* www */,
 			);
 			path = Bundle;
+			sourceTree = "<group>";
+		};
+		A500000B /* StoreKit */ = {
+			isa = PBXGroup;
+			children = (
+				A200000D /* StoreKitManager.swift */,
+				A200000F /* Products.storekit */,
+			);
+			path = StoreKit;
 			sourceTree = "<group>";
 		};
 		A5000010 /* Products */ = {
@@ -182,6 +199,7 @@
 			files = (
 				A1000009 /* Assets.xcassets in Resources */,
 				A100000A /* www in Resources */,
+				A100000E /* Products.storekit in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -201,6 +219,8 @@
 				A1000007 /* NativeStorage.swift in Sources */,
 				A1000008 /* StorageKeys.swift in Sources */,
 				A100000B /* LocalSchemeHandler.swift in Sources */,
+				A100000C /* StoreKitManager.swift in Sources */,
+				A100000D /* IAPBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

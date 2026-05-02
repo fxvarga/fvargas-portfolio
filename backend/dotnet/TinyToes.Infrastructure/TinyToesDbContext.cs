@@ -74,6 +74,8 @@ public class TinyToesDbContext : DbContext
                 .WithMany(b => b.Products)
                 .HasForeignKey(e => e.BuyerId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.Source).HasMaxLength(20);
+            entity.Property(e => e.AppleTransactionId).HasMaxLength(100);
             entity.HasOne(e => e.ClaimCode)
                 .WithMany()
                 .HasForeignKey(e => e.ClaimCodeId)
