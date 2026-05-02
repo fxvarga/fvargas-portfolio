@@ -2,6 +2,7 @@ import Foundation
 import WebKit
 
 /// Central store managing the WKWebView instance and its configuration.
+@MainActor
 class WebViewStore: ObservableObject {
   let webView: WKWebView
 
