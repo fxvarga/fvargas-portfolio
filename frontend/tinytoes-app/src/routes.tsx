@@ -24,7 +24,7 @@ const createRouter = isNative ? createHashRouter : createBrowserRouter;
 export const router = createRouter([
   {
     path: '/',
-    element: isNative ? <Navigate to="/onboarding" replace /> : <LandingPage />,
+    element: isNative ? <Navigate to="/home" replace /> : <LandingPage />,
   },
   {
     path: '/claim',
