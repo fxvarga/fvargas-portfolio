@@ -16,6 +16,9 @@ class WebViewStore: ObservableObject {
     let config = WKWebViewConfiguration()
     config.preferences.javaScriptCanOpenWindowsAutomatically = false
 
+    // Use the default (persistent) data store so localStorage/cookies survive app restarts
+    config.websiteDataStore = WKWebsiteDataStore.default()
+
     // Register custom URL scheme to serve local files with a proper origin
     config.setURLSchemeHandler(schemeHandler, forURLScheme: LocalSchemeHandler.scheme)
 

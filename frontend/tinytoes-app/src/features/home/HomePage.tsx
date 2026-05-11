@@ -65,9 +65,10 @@ export function HomePage() {
         setShowPaywall(true);
         return;
       }
-      trial.increment();
     }
     await addEntry(entry);
+    // Refresh trial count after adding (so imported + new entries are counted)
+    trial.recount();
   }, [addEntry, trial, hasAnyCoreProduct]);
 
   useEffect(() => {
