@@ -228,16 +228,13 @@ export function HomePage() {
             setShowPaywall(false);
             refreshEntitlements();
           }}
-          onEnterCode={() => {
-            setShowPaywall(false);
-            navigate('/claim');
-          }}
+          onClose={() => setShowPaywall(false)}
         />
       )}
 
-      {/* Trial remaining banner (iOS only) */}
+      {/* Trial remaining banner (iOS only) — positioned above the FAB */}
       {trial.isNative && !hasAnyCoreProduct() && trial.canAddImage && trial.remaining <= 2 && (
-        <div className="fixed bottom-20 left-4 right-4 z-40 rounded-xl p-3 text-center text-sm font-medium shadow-lg"
+        <div className="fixed bottom-36 left-4 right-4 z-30 rounded-xl p-3 text-center text-sm font-medium shadow-lg"
              style={{ backgroundColor: 'var(--color-primary-light, #fef3c7)', color: 'var(--color-primary, #f59e0b)' }}>
           {trial.remaining} free image{trial.remaining !== 1 ? 's' : ''} remaining
         </div>

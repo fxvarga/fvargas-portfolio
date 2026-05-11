@@ -118,6 +118,26 @@ class WebViewStore: ObservableObject {
       }
     };
 
+    // Base64-safe variant — decodes b64 JSON to avoid evaluateJavaScript
+    // string interpolation issues with large payloads (e.g. photos)
+    window.__nativeCallbackB64 = function(id, error, b64Result) {
+      const p = _pending[id];
+      if (!p) return;
+      delete _pending[id];
+      if (error) {
+        p.reject(new Error(error));
+      } else if (b64Result) {
+        try {
+          const json = atob(b64Result);
+          p.resolve(JSON.parse(json));
+        } catch (e) {
+          p.reject(new Error('Failed to decode native response: ' + e.message));
+        }
+      } else {
+        p.resolve(null);
+      }
+    };
+
     window.nativeStorage = {
       get: (store, key) => callNative('storage', 'get', { store, key }),
       getAll: (store) => callNative('storage', 'getAll', { store }),

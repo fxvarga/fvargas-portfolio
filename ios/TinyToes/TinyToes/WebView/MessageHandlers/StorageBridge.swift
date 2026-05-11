@@ -1,7 +1,7 @@
 import Foundation
 import WebKit
 
-/// Handles JS → Swift storage messages and persists data as JSON files.
+/// Handles JS -> Swift storage messages and persists data as JSON files.
 class StorageBridge: NSObject, WKScriptMessageHandler {
   static let handlerName = "storage"
 
@@ -23,14 +23,22 @@ class StorageBridge: NSObject, WKScriptMessageHandler {
     Task {
       do {
         let result = try await handleAction(action, payload: payload)
-        let resultJSON = result ?? "null"
-        await MainActor.run {
-          webView?.evaluateJavaScript("window.__nativeCallback('\(id)', null, \(resultJSON))")
+        // Base64-encode the result to avoid any character escaping issues
+        // with evaluateJavaScript string interpolation (e.g. large base64 photos)
+        if let result = result, let data = result.data(using: .utf8) {
+          let b64 = data.base64EncodedString()
+          await MainActor.run {
+            webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', null, '\(b64)')")
+          }
+        } else {
+          await MainActor.run {
+            webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', null, null)")
+          }
         }
       } catch {
         let escaped = error.localizedDescription.replacingOccurrences(of: "'", with: "\\'")
         await MainActor.run {
-          webView?.evaluateJavaScript("window.__nativeCallback('\(id)', '\(escaped)', null)")
+          webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', '\(escaped)', null)")
         }
       }
     }
