@@ -16,6 +16,8 @@ yarn.lock
 /build
 /dist
 /out
+**/dist/
+*.tsbuildinfo
 
 # Misc
 .DS_Store
@@ -247,3 +249,18 @@ obj/
 
 # TinyToes app - unignore src/lib
 !frontend/tinytoes-app/src/lib/
+
+# Playwright MCP snapshots
+.playwright-mcp/
+
+# Screenshots and loose images
+screenshots/
+*.png
+
+# CI logs
+ci-log.txt
+*ci-log*
+
+# TinyToes tool output/fixtures
+frontend/tinytoes-app/tools/output/
+frontend/tinytoes-app/tools/fixtures/

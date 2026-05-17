@@ -96,6 +96,7 @@ get_frontend_images() {
     FRONTEND_EXECUTIVE_CATERING_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_EXECUTIVE_CATERING:-portfolio-frontend-executive-catering}:${tag}"
     FRONTEND_OPSBLUEPRINT_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_OPSBLUEPRINT:-portfolio-frontend-opsblueprint}:${tag}"
     FRONTEND_BRAD_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_BRAD:-portfolio-frontend-brad}:${tag}"
+    FRONTEND_PINCHOS_IMAGE="${DOCKER_USERNAME}/${IMAGE_FRONTEND_PINCHOS:-portfolio-frontend-pinchos}:${tag}"
     N8N_PYTHON_HELPER_IMAGE="${DOCKER_USERNAME}/${IMAGE_N8N_PYTHON_HELPER:-portfolio-n8n-python-helper}:${tag}"
 }
 
@@ -268,6 +269,10 @@ build_and_push() {
     log_info "Building frontend image (Brad): ${FRONTEND_BRAD_IMAGE}"
     docker build -t "${FRONTEND_BRAD_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-brad/Dockerfile" "$PROJECT_ROOT"
     
+    # Build frontend - Pinchos Lounge (restaurant with Toast ordering)
+    log_info "Building frontend image (Pinchos): ${FRONTEND_PINCHOS_IMAGE}"
+    docker build -t "${FRONTEND_PINCHOS_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-pinchos/Dockerfile" "$PROJECT_ROOT"
+    
     # Build n8n Python Helper
     log_info "Building n8n Python Helper image: ${N8N_PYTHON_HELPER_IMAGE}"
     docker build -t "${N8N_PYTHON_HELPER_IMAGE}" -f "$PROJECT_ROOT/n8n-agent/python-helper/Dockerfile" "$PROJECT_ROOT/n8n-agent/python-helper"
@@ -284,6 +289,7 @@ build_and_push() {
     docker push "${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     docker push "${FRONTEND_OPSBLUEPRINT_IMAGE}"
     docker push "${FRONTEND_BRAD_IMAGE}"
+    docker push "${FRONTEND_PINCHOS_IMAGE}"
     docker push "${N8N_PYTHON_HELPER_IMAGE}"
     
     log_success "Images pushed to Docker Hub"
@@ -308,6 +314,7 @@ deploy() {
     local domain_executive_catering="${DOMAIN_EXECUTIVE_CATERING:-}"
     local domain_opsblueprint="${DOMAIN_OPSBLUEPRINT:-}"
     local domain_brad="${DOMAIN_BRAD:-}"
+    local domain_pinchos="${DOMAIN_PINCHOS:-}"
     local domain_analytics="${DOMAIN_ANALYTICS:-}"
     local domain_grafana="${DOMAIN_GRAFANA:-}"
     local domain_n8n="${DOMAIN_N8N:-}"
@@ -378,6 +385,7 @@ deploy() {
     log_info "  Executive Catering: ${domain_executive_catering:-executivecatering.localhost}"
     log_info "  OpsBlueprint: ${domain_opsblueprint:-opsblueprint.localhost}"
     log_info "  Brad: ${domain_brad:-brad.localhost}"
+    log_info "  Pinchos: ${domain_pinchos:-pinchos.localhost}"
     log_info "  Analytics: ${domain_analytics:-analytics.localhost}"
     log_info "  Grafana:   ${domain_grafana:-grafana.localhost}"
     log_info "  n8n:       ${domain_n8n:-n8n.localhost}"
@@ -644,6 +652,19 @@ services:
   frontend-brad:
     image: ${FRONTEND_BRAD_IMAGE}
     container_name: portfolio-frontend-brad
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-pinchos:
+    image: ${FRONTEND_PINCHOS_IMAGE}
+    container_name: portfolio-frontend-pinchos
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -925,6 +946,7 @@ services:
       - frontend-executive-catering
       - frontend-opsblueprint
       - frontend-brad
+      - frontend-pinchos
       - backend
       - plausible
       - grafana
@@ -1090,6 +1112,13 @@ ${domain_brad:-brad.localhost} {
     }
 }
 
+# Pinchos Lounge
+ ${domain_pinchos:-pinchos.localhost} {
+    handle {
+        reverse_proxy frontend-pinchos:80
+    }
+}
+
 # Plausible Analytics
 ${domain_analytics:-analytics.localhost} {
     reverse_proxy plausible:8000
@@ -1155,6 +1184,9 @@ DEPLOY_SCRIPT
     fi
     if [[ -n "$domain_brad" ]]; then
         echo "  Brad: https://$domain_brad"
+    fi
+    if [[ -n "$domain_pinchos" ]]; then
+        echo "  Pinchos: https://$domain_pinchos"
     fi
     if [[ -n "$domain_analytics" ]]; then
         echo "  Analytics: https://$domain_analytics"
@@ -1294,6 +1326,10 @@ build_only() {
     log_info "Building frontend image (Brad): ${FRONTEND_BRAD_IMAGE}"
     docker build -t "${FRONTEND_BRAD_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-brad/Dockerfile" "$PROJECT_ROOT"
     
+    # Build frontend - Pinchos Lounge (restaurant with Toast ordering)
+    log_info "Building frontend image (Pinchos): ${FRONTEND_PINCHOS_IMAGE}"
+    docker build -t "${FRONTEND_PINCHOS_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-pinchos/Dockerfile" "$PROJECT_ROOT"
+    
     # Build n8n Python Helper
     log_info "Building n8n Python Helper image: ${N8N_PYTHON_HELPER_IMAGE}"
     docker build -t "${N8N_PYTHON_HELPER_IMAGE}" -f "$PROJECT_ROOT/n8n-agent/python-helper/Dockerfile" "$PROJECT_ROOT/n8n-agent/python-helper"
@@ -1308,6 +1344,7 @@ build_only() {
     echo "  ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
     echo "  ${FRONTEND_OPSBLUEPRINT_IMAGE}"
     echo "  ${FRONTEND_BRAD_IMAGE}"
+    echo "  ${FRONTEND_PINCHOS_IMAGE}"
     echo "  ${N8N_PYTHON_HELPER_IMAGE}"
 }
 

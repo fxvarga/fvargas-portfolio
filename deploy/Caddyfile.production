@@ -99,6 +99,13 @@ brad.fernando-vargas.com {
     }
 }
 
+# Pinchos Lounge (restaurant with Toast ordering)
+pinchos.fernando-vargas.com {
+    handle {
+        reverse_proxy frontend-pinchos:80
+    }
+}
+
 # Plausible Analytics
 analytics.fernando-vargas.com {
     reverse_proxy plausible:8000

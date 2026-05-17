@@ -307,6 +307,22 @@ http://brad.homehost {
     }
 }
 
+# Pinchos Lounge (restaurant with Toast ordering) — Local dev
+https://{$DOMAIN_PINCHOS:pinchos.localhost} {
+    tls internal
+
+    handle {
+        reverse_proxy frontend-pinchos:80
+    }
+}
+
+# Pinchos Lounge (LAN)
+http://pinchos.homehost {
+    handle {
+        reverse_proxy frontend-pinchos:80
+    }
+}
+
 # Plausible Analytics dashboard
 https://{$DOMAIN_ANALYTICS:analytics.localhost} {
     tls internal
