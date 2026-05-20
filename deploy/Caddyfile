@@ -16,6 +16,10 @@ https://{$DOMAIN_FERNANDO:localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -42,6 +46,9 @@ http://homehost {
     handle /api/* {
         reverse_proxy backend:5000
     }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -56,6 +63,9 @@ http://blog.homehost {
         reverse_proxy backend:5000
     }
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
     handle /healthcheck {
@@ -76,6 +86,9 @@ http://jessica.homehost {
     handle /api/* {
         reverse_proxy backend:5000
     }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -90,6 +103,9 @@ http://busybee.homehost {
         reverse_proxy backend:5000
     }
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
     handle /healthcheck {
@@ -108,6 +124,9 @@ http://1stopwings.homehost {
     handle /api/* {
         reverse_proxy backend:5000
     }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle {
         reverse_proxy frontend-executive-catering:80
     }
@@ -119,6 +138,9 @@ http://executivecatering.homehost {
         reverse_proxy backend:5000
     }
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
     handle {
@@ -157,6 +179,10 @@ https://{$DOMAIN_BLOG:blog.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -184,6 +210,10 @@ https://{$DOMAIN_JESSICA:jessica.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -204,6 +234,10 @@ https://{$DOMAIN_BUSYBEE:busybee.localhost} {
     }
 
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
 
@@ -230,6 +264,10 @@ https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     # Everything else to frontend
     handle {
         reverse_proxy frontend-executive-catering:80
@@ -246,6 +284,10 @@ https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
     }
 
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
 
@@ -266,6 +308,10 @@ https://{$DOMAIN_OPSBLUEPRINT:opsblueprint.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle {
         reverse_proxy frontend-opsblueprint:80
     }
@@ -277,6 +323,9 @@ http://opsblueprint.homehost {
         reverse_proxy backend:5000
     }
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
     handle {
@@ -307,9 +356,29 @@ http://brad.homehost {
     }
 }
 
-# Pinchos Lounge (restaurant with Toast ordering) — Local dev
+# Pinchos Lounge — Local dev
 https://{$DOMAIN_PINCHOS:pinchos.localhost} {
     tls internal
+
+    handle /admin* {
+        reverse_proxy frontend-fernando:80
+    }
+
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /healthcheck {
+        reverse_proxy backend:5000
+    }
 
     handle {
         reverse_proxy frontend-pinchos:80
@@ -318,6 +387,15 @@ https://{$DOMAIN_PINCHOS:pinchos.localhost} {
 
 # Pinchos Lounge (LAN)
 http://pinchos.homehost {
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle {
         reverse_proxy frontend-pinchos:80
     }

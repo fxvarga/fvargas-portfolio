@@ -24,15 +24,18 @@ public class CmsAgentService : ICmsAgentService
 {
     private readonly Kernel _kernel;
     private readonly CmsDbContext _dbContext;
+    private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<CmsAgentService> _logger;
 
     public CmsAgentService(
         Kernel kernel,
         CmsDbContext dbContext,
+        IHttpClientFactory httpClientFactory,
         ILogger<CmsAgentService> logger)
     {
         _kernel = kernel;
         _dbContext = dbContext;
+        _httpClientFactory = httpClientFactory;
         _logger = logger;
     }
 
@@ -50,7 +53,7 @@ public class CmsAgentService : ICmsAgentService
         try
         {
             // Create a per-request tools plugin scoped to this portfolio
-            var tools = new CmsAgentTools(_dbContext, request.PortfolioId);
+            var tools = new CmsAgentTools(_dbContext, request.PortfolioId, _httpClientFactory);
 
             // Clone the kernel and add the tools plugin for this request
             var requestKernel = _kernel.Clone();
@@ -306,6 +309,14 @@ public class CmsAgentService : ICmsAgentService
             - When proposing changes, summarize what will change using **bold** for field names
             - After proposing, remind the user they can preview and commit/discard
             - Be conversational but efficient — avoid unnecessary verbosity
+
+            ## Image Handling
+            - When a user wants to change an image, first use `list_media` or `search_media_library` to check for existing images in their library
+            - If an existing image matches, use `replace_image` to propose the swap
+            - If the user provides an external URL, use `upload_image_from_url` to download it to the media library first, then use `replace_image` with the resulting local URL
+            - If the user uploads a file via the chat (paperclip button), it will be available in the media library — use `search_media_library` to find it
+            - Image fields are typically named `image`, `heroImage`, `aboutImage`, `bgImageDesktop`, `bgImageMobile`, `coverImage`, `src` (in arrays), or `locationImage`
+            - When replacing array item images (e.g., gallery), use the full path like `images[2].src`
             """;
     }
 
@@ -390,6 +401,23 @@ public class CmsAgentService : ICmsAgentService
                 ChangeId = change.Id,
                 Success = false,
                 Error = $"Record not found for entity type '{change.EntityType}'"
+            };
+        }
+
+        // Handle deletion
+        if (change.FieldPath == "__delete__")
+        {
+            _dbContext.EntityRecords.Remove(record);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Deleted record {RecordId} of type {EntityType} for portfolio {PortfolioId}",
+                record.Id, change.EntityType, portfolioId);
+
+            return new ChangeResult
+            {
+                ChangeId = change.Id,
+                Success = true
             };
         }
 

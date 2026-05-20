@@ -57,7 +57,24 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
   const errorMessage = directErrors.map((e) => e.message).join('; ');
 
   switch (attribute.type) {
-    case 'string':
+    case 'string': {
+      // Detect image-like string fields by name and render as ImagePicker
+      const imageFieldNames = /image|photo|logo|thumbnail|banner|avatar|icon|picture|img/i;
+      if (imageFieldNames.test(attribute.name)) {
+        const imageValue = value
+          ? typeof value === 'string'
+            ? { url: value, alt: '' }
+            : (value as { url: string; alt: string })
+          : { url: '', alt: '' };
+        return (
+          <ImagePicker
+            label={label}
+            value={imageValue}
+            onChange={(v) => onChange(v.url || '')}
+            helpText={attribute.helpText}
+          />
+        );
+      }
       return (
         <FormInput
           label={label}
@@ -69,6 +86,7 @@ const DynamicFieldRenderer: React.FC<DynamicFieldRendererProps> = ({
           error={errorMessage || undefined}
         />
       );
+    }
 
     case 'text':
     case 'richtext':

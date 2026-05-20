@@ -1,74 +1,86 @@
-import { Link } from "react-router-dom";
-
-const TOAST_SLUG =
-  import.meta.env.VITE_TOAST_RESTAURANT_SLUG || "pinchos-lounge";
+import { Link } from 'react-router';
+import { useHero, useNavigation } from '../cms/hooks';
 
 function HomePage() {
+  const { data: hero } = useHero();
+  const { data: nav } = useNavigation();
+
   return (
     <div className="homepage-wrap">
-      <picture className="homepage-bg">
-        <source media="(min-width: 431px)" srcSet="/images/homepage-bg-desktop.png" />
-        <img src="/images/homepage-bg-mobile.png" alt="" />
+      <picture className="homepage-bg" data-cms-entity="hero" data-cms-field="bgImageMobile">
+        <source media="(min-width: 431px)" srcSet={hero?.bgImageDesktop || '/images/homepage-bg-desktop.png'} />
+        <img src={hero?.bgImageMobile || '/images/homepage-bg-mobile.png'} alt="" />
       </picture>
       <div className="homepage">
-      <div className="home-content">
+        <div className="home-content">
 
-      {/* ── Group 1: Hero ─────────────────────── */}
-      <div className="home-group home-hero">
-        <div className="hero-late-night">Late-Night</div>
-        <h1 className="hero-kabobs">KABOBS</h1>
-        <div className="hero-vibes">WITH LOUNGE VIBES</div>
-      </div>
+          {/* Hero */}
+          <div className="home-group home-hero" data-cms-entity="hero">
+            <div className="hero-late-night" data-cms-field="preTitle">
+              {hero?.preTitle || 'Late-Night'}
+            </div>
+            <h1 className="hero-kabobs" data-cms-field="title">
+              {hero?.title || 'KABOBS'}
+            </h1>
+            <div className="hero-vibes" data-cms-field="subTitle">
+              {hero?.subTitle || 'WITH LOUNGE VIBES'}
+            </div>
+          </div>
 
-      {/* ── Group 2: Slogan + Address ─────────── */}
-      <div className="home-group home-info">
-        <p className="hero-caption">
-          Savor bold flavors. Vibe late.
-          <br />
-          Live it up. Only at Pinchos Lounge.
-        </p>
-        <div className="home-address">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
-          <span>315 Peck St, New Haven, CT</span>
+          {/* Slogan + Address */}
+          <div className="home-group home-info" data-cms-entity="hero">
+            <p className="hero-caption" data-cms-field="caption">
+              {hero?.caption ? (
+                hero.caption.split('\n').map((line, i) => (
+                  <span key={i}>{line}{i === 0 && <br />}</span>
+                ))
+              ) : (
+                <>Savor bold flavors. Vibe late.<br />Live it up. Only at Pinchos Lounge.</>
+              )}
+            </p>
+            <div className="home-address">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--pink)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+                <circle cx="12" cy="10" r="3" />
+              </svg>
+              <span data-cms-field="addressLine">{hero?.addressLine || '315 Peck St, New Haven, CT'}</span>
+            </div>
+          </div>
+
+          {/* CTA — VIEW MENU only (Toast removed) */}
+          <div className="home-group home-actions">
+            <Link to="/menu" className="cta-menu" data-cms-field="ctaMenuLabel">
+              {hero?.ctaMenuLabel || 'VIEW MENU'}
+            </Link>
+          </div>
+
         </div>
-      </div>
 
-      {/* ── Group 3: CTAs + Toast ─────────────── */}
-      <div className="home-group home-actions">
-        <Link to="/menu" className="cta-menu">
-          VIEW MENU
-        </Link>
-        <a
-          href={`https://order.toasttab.com/${TOAST_SLUG}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="cta-order"
-        >
-          ORDER ONLINE
-        </a>
-        <div className="powered-toast">
-          Powered by <strong>toast</strong>
-        </div>
-      </div>
-
-      </div>{/* end home-content */}
-
-      {/* ── Bottom nav ───────────────────────── */}
-      <nav className="bottom-nav">
-        <NavItem icon="home" label="HOME" active />
-        <NavItem icon="menu" label="MENU" to="/menu" />
-        <NavItem icon="gallery" label="GALLERY" to="/gallery" />
-        <NavItem icon="events" label="EVENTS" to="/events" />
-        <NavItem icon="findus" label="FIND US" to="/find-us" />
-        <NavItem icon="more" label="MORE" to="/more" />
-      </nav>
+        {/* Bottom nav */}
+        <nav className="bottom-nav" data-cms-entity="navigation">
+          {(nav?.items || defaultNavItems).map((item, i) => (
+            <NavItem
+              key={item.href}
+              icon={item.icon}
+              label={item.label}
+              active={i === 0}
+              to={item.href === '/' ? undefined : item.href}
+            />
+          ))}
+        </nav>
       </div>
     </div>
   );
 }
+
+const defaultNavItems = [
+  { label: 'HOME', href: '/', icon: 'home' },
+  { label: 'MENU', href: '/menu', icon: 'menu' },
+  { label: 'GALLERY', href: '/gallery', icon: 'gallery' },
+  { label: 'EVENTS', href: '/events', icon: 'events' },
+  { label: 'FIND US', href: '/find-us', icon: 'findus' },
+  { label: 'MORE', href: '/more', icon: 'more' },
+];
 
 function NavItem({
   icon,
@@ -81,11 +93,11 @@ function NavItem({
   active?: boolean;
   to?: string;
 }) {
-  const Wrapper = to ? Link : "div";
+  const Wrapper = to ? Link : 'div';
   const props = to ? { to } : {};
   return (
     // @ts-ignore
-    <Wrapper {...props} className={`nav-item ${active ? "nav-active" : ""}`}>
+    <Wrapper {...props} className={`nav-item ${active ? 'nav-active' : ''}`}>
       <NavIcon name={icon} />
       <span>{label}</span>
     </Wrapper>

@@ -13,6 +13,7 @@ export interface Portfolio {
   id: string;
   slug: string;
   name: string;
+  domain: string;
 }
 
 export interface AuthState {
@@ -43,6 +44,7 @@ const LOGIN_MUTATION = gql`
         id
         slug
         name
+        domain
       }
       errorMessage
     }

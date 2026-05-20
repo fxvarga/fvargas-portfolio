@@ -26,6 +26,9 @@ var config = builder.Configuration;
 
 var isDevelopment = builder.Environment.IsDevelopment();
 
+// HttpClientFactory for agent image downloads
+services.AddHttpClient();
+
 // Add CMS Database (SQLite)
 var cmsDbPath = Environment.GetEnvironmentVariable("CMS_DB_PATH")
     ?? System.IO.Path.Combine(builder.Environment.ContentRootPath, "cms.db");
@@ -181,6 +184,22 @@ app.UseStaticFiles(new StaticFileOptions
     RequestPath = "/uploads",
     ContentTypeProvider = new FileExtensionContentTypeProvider()
 });
+
+// Clean up stale MediaAsset records pointing to missing files
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<CmsDbContext>();
+    var staleAssets = dbContext.MediaAssets
+        .AsEnumerable()
+        .Where(m => !File.Exists(System.IO.Path.Combine(app.Environment.ContentRootPath, "wwwroot", m.FilePath.TrimStart('/'))))
+        .ToList();
+    if (staleAssets.Count > 0)
+    {
+        app.Logger.LogWarning("Removing {Count} stale MediaAsset records with missing files", staleAssets.Count);
+        dbContext.MediaAssets.RemoveRange(staleAssets);
+        dbContext.SaveChanges();
+    }
+}
 
 // Tenant resolution must happen before authentication/authorization
 // so that tenant context is available for the request

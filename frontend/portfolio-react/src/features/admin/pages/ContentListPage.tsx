@@ -26,7 +26,16 @@ import {
   makeStyles,
   tokens,
 } from '@fluentui/react-components';
-import { ArrowSyncRegular } from '@fluentui/react-icons';
+import { ArrowSyncRegular, DeleteRegular } from '@fluentui/react-icons';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogSurface,
+  DialogTitle,
+  DialogBody,
+  DialogActions,
+  DialogContent,
+} from '@fluentui/react-components';
 
 // Types
 interface ContentRecord {
@@ -69,6 +78,15 @@ const GET_ALL_ENTITY_DEFINITIONS = gql`
       displayName
       category
       isSingleton
+    }
+  }
+`;
+
+const DELETE_CONTENT = gql`
+  mutation DeleteContent($id: UUID!) {
+    deleteContent(id: $id) {
+      success
+      errorMessage
     }
   }
 `;
@@ -162,6 +180,8 @@ const ContentListPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>('all');
+  const [deleteTarget, setDeleteTarget] = useState<ContentRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -247,6 +267,35 @@ const ContentListPage: React.FC = () => {
     return `/admin/content/${record.entityType}/${record.id}`;
   };
 
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      const client = getClient();
+      const token = getAuthToken();
+      const result = await client.mutate({
+        mutation: DELETE_CONTENT,
+        variables: { id: deleteTarget.id },
+        context: {
+          headers: {
+            Authorization: token ? `Bearer ${token}` : '',
+          },
+        },
+      });
+      if (result.data?.deleteContent?.success) {
+        setContent((prev) => prev.filter((c) => c.id !== deleteTarget.id));
+      } else {
+        setError(result.data?.deleteContent?.errorMessage || 'Delete failed');
+      }
+    } catch (err) {
+      console.error('Delete failed:', err);
+      setError('Failed to delete content.');
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
+
   const columns: TableColumnDefinition<ContentRecord>[] = [
     createTableColumn<ContentRecord>({
       columnId: 'type',
@@ -304,11 +353,21 @@ const ContentListPage: React.FC = () => {
       columnId: 'actions',
       renderHeaderCell: () => '',
       renderCell: (item) => (
-        <Link to={getEditLink(item)} style={{ textDecoration: 'none' }}>
-          <Button appearance="subtle" size="small">
-            Edit
-          </Button>
-        </Link>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <Link to={getEditLink(item)} style={{ textDecoration: 'none' }}>
+            <Button appearance="subtle" size="small">
+              Edit
+            </Button>
+          </Link>
+          {!isSingleton(item.entityType) && (
+            <Button
+              appearance="subtle"
+              size="small"
+              icon={<DeleteRegular />}
+              onClick={() => setDeleteTarget(item)}
+            />
+          )}
+        </div>
       ),
     }),
   ];
@@ -397,6 +456,25 @@ const ContentListPage: React.FC = () => {
           )}
         </div>
       </Card>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(_, data) => { if (!data.open) setDeleteTarget(null); }}>
+        <DialogSurface>
+          <DialogBody>
+            <DialogTitle>Delete Content</DialogTitle>
+            <DialogContent>
+              Are you sure you want to delete this {deleteTarget ? getLabel(deleteTarget.entityType) : ''} record? This action cannot be undone.
+            </DialogContent>
+            <DialogActions>
+              <Button appearance="secondary" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+                Cancel
+              </Button>
+              <Button appearance="primary" onClick={handleDelete} disabled={isDeleting}>
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </DialogActions>
+          </DialogBody>
+        </DialogSurface>
+      </Dialog>
     </AdminLayout>
   );
 };

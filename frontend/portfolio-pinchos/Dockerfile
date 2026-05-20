@@ -8,16 +8,25 @@ RUN npm install -g pnpm@9
 # Copy workspace root config and lockfile
 COPY pnpm-workspace.yaml pnpm-lock.yaml ./
 
-# Copy package.json for portfolio-pinchos
+# Copy package.json for workspace packages and portfolio-pinchos
+COPY packages/portfolio-cms-client/package.json packages/portfolio-cms-client/
+COPY packages/cms-agent-panel/package.json packages/cms-agent-panel/
+COPY packages/cms-admin/package.json packages/cms-admin/
 COPY frontend/portfolio-pinchos/package.json frontend/portfolio-pinchos/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-# Copy source
-COPY frontend/portfolio-pinchos/ frontend/portfolio-pinchos/
+# Copy workspace package sources and build them first
+COPY packages/cms-agent-panel/ packages/cms-agent-panel/
+COPY packages/portfolio-cms-client/ packages/portfolio-cms-client/
+COPY packages/cms-admin/ packages/cms-admin/
+RUN pnpm --filter @fvargas/cms-agent-panel build
+RUN pnpm --filter @fvargas/portfolio-cms-client build
+RUN pnpm --filter @fvargas/cms-admin build
 
-# Build the app
+# Copy Pinchos source and build
+COPY frontend/portfolio-pinchos/ frontend/portfolio-pinchos/
 RUN pnpm --filter portfolio-pinchos build
 
 # Runtime stage - serve with nginx

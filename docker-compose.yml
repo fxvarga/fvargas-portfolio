@@ -36,6 +36,8 @@ services:
     volumes:
       # Persist SQLite database in a separate data directory
       - cms-data:/app/data
+      # Persist uploaded media files
+      - cms-uploads:/app/wwwroot/uploads
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
@@ -498,6 +500,8 @@ volumes:
   elasticsearch-data:
     driver: local
   cms-data:
+    driver: local
+  cms-uploads:
     driver: local
   caddy-data:
     driver: local

@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Text.Json;
+using FV.Domain.Entities;
 using FV.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
@@ -18,12 +19,17 @@ public class CmsAgentTools
 {
     private readonly CmsDbContext _dbContext;
     private readonly Guid _portfolioId;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly string _uploadBasePath;
     private readonly List<ProposedChangeResult> _proposedChanges = [];
 
-    public CmsAgentTools(CmsDbContext dbContext, Guid portfolioId)
+    public CmsAgentTools(CmsDbContext dbContext, Guid portfolioId,
+        IHttpClientFactory? httpClientFactory = null, string? uploadBasePath = null)
     {
         _dbContext = dbContext;
         _portfolioId = portfolioId;
+        _httpClientFactory = httpClientFactory ?? DefaultHttpClientFactory.Instance;
+        _uploadBasePath = uploadBasePath ?? System.IO.Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
     }
 
     /// <summary>
@@ -319,17 +325,20 @@ public class CmsAgentTools
         var summaries = records.Select(r =>
         {
             var data = JsonSerializer.Deserialize<JsonElement>(r.JsonData);
-            string? slug = null, title = null;
+            string? slug = null, title = null, name = null;
             if (data.TryGetProperty("slug", out var s) && s.ValueKind == JsonValueKind.String)
                 slug = s.GetString();
             if (data.TryGetProperty("title", out var t) && t.ValueKind == JsonValueKind.String)
                 title = t.GetString();
+            if (data.TryGetProperty("name", out var n) && n.ValueKind == JsonValueKind.String)
+                name = n.GetString();
 
             return new
             {
                 RecordId = r.Id,
                 Slug = slug,
-                Title = title,
+                Title = title ?? name,
+                Name = name,
                 Version = r.Version,
                 UpdatedAt = r.UpdatedAt
             };
@@ -339,14 +348,14 @@ public class CmsAgentTools
     }
 
     [KernelFunction("search_content")]
-    [Description("Search across all content types for text matching a query. Searches within the JSON data of all published entity records. Use this when you need to find where specific text appears across the portfolio.")]
+    [Description("Search across all content types for text matching a query. Searches within the JSON data of all published entity records. The search is case-insensitive. Use this when you need to find where specific text appears across the portfolio.")]
     public async Task<string> SearchContent(
         [Description("The text to search for within content")] string query)
     {
         var records = await _dbContext.EntityRecords
             .Where(r => r.PortfolioId == _portfolioId
                      && !r.IsDraft
-                     && r.JsonData.Contains(query))
+                     && EF.Functions.Like(r.JsonData, $"%{query}%"))
             .OrderBy(r => r.EntityType)
             .Take(10)
             .Select(r => new
@@ -493,7 +502,145 @@ public class CmsAgentTools
                "The user will see a preview and can approve or discard this change.";
     }
 
+    [KernelFunction("propose_delete_record")]
+    [Description("Propose deleting a collection record (e.g., a menu item, blog post). This does NOT delete immediately — it queues the deletion for the user to preview and approve. Only works for collection types, not singletons. Use list_collection_records to find the record ID first.")]
+    public async Task<string> ProposeDeleteRecord(
+        [Description("The entity type name (e.g., 'menu-item', 'blog-post')")] string entityType,
+        [Description("The record ID (GUID) of the record to delete. Get this from list_collection_records or get_content_by_slug.")] string recordId,
+        [Description("A human-readable description of why this record is being deleted")] string description)
+    {
+        if (string.IsNullOrEmpty(recordId) || !Guid.TryParse(recordId, out var rid))
+            return "Invalid record ID. Please provide a valid GUID from list_collection_records.";
+
+        var record = await _dbContext.EntityRecords
+            .FirstOrDefaultAsync(r => r.Id == rid
+                                   && r.PortfolioId == _portfolioId
+                                   && r.EntityType == entityType
+                                   && !r.IsDraft);
+
+        if (record == null)
+            return $"No published record found with ID '{recordId}' for entity type '{entityType}'. Use list_collection_records to see available records.";
+
+        // Get a display name from the record for the description
+        var data = JsonSerializer.Deserialize<JsonElement>(record.JsonData);
+        var displayName = GetDisplayName(data);
+
+        var change = new ProposedChangeResult
+        {
+            Id = Guid.NewGuid().ToString(),
+            EntityType = entityType,
+            RecordId = record.Id,
+            FieldPath = "__delete__",
+            OldValue = displayName ?? record.Id.ToString(),
+            NewValue = "null",
+            Description = description
+        };
+
+        _proposedChanges.Add(change);
+
+        return $"Delete proposed: {description}\n" +
+               $"Entity: {entityType}, Record: {displayName ?? record.Id.ToString()}\n" +
+               "The user will see a preview and can approve or discard this deletion.";
+    }
+
+    [KernelFunction("replace_image")]
+    [Description("Replace an image field in content with a different image from the media library. Use list_media or search_media_library first to find available images. This proposes a change that the user must approve.")]
+    public async Task<string> ReplaceImage(
+        [Description("The entity type (e.g., 'hero', 'gallery', 'menu-item')")] string entityType,
+        [Description("Dot-notation path to the image field (e.g., 'heroImage', 'images[2].src', 'image')")] string fieldPath,
+        [Description("The new image URL (from media library or external URL)")] string newImageUrl,
+        [Description("Description of what this image change does")] string description,
+        [Description("Optional: the specific record ID (GUID) for collection types")] string? recordId = null)
+    {
+        // Delegate to ProposeContentUpdate with the image URL as a JSON string
+        var jsonValue = JsonSerializer.Serialize(newImageUrl);
+        return await ProposeContentUpdate(entityType, fieldPath, jsonValue, description, recordId);
+    }
+
+    [KernelFunction("upload_image_from_url")]
+    [Description("Download an image from an external URL and save it to the portfolio's media library. Returns the local media URL that can then be used with replace_image or propose_content_update. Use this when the user wants to use an image from the web.")]
+    public async Task<string> UploadImageFromUrl(
+        [Description("The external URL of the image to download")] string imageUrl,
+        [Description("Optional alt text for the image")] string? altText = null,
+        [Description("Optional file name (without extension). Auto-generated if not provided.")] string? fileName = null)
+    {
+        try
+        {
+            var client = _httpClientFactory.CreateClient("AgentImageDownload");
+            client.Timeout = TimeSpan.FromSeconds(30);
+
+            using var response = await client.GetAsync(imageUrl);
+            if (!response.IsSuccessStatusCode)
+                return $"Failed to download image from '{imageUrl}': HTTP {(int)response.StatusCode}";
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "image/jpeg";
+            if (!contentType.StartsWith("image/"))
+                return $"URL does not point to an image. Content-Type: {contentType}";
+
+            var extension = contentType switch
+            {
+                "image/png" => ".png",
+                "image/gif" => ".gif",
+                "image/webp" => ".webp",
+                "image/svg+xml" => ".svg",
+                _ => ".jpg"
+            };
+
+            var safeName = fileName ?? $"agent-upload-{DateTime.UtcNow:yyyyMMdd-HHmmss}";
+            safeName = System.Text.RegularExpressions.Regex.Replace(safeName, @"[^a-zA-Z0-9_-]", "_");
+            var fullFileName = safeName + extension;
+
+            var portfolioDir = System.IO.Path.Combine(_uploadBasePath, _portfolioId.ToString());
+            Directory.CreateDirectory(portfolioDir);
+            var filePath = System.IO.Path.Combine(portfolioDir, fullFileName);
+
+            var bytes = await response.Content.ReadAsByteArrayAsync();
+            await File.WriteAllBytesAsync(filePath, bytes);
+
+            var relativeUrl = $"/uploads/{_portfolioId}/{fullFileName}";
+
+            // Save to MediaAssets table
+            var mediaAsset = new MediaAsset
+            {
+                Id = Guid.NewGuid(),
+                PortfolioId = _portfolioId,
+                FileName = fullFileName,
+                FilePath = relativeUrl,
+                MimeType = contentType,
+                FileSize = bytes.Length,
+                AltText = altText,
+                UploadedAt = DateTime.UtcNow
+            };
+
+            _dbContext.MediaAssets.Add(mediaAsset);
+            await _dbContext.SaveChangesAsync();
+
+            return JsonSerializer.Serialize(new
+            {
+                success = true,
+                mediaId = mediaAsset.Id,
+                url = relativeUrl,
+                fileName = fullFileName,
+                fileSize = bytes.Length,
+                message = $"Image uploaded successfully. Use URL '{relativeUrl}' with replace_image or propose_content_update to apply it to content."
+            }, new JsonSerializerOptions { WriteIndented = true });
+        }
+        catch (Exception ex)
+        {
+            return $"Error uploading image from URL: {ex.Message}";
+        }
+    }
+
     #region Helpers
+
+    /// <summary>
+    /// Default IHttpClientFactory for when none is injected.
+    /// </summary>
+    private class DefaultHttpClientFactory : IHttpClientFactory
+    {
+        public static readonly DefaultHttpClientFactory Instance = new();
+        public HttpClient CreateClient(string name) => new();
+    }
 
     private static string? GetValueAtPath(JsonElement root, string fieldPath)
     {
@@ -557,6 +704,17 @@ public class CmsAgentTools
     private static string Truncate(string text, int maxLength)
     {
         return text.Length <= maxLength ? text : text[..maxLength] + "...";
+    }
+
+    private static string? GetDisplayName(JsonElement data)
+    {
+        if (data.TryGetProperty("name", out var name) && name.ValueKind == JsonValueKind.String)
+            return name.GetString();
+        if (data.TryGetProperty("title", out var title) && title.ValueKind == JsonValueKind.String)
+            return title.GetString();
+        if (data.TryGetProperty("slug", out var slug) && slug.ValueKind == JsonValueKind.String)
+            return slug.GetString();
+        return null;
     }
 
     #endregion

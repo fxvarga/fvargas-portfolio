@@ -37,6 +37,7 @@ import {
   SignOutRegular,
   ChevronDownRegular,
   ChevronRightRegular,
+  OpenRegular,
 } from '@fluentui/react-icons';
 
 interface EntityDefinitionNav {
@@ -345,7 +346,7 @@ const useStyles = makeStyles({
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const styles = useStyles();
   const { user, logout } = useAuth();
-  const { selectedPortfolio, portfolios, selectPortfolio } = usePortfolio();
+  const { selectedPortfolio, portfolios, selectPortfolio, isDomainLocked } = usePortfolio();
   const navigate = useNavigate();
   const location = useLocation();
   const [entityDefinitions, setEntityDefinitions] = useState<EntityDefinitionNav[]>([]);
@@ -537,7 +538,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           <NavDrawerHeader>
             <div className={styles.headerTitle}>
               <Text className={styles.sidebarBrand}>CMS Admin</Text>
-              {portfolios.length > 1 ? (
+              {portfolios.length > 1 && !isDomainLocked ? (
                 <Dropdown
                   value={selectedPortfolio?.name ?? ''}
                   selectedOptions={selectedPortfolio ? [selectedPortfolio.id] : []}
@@ -555,6 +556,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 </Dropdown>
               ) : (
                 <Text className={styles.sidebarSubtitle}>{selectedPortfolio?.name || 'Content Management'}</Text>
+              )}
+              {selectedPortfolio?.domain && (
+                <a
+                  href={`https://${selectedPortfolio.domain}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: tokens.colorBrandForeground1, textDecoration: 'none', marginTop: '4px' }}
+                >
+                  <OpenRegular style={{ fontSize: '12px' }} />
+                  View Site
+                </a>
               )}
             </div>
           </NavDrawerHeader>

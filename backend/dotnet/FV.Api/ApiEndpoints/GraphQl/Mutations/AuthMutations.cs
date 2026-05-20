@@ -38,7 +38,8 @@ public class AuthMutations
             {
                 Id = p.Id,
                 Slug = p.Slug,
-                Name = p.Name
+                Name = p.Name,
+                Domain = p.Domain
             }).ToList()
         };
     }
@@ -106,6 +107,7 @@ public class PortfolioAccessPayload
     public Guid Id { get; set; }
     public string Slug { get; set; } = default!;
     public string Name { get; set; } = default!;
+    public string Domain { get; set; } = default!;
 }
 
 public class UserPayload

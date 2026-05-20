@@ -32,6 +32,7 @@ public class PortfolioAccess
     public Guid Id { get; set; }
     public string Slug { get; set; } = default!;
     public string Name { get; set; } = default!;
+    public string Domain { get; set; } = default!;
 }
 
 public class AuthService : IAuthService
@@ -73,7 +74,8 @@ public class AuthService : IAuthService
             {
                 Id = up.Portfolio.Id,
                 Slug = up.Portfolio.Slug,
-                Name = up.Portfolio.Name
+                Name = up.Portfolio.Name,
+                Domain = up.Portfolio.Domain
             })
             .ToList() ?? new List<PortfolioAccess>();
 

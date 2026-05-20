@@ -43,8 +43,8 @@ RUN adduser --disabled-password --gecos '' appuser
 # Copy published app
 COPY --from=build /app/publish .
 
-# Create data directory for SQLite and set permissions
-RUN mkdir -p /app/data && chown -R appuser:appuser /app
+# Create data and uploads directories and set permissions
+RUN mkdir -p /app/data /app/wwwroot/uploads && chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser

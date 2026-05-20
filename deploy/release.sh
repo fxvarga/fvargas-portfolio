@@ -247,15 +247,15 @@ build_and_push() {
     
     # Build frontend - Fernando (main site + admin)
     log_info "Building frontend image (Fernando): ${FRONTEND_FERNANDO_IMAGE}"
-    docker build -t "${FRONTEND_FERNANDO_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    docker build -t "${FRONTEND_FERNANDO_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Jessica (photographer)
     log_info "Building frontend image (Jessica): ${FRONTEND_JESSICA_IMAGE}"
-    docker build -t "${FRONTEND_JESSICA_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-jessica/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-jessica"
+    docker build -t "${FRONTEND_JESSICA_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-jessica/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Busy Bee (marketing agency)
     log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
-    docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
+    docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Executive Catering (1stopwings + future executive catering)
     log_info "Building frontend image (Executive Catering): ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
@@ -263,7 +263,7 @@ build_and_push() {
     
     # Build frontend - OpsBlueprint (workflow automation consulting)
     log_info "Building frontend image (OpsBlueprint): ${FRONTEND_OPSBLUEPRINT_IMAGE}"
-    docker build -t "${FRONTEND_OPSBLUEPRINT_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-opsblueprint/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-opsblueprint"
+    docker build -t "${FRONTEND_OPSBLUEPRINT_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-opsblueprint/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Brad Earnhardt (UI/UX designer)
     log_info "Building frontend image (Brad): ${FRONTEND_BRAD_IMAGE}"
@@ -552,6 +552,7 @@ services:
     container_name: portfolio-backend
     volumes:
       - cms-data:/app/data
+      - cms-uploads:/app/wwwroot/uploads
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
@@ -964,6 +965,8 @@ volumes:
     driver: local
   cms-data:
     driver: local
+  cms-uploads:
+    driver: local
   caddy-data:
     driver: local
   caddy-config:
@@ -996,6 +999,9 @@ ${domain_fernando:-localhost} {
     handle /api/* {
         reverse_proxy backend:5000
     }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -1017,6 +1023,9 @@ ${domain_jessica:-jessica.localhost} {
         reverse_proxy backend:5000
     }
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
     handle /healthcheck {
@@ -1042,6 +1051,9 @@ ${domain_busybee:-busybee.localhost} {
     handle /api/* {
         reverse_proxy backend:5000
     }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle /healthcheck {
         reverse_proxy backend:5000
     }
@@ -1065,6 +1077,10 @@ ${domain_1stopwings:-1stopwings.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle {
         reverse_proxy frontend-executive-catering:80
     }
@@ -1081,6 +1097,10 @@ ${domain_executive_catering:-executivecatering.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle {
         reverse_proxy frontend-executive-catering:80
     }
@@ -1089,6 +1109,10 @@ ${domain_executive_catering:-executivecatering.localhost} {
 # OpsBlueprint (workflow automation consulting)
 ${domain_opsblueprint:-opsblueprint.localhost} {
     handle /api/* {
+        reverse_proxy backend:5000
+    }
+
+    handle /uploads/* {
         reverse_proxy backend:5000
     }
 
@@ -1107,6 +1131,10 @@ ${domain_brad:-brad.localhost} {
         reverse_proxy backend:5000
     }
 
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
+
     handle {
         reverse_proxy frontend-brad:80
     }
@@ -1114,6 +1142,18 @@ ${domain_brad:-brad.localhost} {
 
 # Pinchos Lounge
  ${domain_pinchos:-pinchos.localhost} {
+    handle /admin* {
+        reverse_proxy frontend-fernando:80
+    }
+    handle /graphql* {
+        reverse_proxy backend:5000
+    }
+    handle /api/* {
+        reverse_proxy backend:5000
+    }
+    handle /uploads/* {
+        reverse_proxy backend:5000
+    }
     handle {
         reverse_proxy frontend-pinchos:80
     }
@@ -1304,15 +1344,15 @@ build_only() {
     
     # Build frontend - Fernando
     log_info "Building frontend image (Fernando): ${FRONTEND_FERNANDO_IMAGE}"
-    docker build -t "${FRONTEND_FERNANDO_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-react"
+    docker build -t "${FRONTEND_FERNANDO_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-react/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Jessica
     log_info "Building frontend image (Jessica): ${FRONTEND_JESSICA_IMAGE}"
-    docker build -t "${FRONTEND_JESSICA_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-jessica/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-jessica"
+    docker build -t "${FRONTEND_JESSICA_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-jessica/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Busy Bee
     log_info "Building frontend image (Busy Bee): ${FRONTEND_BUSYBEE_IMAGE}"
-    docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-busybee"
+    docker build -t "${FRONTEND_BUSYBEE_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-busybee/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Executive Catering (1stopwings + future executive catering)
     log_info "Building frontend image (Executive Catering): ${FRONTEND_EXECUTIVE_CATERING_IMAGE}"
@@ -1320,7 +1360,7 @@ build_only() {
     
     # Build frontend - OpsBlueprint (workflow automation consulting)
     log_info "Building frontend image (OpsBlueprint): ${FRONTEND_OPSBLUEPRINT_IMAGE}"
-    docker build -t "${FRONTEND_OPSBLUEPRINT_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-opsblueprint/Dockerfile" "$PROJECT_ROOT/frontend/portfolio-opsblueprint"
+    docker build -t "${FRONTEND_OPSBLUEPRINT_IMAGE}" -f "$PROJECT_ROOT/frontend/portfolio-opsblueprint/Dockerfile" "$PROJECT_ROOT"
     
     # Build frontend - Brad Earnhardt (UI/UX designer)
     log_info "Building frontend image (Brad): ${FRONTEND_BRAD_IMAGE}"

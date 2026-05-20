@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, ReactNode } from 'react';
 import { useAuth, Portfolio } from './AuthContext';
 
 // Storage key for selected portfolio
@@ -9,6 +9,7 @@ export interface PortfolioContextType {
   portfolios: Portfolio[];
   selectPortfolio: (portfolio: Portfolio) => void;
   isLoading: boolean;
+  isDomainLocked: boolean;
 }
 
 const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
@@ -18,10 +19,32 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
   const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize selected portfolio from localStorage or default to first portfolio
+  // Determine if the current domain matches a specific portfolio
+  const domainLockedPortfolio = useMemo(() => {
+    const currentHost = window.location.hostname;
+    return portfolios.find(p => p.domain && currentHost === p.domain) || null;
+  }, [portfolios]);
+
+  const isDomainLocked = domainLockedPortfolio !== null;
+
+  // Filter portfolios: if domain-locked, only show that one
+  const availablePortfolios = useMemo(() => {
+    if (isDomainLocked) return [domainLockedPortfolio!];
+    return portfolios;
+  }, [portfolios, isDomainLocked, domainLockedPortfolio]);
+
+  // Initialize selected portfolio from domain lock, localStorage, or default to first
   useEffect(() => {
     if (!isAuthenticated) {
       setSelectedPortfolio(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // If domain-locked, always use that portfolio
+    if (domainLockedPortfolio) {
+      setSelectedPortfolio(domainLockedPortfolio);
+      localStorage.setItem(SELECTED_PORTFOLIO_KEY, JSON.stringify(domainLockedPortfolio));
       setIsLoading(false);
       return;
     }
@@ -50,19 +73,22 @@ export const PortfolioProvider: React.FC<{ children: ReactNode }> = ({ children 
     }
     
     setIsLoading(false);
-  }, [isAuthenticated, portfolios]);
+  }, [isAuthenticated, portfolios, domainLockedPortfolio]);
 
   const selectPortfolio = useCallback((portfolio: Portfolio) => {
+    // Don't allow switching if domain-locked
+    if (domainLockedPortfolio) return;
     setSelectedPortfolio(portfolio);
     localStorage.setItem(SELECTED_PORTFOLIO_KEY, JSON.stringify(portfolio));
-  }, []);
+  }, [domainLockedPortfolio]);
 
   return (
     <PortfolioContext.Provider value={{ 
       selectedPortfolio, 
-      portfolios, 
+      portfolios: availablePortfolios, 
       selectPortfolio,
-      isLoading 
+      isLoading,
+      isDomainLocked
     }}>
       {children}
     </PortfolioContext.Provider>
