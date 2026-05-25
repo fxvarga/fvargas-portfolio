@@ -1,0 +1,14 @@
+{
+  "name": "@fvargas/cms-agent-panel-vanilla",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Vanilla JS CMS Agent Panel for static HTML sites (no React dependency)",
+  "main": "dist/cms-agent-panel.js",
+  "files": [
+    "dist/"
+  ],
+  "scripts": {
+    "build": "node build.js",
+    "dev": "node build.js --watch"
+  }
+}

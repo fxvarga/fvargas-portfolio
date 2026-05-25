@@ -56,7 +56,7 @@ jobs:
             dockerfile: frontend/portfolio-busybee/Dockerfile
             image: portfolio-frontend-busybee
           - service: frontend-executive-catering
-            context: .
+            context: frontend/portfolio-executive-catering
             dockerfile: frontend/portfolio-executive-catering/Dockerfile
             image: portfolio-frontend-executive-catering
           - service: frontend-opsblueprint
