@@ -1,0 +1,214 @@
+name: Infrastructure VM - Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure-vm/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure-vm/**'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  RESOURCE_GROUP: rg-fev-fevargas
+  TEMPLATE_FILE: infrastructure-vm/main.bicep
+  PARAMETER_FILE: infrastructure-vm/main.parameters.bicepparam
+
+jobs:
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bicep Lint
+        run: az bicep lint --file ${{ env.TEMPLATE_FILE }}
+
+      - name: Bicep Build (validate syntax)
+        run: az bicep build --file ${{ env.TEMPLATE_FILE }} --stdout > /dev/null
+
+  plan:
+    name: What-If (Plan)
+    runs-on: ubuntu-latest
+    needs: lint
+    outputs:
+      whatif: ${{ steps.whatif.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run What-If
+        id: whatif
+        env:
+          VM_SSH_PUBLIC_KEY: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+        run: |
+          RESULT=$(az deployment group what-if \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file ${{ env.TEMPLATE_FILE }} \
+            --parameters ${{ env.PARAMETER_FILE }} \
+            --no-pretty-print 2>&1) || true
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$RESULT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post What-If to PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: bicep-whatif
+          message: |
+            ## Bicep What-If Results
+
+            ```
+            ${{ steps.whatif.outputs.result }}
+            ```
+
+      - name: Print What-If to Summary
+        run: |
+          echo "## What-If Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.whatif.outputs.result }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  apply:
+    name: Deploy Infrastructure
+    runs-on: ubuntu-latest
+    needs: plan
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    environment: infra-prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        id: deploy
+        env:
+          VM_SSH_PUBLIC_KEY: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+        run: |
+          OUTPUT=$(az deployment group create \
+            --name "infra-vm-$(date +%Y%m%d%H%M%S)" \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file ${{ env.TEMPLATE_FILE }} \
+            --parameters ${{ env.PARAMETER_FILE }} \
+            --query "properties.outputs" \
+            --output json)
+
+          echo "$OUTPUT" | jq .
+          echo "vm_ip=$(echo $OUTPUT | jq -r '.vmPublicIp.value')" >> $GITHUB_OUTPUT
+          echo "kv_name=$(echo $OUTPUT | jq -r '.keyVaultName.value')" >> $GITHUB_OUTPUT
+          echo "vm_name=$(echo $OUTPUT | jq -r '.vmName.value')" >> $GITHUB_OUTPUT
+
+      - name: Tag VM with Key Vault name
+        run: |
+          az vm update \
+            -g ${{ env.RESOURCE_GROUP }} \
+            -n ${{ steps.deploy.outputs.vm_name }} \
+            --set tags.keyVaultName=${{ steps.deploy.outputs.kv_name }}
+
+      - name: Upload Docker Hub PAT to Key Vault
+        run: |
+          az keyvault secret set \
+            --vault-name ${{ steps.deploy.outputs.kv_name }} \
+            --name docker-hub-pat \
+            --value "${{ secrets.DOCKERHUB_TOKEN }}"
+
+      - name: Wait for VM SSH
+        run: |
+          VM_IP="${{ steps.deploy.outputs.vm_ip }}"
+          echo "Waiting for SSH on $VM_IP..."
+          for i in $(seq 1 60); do
+            if nc -z -w 5 "$VM_IP" 22 2>/dev/null; then
+              echo "SSH available after $((i * 10)) seconds"
+              break
+            fi
+            sleep 10
+          done
+
+      - name: Deploy compose files to VM
+        env:
+          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+        run: |
+          VM_IP="${{ steps.deploy.outputs.vm_ip }}"
+
+          mkdir -p ~/.ssh
+          echo "$VM_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Copy deploy folder contents
+          scp -r deploy/* azureuser@"$VM_IP":/opt/portfolio/
+
+          # Pull images and start services
+          ssh azureuser@"$VM_IP" "cd /opt/portfolio && docker compose pull && docker compose up -d"
+
+      - name: Print deployment summary
+        run: |
+          echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| VM IP | ${{ steps.deploy.outputs.vm_ip }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| VM Name | ${{ steps.deploy.outputs.vm_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Key Vault | ${{ steps.deploy.outputs.kv_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| SSH | \`ssh azureuser@${{ steps.deploy.outputs.vm_ip }}\` |" >> $GITHUB_STEP_SUMMARY
+
+  destroy:
+    name: Destroy Infrastructure
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
+    environment: infra-destroy
+    steps:
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Delete all resources in RG (preserve RG)
+        run: |
+          echo "Deleting all resources in ${{ env.RESOURCE_GROUP }}..."
+          RESOURCES=$(az resource list -g ${{ env.RESOURCE_GROUP }} --query "[].id" -o tsv)
+          if [ -n "$RESOURCES" ]; then
+            echo "$RESOURCES" | xargs -I {} az resource delete --ids {} --verbose
+          else
+            echo "No resources found."
+          fi
+          echo "## Resources Destroyed" >> $GITHUB_STEP_SUMMARY

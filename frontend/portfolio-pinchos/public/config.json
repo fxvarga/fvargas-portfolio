@@ -1,4 +1,4 @@
 {
   "apiUrl": "/graphql",
-  "apiWsUrl": "wss://pinchos.localhost/graphql"
+  "apiWsUrl": "/graphql"
 }

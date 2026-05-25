@@ -264,3 +264,10 @@ ci-log.txt
 # TinyToes tool output/fixtures
 frontend/tinytoes-app/tools/output/
 frontend/tinytoes-app/tools/fixtures/
+
+# Deploy secrets - use docker-compose.yml.template + .env
+deploy/docker-compose.yml
+deploy/.env
+
+# Bicep compiled ARM output
+infrastructure-vm/main.json

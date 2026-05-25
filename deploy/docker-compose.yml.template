@@ -1,0 +1,468 @@
+services:
+  # Elasticsearch for search functionality
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.0
+    container_name: portfolio-elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - xpack.security.enrollment.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - cluster.name=portfolio-search
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s http://localhost:9200/_cluster/health | grep -E 'green|yellow'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  backend:
+    image: fxvarga/portfolio-backend:latest
+    container_name: portfolio-backend
+    volumes:
+      - cms-data:/app/data
+      - cms-uploads:/app/wwwroot/uploads
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - CMS_DB_PATH=/app/data/cms.db
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - CMS_ADMIN_PASSWORD=${CMS_ADMIN_PASSWORD}
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-ada-002
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/graphql?query=%7B__typename%7D"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  frontend-fernando:
+    image: fxvarga/portfolio-frontend-fernando:latest
+    container_name: portfolio-frontend-fernando
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-jessica:
+    image: fxvarga/portfolio-frontend-jessica:latest
+    container_name: portfolio-frontend-jessica
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-busybee:
+    image: fxvarga/portfolio-frontend-busybee:latest
+    container_name: portfolio-frontend-busybee
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-executive-catering:
+    image: fxvarga/portfolio-frontend-executive-catering:latest
+    container_name: portfolio-frontend-executive-catering
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/1stopwings-site/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-opsblueprint:
+    image: fxvarga/portfolio-frontend-opsblueprint:latest
+    container_name: portfolio-frontend-opsblueprint
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-brad:
+    image: fxvarga/portfolio-frontend-brad:latest
+    container_name: portfolio-frontend-brad
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  frontend-pinchos:
+    image: fxvarga/portfolio-frontend-pinchos:latest
+    container_name: portfolio-frontend-pinchos
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  # Plausible Analytics
+  plausible_db:
+    image: postgres:16-alpine
+    container_name: portfolio-plausible-db
+    restart: unless-stopped
+    volumes:
+      - plausible-db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  plausible_events_db:
+    image: clickhouse/clickhouse-server:24.12-alpine
+    container_name: portfolio-plausible-events-db
+    restart: unless-stopped
+    volumes:
+      - plausible-events-data:/var/lib/clickhouse
+      - plausible-events-logs:/var/log/clickhouse-server
+      - ./clickhouse/logs.xml:/etc/clickhouse-server/config.d/logs.xml:ro
+      - ./clickhouse/ipv4-only.xml:/etc/clickhouse-server/config.d/ipv4-only.xml:ro
+      - ./clickhouse/low-resources.xml:/etc/clickhouse-server/config.d/low-resources.xml:ro
+      - ./clickhouse/default-profile-low-resources-overrides.xml:/etc/clickhouse-server/users.d/default-profile-low-resources-overrides.xml:ro
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+    environment:
+      - CLICKHOUSE_SKIP_USER_SETUP=1
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 -O - http://127.0.0.1:8123/ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  plausible:
+    image: ghcr.io/plausible/community-edition:v3.2.0
+    container_name: portfolio-plausible
+    restart: unless-stopped
+    command: sh -c "/entrypoint.sh db createdb && /entrypoint.sh db migrate && /entrypoint.sh run"
+    depends_on:
+      plausible_db:
+        condition: service_healthy
+      plausible_events_db:
+        condition: service_healthy
+    volumes:
+      - plausible-data:/var/lib/plausible
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    environment:
+      - TMPDIR=/var/lib/plausible/tmp
+      - BASE_URL=https://analytics.fernando-vargas.com
+      - SECRET_KEY_BASE=${PLAUSIBLE_SECRET_KEY_BASE}
+      - HTTP_PORT=8000
+      - DISABLE_REGISTRATION=true
+    networks:
+      - portfolio-network
+
+  # Monitoring Stack
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: portfolio-prometheus
+    restart: unless-stopped
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--storage.tsdb.retention.size=1GB"
+      - "--web.console.libraries=/etc/prometheus/console_libraries"
+      - "--web.console.templates=/etc/prometheus/consoles"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  node-exporter:
+    image: prom/node-exporter:v1.7.0
+    container_name: portfolio-node-exporter
+    restart: unless-stopped
+    command:
+      - "--path.rootfs=/host"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)(1134|/)"
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    networks:
+      - portfolio-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.55.1
+    container_name: portfolio-cadvisor
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    command:
+      - "--housekeeping_interval=30s"
+      - "--docker_only=true"
+      - "--disable_metrics=percpu,sched,tcp,udp,disk,diskIO,hugetlb,referenced_memory,cpu_topology,resctrl"
+    networks:
+      - portfolio-network
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: portfolio-grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=https://grafana.fernando-vargas.com
+      - GF_SERVER_SERVE_FROM_SUB_PATH=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  # n8n Workflow Automation
+  n8n-postgres:
+    image: postgres:16-alpine
+    container_name: portfolio-n8n-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=n8n
+    volumes:
+      - n8n-db-data:/var/lib/postgresql/data
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: portfolio-n8n
+    restart: unless-stopped
+    environment:
+      - NODE_OPTIONS=--dns-result-order=ipv4first
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=n8n-postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=n8n
+      - DB_POSTGRESDB_USER=n8n
+      - DB_POSTGRESDB_PASSWORD=${N8N_DB_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
+      - EXECUTIONS_MODE=regular
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_SECURE_COOKIE=false
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+      - WEBHOOK_URL=https://n8n.fernando-vargas.com/
+      - N8N_EDITOR_BASE_URL=https://n8n.fernando-vargas.com/
+      - N8N_DIAGNOSTICS_ENABLED=false
+      - N8N_PERSONALIZATION_ENABLED=false
+      - N8N_INSIGHTS_ENABLED=false
+      - N8N_LOG_LEVEL=info
+      - GENERIC_TIMEZONE=America/New_York
+      # Workflow env vars (MS Graph, SharePoint, Azure OpenAI)
+      - MS_GRAPH_TENANT_ID=5d75b234-a0f2-4b40-87a0-e1eb31c22149
+      - MS_GRAPH_CLIENT_ID=546383ba-641c-47cc-b01e-15acab7e0146
+      - MS_GRAPH_CLIENT_SECRET=${MS_GRAPH_CLIENT_SECRET}
+      - SHAREPOINT_SITE_ID=busybee690.sharepoint.com,7788862e-941f-480d-a863-6530646c5b86,049a0b95-f024-4221-8dc6-36583536acb8
+      - SHAREPOINT_DRIVE_ID=b!LoaIdx-UDUioY2UwZGxbhpULmgQk8CFCjcY2WDU2rLjQYRMdmY-AQo71DCJ7UF_x
+      - SHAREPOINT_LEADS_FOLDER_ID=013ENQPHZPB7G6AI5OAVEJVH4426DHQOD6
+      - SHAREPOINT_PROPOSALS_FOLDER_ID=013ENQPH4GUPN4L663EBAI5JOUKW7NUD4C
+      - LEADS_TRACKER_FILE_ID=013ENQPH746BJQRMRMSNEZIZ3JX6ZSFS4V
+      - SHAREPOINT_KB_FOLDER_ID=013ENQPH65L5XBQ5Z2NJBYBKAZB2XMRWTR
+      - SHAREPOINT_KB_FILE_ID=013ENQPH3ME5TOXYFFLFDJLBIWEYS2IQY7
+      - MAIL_USER_UPN=fernandovargas@busybee690.onmicrosoft.com
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_CHAT_DEPLOYMENT=gpt-5.2-chat
+      - AZURE_OPENAI_API_VERSION=2024-12-01-preview
+      - EMAIL_CATEGORIES_FILE_ID=013ENQPH6TTSFNNTJH2VH27OQU7YX34HX5
+      - EMAIL_CATEGORIES_TABLE_NAME=Categories
+      # OpsBlueprint SharePoint env vars
+      - OB_SHAREPOINT_LEADS_FOLDER_ID=013ENQPH6IFT7XVJUAXBDLAX4MNAUWMQGP
+      - OB_SHAREPOINT_PROPOSALS_FOLDER_ID=013ENQPH2V32XCDETGDJHIWVLVFQJUVKDT
+      - OB_LEADS_TRACKER_FILE_ID=013ENQPH6FXXG6J5LXTZAIZW7ZEKHAVFWJ
+      - OB_EMAIL_CATEGORIES_FILE_ID=013ENQPH2ZGIDV4WGCQNFK2XJ36PQCC4XS
+      - OB_EMAIL_CATEGORIES_TABLE_NAME=OBCategories
+      - OB_SHAREPOINT_KB_FILE_ID=013ENQPHYYQW4HQNPAYVFLQFO3MM6H2RPV
+      # Twilio SMS vars (for lead-intake workflows)
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_API_KEY_SID=${TWILIO_API_KEY_SID}
+      - TWILIO_API_KEY_SECRET=${TWILIO_API_KEY_SECRET}
+      - TWILIO_PHONE_NUMBER=+18605909787
+    volumes:
+      - n8n-data:/home/node/.n8n
+    sysctls:
+      - net.ipv6.conf.all.disable_ipv6=1
+    depends_on:
+      n8n-postgres:
+        condition: service_healthy
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://127.0.0.1:5678/healthz || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  n8n-python-helper:
+    image: fxvarga/portfolio-n8n-python-helper:latest
+    container_name: portfolio-n8n-python-helper
+    restart: unless-stopped
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: portfolio-caddy
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend-fernando
+      - frontend-jessica
+      - frontend-busybee
+      - frontend-executive-catering
+      - frontend-opsblueprint
+      - frontend-brad
+      - frontend-pinchos
+      - backend
+      - plausible
+      - grafana
+      - n8n
+    networks:
+      - portfolio-network
+    restart: unless-stopped
+
+networks:
+  portfolio-network:
+    driver: bridge
+
+volumes:
+  elasticsearch-data:
+    driver: local
+  cms-data:
+    driver: local
+  cms-uploads:
+    driver: local
+  caddy-data:
+    driver: local
+  caddy-config:
+    driver: local
+  plausible-db-data:
+    driver: local
+  plausible-events-data:
+    driver: local
+  plausible-events-logs:
+    driver: local
+  plausible-data:
+    driver: local
+  prometheus-data:
+    driver: local
+  grafana-data:
+    driver: local
+  n8n-db-data:
+    driver: local
+  n8n-data:
+    driver: local

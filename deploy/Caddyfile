@@ -1,45 +1,5 @@
-# Global options - use internal certs for local development
-{
-    local_certs
-}
-
 # Fernando Vargas Portfolio (main site + admin)
-https://{$DOMAIN_FERNANDO:localhost} {
-    tls internal
-
-    # API and GraphQL routes to backend
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /healthcheck {
-        reverse_proxy backend:5000
-    }
-
-    # Everything else to frontend
-    handle {
-        reverse_proxy frontend-fernando:80
-    }
-}
-
-# ============================================
-# LAN access via homehost (HTTP only - no certs needed)
-# Add to remote machine's hosts file:
-#   192.168.1.226  homehost jessica.homehost busybee.homehost
-#   192.168.1.226  1stopwings.homehost executivecatering.homehost
-#   192.168.1.226  analytics.homehost grafana.homehost blog.homehost
-# ============================================
-
-# Fernando Vargas Portfolio (LAN)
-http://homehost {
+fernando-vargas.com {
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -57,29 +17,15 @@ http://homehost {
     }
 }
 
-# Blog / Learning Lab (LAN)
-http://blog.homehost {
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-    handle /healthcheck {
-        reverse_proxy backend:5000
-    }
-    handle {
-        reverse_proxy frontend-fernando:80
-    }
-    @root path /
-    redir @root /blog permanent
+www.fernando-vargas.com {
+    redir https://fernando-vargas.com{uri} permanent
 }
 
-# Jessica Sutherland Portfolio (LAN)
-http://jessica.homehost {
+# Jessica Sutherland Portfolio
+jessicasutherland.me {
+    handle /admin* {
+        redir https://fernando-vargas.com{uri} permanent
+    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -97,8 +43,15 @@ http://jessica.homehost {
     }
 }
 
-# Busy Bee Marketing Agency (LAN)
-http://busybee.homehost {
+www.jessicasutherland.me {
+    redir https://jessicasutherland.me{uri} permanent
+}
+
+# Busy Bee Marketing Agency
+thebusybeeweb.com {
+    handle /admin* {
+        redir https://fernando-vargas.com{uri} permanent
+    }
     handle /graphql* {
         reverse_proxy backend:5000
     }
@@ -116,145 +69,12 @@ http://busybee.homehost {
     }
 }
 
-# 1 Stop Wings (LAN)
-http://1stopwings.homehost {
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-    handle {
-        reverse_proxy frontend-executive-catering:80
-    }
+www.thebusybeeweb.com {
+    redir https://thebusybeeweb.com{uri} permanent
 }
 
-# Executive Catering (LAN)
-http://executivecatering.homehost {
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-    handle {
-        reverse_proxy frontend-executive-catering:80
-    }
-}
-
-# Plausible Analytics (LAN)
-http://analytics.homehost {
-    reverse_proxy plausible:8000
-}
-
-# Grafana Monitoring (LAN)
-http://grafana.homehost {
-    reverse_proxy grafana:3000
-}
-
-# n8n Workflow Automation (LAN)
-http://n8n.homehost {
-    reverse_proxy n8n:5678 {
-        header_up Connection {>Connection}
-        header_up Upgrade {>Upgrade}
-    }
-}
-
-# Blog / Learning Lab subdomain (routes to same frontend with /blog path)
-https://{$DOMAIN_BLOG:blog.localhost} {
-    tls internal
-
-    # API and GraphQL routes to backend (for fetching blog content)
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /healthcheck {
-        reverse_proxy backend:5000
-    }
-
-    # Proxy all requests to frontend (which serves the /blog route)
-    handle {
-        reverse_proxy frontend-fernando:80
-    }
-
-    # For the root path only, redirect to /blog
-    @root path /
-    redir @root /blog permanent
-}
-
-# Jessica Sutherland Portfolio (photographer)
-https://{$DOMAIN_JESSICA:jessica.localhost} {
-    tls internal
-
-    # API and GraphQL routes to backend
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /healthcheck {
-        reverse_proxy backend:5000
-    }
-
-    # Everything else to frontend
-    handle {
-        reverse_proxy frontend-jessica:80
-    }
-}
-
-# Busy Bee Marketing Agency Portfolio
-https://{$DOMAIN_BUSYBEE:busybee.localhost} {
-    tls internal
-
-    # API and GraphQL routes to backend
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /healthcheck {
-        reverse_proxy backend:5000
-    }
-
-    # Everything else to frontend
-    handle {
-        reverse_proxy frontend-busybee:80
-    }
-}
-
-# 1 Stop Wings (static site via Executive Catering container)
-https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
-    tls internal
-
+# 1 Stop Wings (via Executive Catering container)
+1stopwings.executivecateringct.com {
     # API and GraphQL routes to backend (CMS-powered content)
     handle /graphql* {
         reverse_proxy backend:5000
@@ -268,16 +88,13 @@ https://{$DOMAIN_1STOPWINGS:1stopwings.localhost} {
         reverse_proxy backend:5000
     }
 
-    # Everything else to frontend
     handle {
         reverse_proxy frontend-executive-catering:80
     }
 }
 
 # Executive Catering main site (same container, different domain)
-https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
-    tls internal
-
+executivecateringct.fernando-vargas.com {
     # API and GraphQL routes to backend (CMS-powered content)
     handle /graphql* {
         reverse_proxy backend:5000
@@ -296,14 +113,8 @@ https://{$DOMAIN_EXECUTIVE_CATERING:executivecatering.localhost} {
     }
 }
 
-# OpsBlueprint workflow automation consulting
-https://{$DOMAIN_OPSBLUEPRINT:opsblueprint.localhost} {
-    tls internal
-
-    handle /graphql* {
-        reverse_proxy backend:5000
-    }
-
+# OpsBlueprint (workflow automation consulting)
+opsblueprint.fernando-vargas.com {
     handle /api/* {
         reverse_proxy backend:5000
     }
@@ -317,83 +128,40 @@ https://{$DOMAIN_OPSBLUEPRINT:opsblueprint.localhost} {
     }
 }
 
-# OpsBlueprint (LAN)
-http://opsblueprint.homehost {
+# Brad Earnhardt (UI/UX designer portfolio)
+brad.fernando-vargas.com {
     handle /graphql* {
         reverse_proxy backend:5000
     }
+
     handle /api/* {
         reverse_proxy backend:5000
     }
+
     handle /uploads/* {
         reverse_proxy backend:5000
     }
-    handle {
-        reverse_proxy frontend-opsblueprint:80
-    }
-}
-
-# Brad Earnhardt Portfolio (UI/UX designer) — Production
-https://{$DOMAIN_BRAD_PROD:brad.fernando-vargas.com} {
-    handle {
-        reverse_proxy frontend-brad:80
-    }
-}
-
-# Brad Earnhardt Portfolio (UI/UX designer) — Local dev
-https://{$DOMAIN_BRAD:brad.localhost} {
-    tls internal
 
     handle {
         reverse_proxy frontend-brad:80
     }
 }
 
-# Brad Earnhardt (LAN)
-http://brad.homehost {
-    handle {
-        reverse_proxy frontend-brad:80
+# Pinchos Lounge
+ pinchos.fernando-vargas.com {
+    handle /graphql* {
+        reverse_proxy backend:5000
     }
-}
-
-# Pinchos Lounge — Local dev
-https://{$DOMAIN_PINCHOS:pinchos.localhost} {
-    tls internal
-
     handle /admin* {
         reverse_proxy frontend-fernando:80
     }
-
-    handle /graphql* {
-        reverse_proxy backend:5000
+    handle /static/* {
+        reverse_proxy frontend-fernando:80
     }
-
-    handle /api/* {
-        reverse_proxy backend:5000
-    }
-
     handle /uploads/* {
-        reverse_proxy backend:5000
-    }
-
-    handle /healthcheck {
-        reverse_proxy backend:5000
-    }
-
-    handle {
-        reverse_proxy frontend-pinchos:80
-    }
-}
-
-# Pinchos Lounge (LAN)
-http://pinchos.homehost {
-    handle /graphql* {
         reverse_proxy backend:5000
     }
     handle /api/* {
-        reverse_proxy backend:5000
-    }
-    handle /uploads/* {
         reverse_proxy backend:5000
     }
     handle {
@@ -401,76 +169,22 @@ http://pinchos.homehost {
     }
 }
 
-# Plausible Analytics dashboard
-https://{$DOMAIN_ANALYTICS:analytics.localhost} {
-    tls internal
-
+# Plausible Analytics
+analytics.fernando-vargas.com {
     reverse_proxy plausible:8000
 }
 
-# Grafana monitoring dashboard
-https://{$DOMAIN_GRAFANA:grafana.localhost} {
-    tls internal
-
+# Grafana Monitoring
+grafana.fernando-vargas.com {
     reverse_proxy grafana:3000
 }
 
-# n8n Workflow Automation (UI + webhooks)
-https://{$DOMAIN_N8N:n8n.localhost} {
-    tls internal
-
+# n8n Workflow Automation
+n8n.fernando-vargas.com {
     reverse_proxy n8n:5678 {
-        # WebSocket support for n8n editor UI
-        header_up Connection {>Connection}
-        header_up Upgrade {>Upgrade}
-    }
-}
-
-# Discord Bot health/status page
-https://{$DOMAIN_BOT:bot.localhost} {
-    tls internal
-
-    reverse_proxy discord-bot:3100
-}
-
-# Discord Bot (LAN)
-http://bot.homehost {
-    reverse_proxy discord-bot:3100
-}
-
-# ── TinyToes — Baby First Bites ──────────────────────────────
-
-# TinyToes (HTTPS)
-https://{$DOMAIN_TINYTOES:tinytoes.localhost} {
-    tls internal
-
-    # API routes → .NET backend
-    handle /api/* {
-        reverse_proxy tinytoes-api:8080
-    }
-
-    # Health check
-    handle /healthz {
-        reverse_proxy tinytoes-api:8080
-    }
-
-    # Everything else → SPA frontend
-    handle {
-        reverse_proxy tinytoes-web:80
-    }
-}
-
-# TinyToes (LAN)
-http://tinytoes.homehost {
-    handle /api/* {
-        reverse_proxy tinytoes-api:8080
-    }
-
-    handle /healthz {
-        reverse_proxy tinytoes-api:8080
-    }
-
-    handle {
-        reverse_proxy tinytoes-web:80
+        flush_interval -1
+        transport http {
+            keepalive 30s
+        }
     }
 }

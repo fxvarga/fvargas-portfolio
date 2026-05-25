@@ -1,4 +1,3 @@
-# Auto-provision Prometheus as a Grafana datasource
 apiVersion: 1
 
 datasources:

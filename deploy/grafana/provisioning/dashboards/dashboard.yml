@@ -1,4 +1,3 @@
-# Auto-provision dashboards from JSON files
 apiVersion: 1
 
 providers:
