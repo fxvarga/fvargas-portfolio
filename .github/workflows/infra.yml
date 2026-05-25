@@ -144,7 +144,7 @@ jobs:
           az vm update \
             -g ${{ env.RESOURCE_GROUP }} \
             -n ${{ steps.deploy.outputs.vm_name }} \
-            --set tags.keyVaultName=${{ steps.deploy.outputs.kv_name }}
+            --tags keyVaultName=${{ steps.deploy.outputs.kv_name }}
 
       - name: Upload Docker Hub PAT to Key Vault
         run: |
