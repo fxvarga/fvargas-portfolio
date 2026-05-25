@@ -44,31 +44,31 @@ jobs:
             dockerfile: backend/dotnet/Dockerfile
             image: portfolio-backend
           - service: frontend-fernando
-            context: frontend/portfolio-react
+            context: .
             dockerfile: frontend/portfolio-react/Dockerfile
             image: portfolio-frontend-fernando
           - service: frontend-jessica
-            context: frontend/portfolio-jessica
+            context: .
             dockerfile: frontend/portfolio-jessica/Dockerfile
             image: portfolio-frontend-jessica
           - service: frontend-busybee
-            context: frontend/portfolio-busybee
+            context: .
             dockerfile: frontend/portfolio-busybee/Dockerfile
             image: portfolio-frontend-busybee
           - service: frontend-executive-catering
-            context: frontend/portfolio-executive-catering
+            context: .
             dockerfile: frontend/portfolio-executive-catering/Dockerfile
             image: portfolio-frontend-executive-catering
           - service: frontend-opsblueprint
-            context: frontend/portfolio-opsblueprint
+            context: .
             dockerfile: frontend/portfolio-opsblueprint/Dockerfile
             image: portfolio-frontend-opsblueprint
           - service: frontend-brad
-            context: frontend/portfolio-brad
+            context: .
             dockerfile: frontend/portfolio-brad/Dockerfile
             image: portfolio-frontend-brad
           - service: frontend-pinchos
-            context: frontend/portfolio-pinchos
+            context: .
             dockerfile: frontend/portfolio-pinchos/Dockerfile
             image: portfolio-frontend-pinchos
           - service: n8n-python-helper
