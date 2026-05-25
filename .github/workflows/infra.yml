@@ -141,9 +141,8 @@ jobs:
 
       - name: Tag VM with Key Vault name
         run: |
-          az vm update \
-            -g ${{ env.RESOURCE_GROUP }} \
-            -n ${{ steps.deploy.outputs.vm_name }} \
+          az resource tag \
+            --ids $(az vm show -g ${{ env.RESOURCE_GROUP }} -n ${{ steps.deploy.outputs.vm_name }} --query id -o tsv) \
             --tags keyVaultName=${{ steps.deploy.outputs.kv_name }}
 
       - name: Upload Docker Hub PAT to Key Vault
