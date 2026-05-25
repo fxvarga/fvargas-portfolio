@@ -213,6 +213,12 @@ jobs:
           echo "| Key Vault | ${{ steps.deploy.outputs.kv_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| SSH | \`ssh azureuser@${{ steps.deploy.outputs.vm_ip }}\` |" >> $GITHUB_STEP_SUMMARY
 
+      - name: Trigger Release pipeline
+        run: |
+          gh workflow run release.yml -f deploy_target=azure
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   destroy:
     name: Destroy Infrastructure
     runs-on: ubuntu-latest
