@@ -93,10 +93,12 @@ jobs:
             ```
 
       - name: Print What-If to Summary
+        env:
+          WHATIF_RESULT: ${{ steps.whatif.outputs.result }}
         run: |
           echo "## What-If Results" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "${{ steps.whatif.outputs.result }}" >> $GITHUB_STEP_SUMMARY
+          echo "$WHATIF_RESULT" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
   apply:
