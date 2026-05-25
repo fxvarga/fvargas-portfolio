@@ -3,10 +3,6 @@ name: Release - Build & Deploy
 on:
   workflow_dispatch:
     inputs:
-      services:
-        description: 'Comma-separated services to build (or "all")'
-        required: false
-        default: ''
       deploy_target:
         description: 'Deploy target'
         required: true
@@ -28,6 +24,7 @@ on:
       - 'frontend/portfolio-brad/**'
       - 'frontend/portfolio-pinchos/**'
       - 'n8n-agent/python-helper/**'
+      - 'deploy/**'
       - '.github/workflows/release.yml'
 
 env:
@@ -35,95 +32,49 @@ env:
   IMAGE_PREFIX: fxvarga
 
 jobs:
-  detect-changes:
-    name: Detect Changed Services
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Determine changed services
-        id: set-matrix
-        run: |
-          # Service map: name -> path,dockerfile,image
-          declare -A SERVICES
-          SERVICES[backend]="backend/dotnet,backend/dotnet/Dockerfile,portfolio-backend"
-          SERVICES[frontend-fernando]="frontend/portfolio-react,frontend/portfolio-react/Dockerfile,portfolio-frontend-fernando"
-          SERVICES[frontend-jessica]="frontend/portfolio-jessica,frontend/portfolio-jessica/Dockerfile,portfolio-frontend-jessica"
-          SERVICES[frontend-busybee]="frontend/portfolio-busybee,frontend/portfolio-busybee/Dockerfile,portfolio-frontend-busybee"
-          SERVICES[frontend-executive-catering]="frontend/portfolio-executive-catering,frontend/portfolio-executive-catering/Dockerfile,portfolio-frontend-executive-catering"
-          SERVICES[frontend-opsblueprint]="frontend/portfolio-opsblueprint,frontend/portfolio-opsblueprint/Dockerfile,portfolio-frontend-opsblueprint"
-          SERVICES[frontend-brad]="frontend/portfolio-brad,frontend/portfolio-brad/Dockerfile,portfolio-frontend-brad"
-          SERVICES[frontend-pinchos]="frontend/portfolio-pinchos,frontend/portfolio-pinchos/Dockerfile,portfolio-frontend-pinchos"
-          SERVICES[n8n-python-helper]="n8n-agent/python-helper,n8n-agent/python-helper/Dockerfile,portfolio-n8n-python-helper"
-
-          MANUAL_INPUT="${{ github.event.inputs.services }}"
-          CHANGED=()
-
-          if [[ "$MANUAL_INPUT" == "all" ]]; then
-            for svc in "${!SERVICES[@]}"; do
-              CHANGED+=("$svc")
-            done
-          elif [[ -n "$MANUAL_INPUT" ]]; then
-            IFS=',' read -ra CHANGED <<< "$MANUAL_INPUT"
-          else
-            # Detect from git diff
-            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD)
-            for svc in "${!SERVICES[@]}"; do
-              IFS=',' read -r path _ _ <<< "${SERVICES[$svc]}"
-              if echo "$CHANGED_FILES" | grep -q "^${path}/"; then
-                CHANGED+=("$svc")
-              fi
-            done
-          fi
-
-          # Build JSON matrix
-          if [[ ${#CHANGED[@]} -eq 0 ]]; then
-            echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
-          else
-            echo "has_changes=true" >> $GITHUB_OUTPUT
-            MATRIX='{"include":['
-            FIRST=true
-            for svc in "${CHANGED[@]}"; do
-              svc=$(echo "$svc" | xargs)  # trim whitespace
-              if [[ -z "${SERVICES[$svc]}" ]]; then
-                echo "::warning::Unknown service: $svc"
-                continue
-              fi
-              IFS=',' read -r path dockerfile image <<< "${SERVICES[$svc]}"
-              if [[ "$FIRST" == "true" ]]; then
-                FIRST=false
-              else
-                MATRIX+=','
-              fi
-              MATRIX+="{\"service\":\"$svc\",\"context\":\"$path\",\"dockerfile\":\"$dockerfile\",\"image\":\"$image\"}"
-            done
-            MATRIX+=']}'
-            echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
-          fi
-
-          echo "### Changed Services" >> $GITHUB_STEP_SUMMARY
-          if [[ ${#CHANGED[@]} -gt 0 ]]; then
-            for svc in "${CHANGED[@]}"; do
-              echo "- $svc" >> $GITHUB_STEP_SUMMARY
-            done
-          else
-            echo "No services changed" >> $GITHUB_STEP_SUMMARY
-          fi
-
   build:
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
-    needs: detect-changes
-    if: needs.detect-changes.outputs.has_changes == 'true'
     strategy:
       fail-fast: false
-      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+      matrix:
+        include:
+          - service: backend
+            context: backend/dotnet
+            dockerfile: backend/dotnet/Dockerfile
+            image: portfolio-backend
+          - service: frontend-fernando
+            context: frontend/portfolio-react
+            dockerfile: frontend/portfolio-react/Dockerfile
+            image: portfolio-frontend-fernando
+          - service: frontend-jessica
+            context: frontend/portfolio-jessica
+            dockerfile: frontend/portfolio-jessica/Dockerfile
+            image: portfolio-frontend-jessica
+          - service: frontend-busybee
+            context: frontend/portfolio-busybee
+            dockerfile: frontend/portfolio-busybee/Dockerfile
+            image: portfolio-frontend-busybee
+          - service: frontend-executive-catering
+            context: frontend/portfolio-executive-catering
+            dockerfile: frontend/portfolio-executive-catering/Dockerfile
+            image: portfolio-frontend-executive-catering
+          - service: frontend-opsblueprint
+            context: frontend/portfolio-opsblueprint
+            dockerfile: frontend/portfolio-opsblueprint/Dockerfile
+            image: portfolio-frontend-opsblueprint
+          - service: frontend-brad
+            context: frontend/portfolio-brad
+            dockerfile: frontend/portfolio-brad/Dockerfile
+            image: portfolio-frontend-brad
+          - service: frontend-pinchos
+            context: frontend/portfolio-pinchos
+            dockerfile: frontend/portfolio-pinchos/Dockerfile
+            image: portfolio-frontend-pinchos
+          - service: n8n-python-helper
+            context: n8n-agent/python-helper
+            dockerfile: n8n-agent/python-helper/Dockerfile
+            image: portfolio-n8n-python-helper
     steps:
       - uses: actions/checkout@v4
 
@@ -151,103 +102,119 @@ jobs:
   deploy-azure:
     name: Deploy to Azure VM
     runs-on: ubuntu-latest
-    needs: [detect-changes, build]
+    needs: build
     if: |
-      always() &&
-      needs.build.result == 'success' &&
-      (github.event.inputs.deploy_target == 'azure' || (github.event_name == 'push'))
+      github.event.inputs.deploy_target == 'azure' || github.event_name == 'push'
     environment: production
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get changed services list
-        id: services
+      - name: Render docker-compose.yml from template
         env:
-          MATRIX_JSON: ${{ needs.detect-changes.outputs.matrix }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          CMS_ADMIN_PASSWORD: ${{ secrets.CMS_ADMIN_PASSWORD }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          PLAUSIBLE_SECRET_KEY_BASE: ${{ secrets.PLAUSIBLE_SECRET_KEY_BASE }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          N8N_DB_PASSWORD: ${{ secrets.N8N_DB_PASSWORD }}
+          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+          MS_GRAPH_CLIENT_SECRET: ${{ secrets.MS_GRAPH_CLIENT_SECRET }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
+          TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
         run: |
-          SERVICES=$(echo "$MATRIX_JSON" | jq -r '.include[].service' | tr '\n' ' ')
-          echo "list=$SERVICES" >> $GITHUB_OUTPUT
+          envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 
-      - name: Deploy via SSH
+      - name: Deploy to VM
         env:
           VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
           VM_HOST: ${{ secrets.VM_PUBLIC_IP }}
-          SERVICES: ${{ steps.services.outputs.list }}
         run: |
           mkdir -p ~/.ssh
           echo "$VM_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Build pull command for only changed services
-          COMPOSE_SERVICES=""
-          for svc in $SERVICES; do
-            COMPOSE_SERVICES="$COMPOSE_SERVICES $svc"
-          done
+          # Copy all deploy configs to VM
+          scp -o StrictHostKeyChecking=no -r \
+            deploy/docker-compose.yml \
+            deploy/Caddyfile \
+            deploy/Caddyfile.production \
+            deploy/clickhouse \
+            deploy/grafana \
+            deploy/prometheus \
+            azureuser@"$VM_HOST":/opt/portfolio/
 
-          ssh -o StrictHostKeyChecking=no azureuser@"$VM_HOST" << EOF
+          # Pull all images and restart everything
+          ssh -o StrictHostKeyChecking=no azureuser@"$VM_HOST" << 'EOF'
             cd /opt/portfolio
-            docker compose pull $COMPOSE_SERVICES
-            docker compose up -d $COMPOSE_SERVICES
-            # Fix backend permissions if backend was deployed
-            if echo "$COMPOSE_SERVICES" | grep -q "backend"; then
-              docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
-            fi
+            docker compose pull
+            docker compose up -d
+            # Fix backend permissions
+            docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
             docker image prune -f
+            echo "--- Running containers ---"
+            docker ps --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | head -30
           EOF
 
       - name: Print deploy summary
-        env:
-          SERVICES: ${{ steps.services.outputs.list }}
         run: |
           echo "### Deployment Complete" >> $GITHUB_STEP_SUMMARY
-          echo "**Target:** Azure VM" >> $GITHUB_STEP_SUMMARY
-          echo "**Services:**" >> $GITHUB_STEP_SUMMARY
-          for svc in $SERVICES; do
-            echo "- $svc" >> $GITHUB_STEP_SUMMARY
-          done
+          echo "**Target:** Azure VM (${{ secrets.VM_PUBLIC_IP }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "**All 9 services built and deployed**" >> $GITHUB_STEP_SUMMARY
 
   deploy-digitalocean:
     name: Deploy to DigitalOcean
     runs-on: ubuntu-latest
-    needs: [detect-changes, build]
-    if: |
-      always() &&
-      needs.build.result == 'success' &&
-      github.event.inputs.deploy_target == 'digitalocean'
+    needs: build
+    if: github.event.inputs.deploy_target == 'digitalocean'
     steps:
       - uses: actions/checkout@v4
 
-      - name: Get changed services list
-        id: services
+      - name: Render docker-compose.yml from template
         env:
-          MATRIX_JSON: ${{ needs.detect-changes.outputs.matrix }}
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          CMS_ADMIN_PASSWORD: ${{ secrets.CMS_ADMIN_PASSWORD }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          PLAUSIBLE_SECRET_KEY_BASE: ${{ secrets.PLAUSIBLE_SECRET_KEY_BASE }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          N8N_DB_PASSWORD: ${{ secrets.N8N_DB_PASSWORD }}
+          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+          MS_GRAPH_CLIENT_SECRET: ${{ secrets.MS_GRAPH_CLIENT_SECRET }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
+          TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
         run: |
-          SERVICES=$(echo "$MATRIX_JSON" | jq -r '.include[].service' | tr '\n' ' ')
-          echo "list=$SERVICES" >> $GITHUB_OUTPUT
+          envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 
-      - name: Deploy via SSH
+      - name: Deploy to DO
         env:
           DO_SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
           DO_HOST: 147.182.169.160
-          SERVICES: ${{ steps.services.outputs.list }}
         run: |
           mkdir -p ~/.ssh
           echo "$DO_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$DO_HOST" >> ~/.ssh/known_hosts 2>/dev/null
 
-          COMPOSE_SERVICES=""
-          for svc in $SERVICES; do
-            COMPOSE_SERVICES="$COMPOSE_SERVICES $svc"
-          done
+          scp -o StrictHostKeyChecking=no -r \
+            deploy/docker-compose.yml \
+            deploy/Caddyfile \
+            deploy/Caddyfile.production \
+            deploy/clickhouse \
+            deploy/grafana \
+            deploy/prometheus \
+            root@"$DO_HOST":/opt/portfolio/
 
-          ssh -o StrictHostKeyChecking=no root@"$DO_HOST" << EOF
+          ssh -o StrictHostKeyChecking=no root@"$DO_HOST" << 'EOF'
             cd /opt/portfolio
-            docker compose pull $COMPOSE_SERVICES
-            docker compose up -d $COMPOSE_SERVICES
-            if echo "$COMPOSE_SERVICES" | grep -q "backend"; then
-              docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
-            fi
+            docker compose pull
+            docker compose up -d
+            docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
             docker image prune -f
           EOF
