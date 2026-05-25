@@ -161,6 +161,24 @@ jobs:
             sleep 10
           done
 
+      - name: Render docker-compose.yml from template
+        env:
+          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+          CMS_ADMIN_PASSWORD: ${{ secrets.CMS_ADMIN_PASSWORD }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          PLAUSIBLE_SECRET_KEY_BASE: ${{ secrets.PLAUSIBLE_SECRET_KEY_BASE }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          N8N_DB_PASSWORD: ${{ secrets.N8N_DB_PASSWORD }}
+          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
+          MS_GRAPH_CLIENT_SECRET: ${{ secrets.MS_GRAPH_CLIENT_SECRET }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
+          TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
+        run: |
+          envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
+
       - name: Deploy compose files to VM
         env:
           VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
@@ -172,8 +190,11 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts 2>/dev/null
 
-          # Copy deploy folder contents
+          # Copy deploy folder contents (rendered compose + configs)
           scp -r deploy/* azureuser@"$VM_IP":/opt/portfolio/
+
+          # Remove template from VM (only real compose needed)
+          ssh azureuser@"$VM_IP" "rm -f /opt/portfolio/docker-compose.yml.template"
 
           # Pull images and start services
           ssh azureuser@"$VM_IP" "cd /opt/portfolio && docker compose pull && docker compose up -d"
