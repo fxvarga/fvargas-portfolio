@@ -2,9 +2,17 @@ name: Build iOS App
 
 on:
   push:
-    branches: ["*"]
+    branches: [main]
+    paths:
+      - 'frontend/tinytoes-app/**'
+      - 'ios/**'
+      - '.github/workflows/build.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'frontend/tinytoes-app/**'
+      - 'ios/**'
+      - '.github/workflows/build.yml'
 
 jobs:
   ios-build:

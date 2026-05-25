@@ -17,7 +17,7 @@ function HomePage() {
           {/* Hero */}
           <div className="home-group home-hero" data-cms-entity="hero">
             <div className="hero-late-night" data-cms-field="preTitle">
-              {hero?.preTitle || 'Late-Night'}
+              {hero?.preTitle || 'Late-Nights'}
             </div>
             <h1 className="hero-kabobs" data-cms-field="title">
               {hero?.title || 'KABOBS'}
