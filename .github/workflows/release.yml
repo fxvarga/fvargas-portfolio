@@ -1,0 +1,253 @@
+name: Release - Build & Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      services:
+        description: 'Comma-separated services to build (or "all")'
+        required: false
+        default: ''
+      deploy_target:
+        description: 'Deploy target'
+        required: true
+        type: choice
+        options:
+          - azure
+          - digitalocean
+          - none
+        default: azure
+  push:
+    branches: [main]
+    paths:
+      - 'backend/dotnet/**'
+      - 'frontend/portfolio-react/**'
+      - 'frontend/portfolio-jessica/**'
+      - 'frontend/portfolio-busybee/**'
+      - 'frontend/portfolio-executive-catering/**'
+      - 'frontend/portfolio-opsblueprint/**'
+      - 'frontend/portfolio-brad/**'
+      - 'frontend/portfolio-pinchos/**'
+      - 'n8n-agent/python-helper/**'
+      - '.github/workflows/release.yml'
+
+env:
+  REGISTRY: docker.io
+  IMAGE_PREFIX: fxvarga
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      has_changes: ${{ steps.set-matrix.outputs.has_changes }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Determine changed services
+        id: set-matrix
+        run: |
+          # Service map: name -> path,dockerfile,image
+          declare -A SERVICES
+          SERVICES[backend]="backend/dotnet,backend/dotnet/Dockerfile,portfolio-backend"
+          SERVICES[frontend-fernando]="frontend/portfolio-react,frontend/portfolio-react/Dockerfile,portfolio-frontend-fernando"
+          SERVICES[frontend-jessica]="frontend/portfolio-jessica,frontend/portfolio-jessica/Dockerfile,portfolio-frontend-jessica"
+          SERVICES[frontend-busybee]="frontend/portfolio-busybee,frontend/portfolio-busybee/Dockerfile,portfolio-frontend-busybee"
+          SERVICES[frontend-executive-catering]="frontend/portfolio-executive-catering,frontend/portfolio-executive-catering/Dockerfile,portfolio-frontend-executive-catering"
+          SERVICES[frontend-opsblueprint]="frontend/portfolio-opsblueprint,frontend/portfolio-opsblueprint/Dockerfile,portfolio-frontend-opsblueprint"
+          SERVICES[frontend-brad]="frontend/portfolio-brad,frontend/portfolio-brad/Dockerfile,portfolio-frontend-brad"
+          SERVICES[frontend-pinchos]="frontend/portfolio-pinchos,frontend/portfolio-pinchos/Dockerfile,portfolio-frontend-pinchos"
+          SERVICES[n8n-python-helper]="n8n-agent/python-helper,n8n-agent/python-helper/Dockerfile,portfolio-n8n-python-helper"
+
+          MANUAL_INPUT="${{ github.event.inputs.services }}"
+          CHANGED=()
+
+          if [[ "$MANUAL_INPUT" == "all" ]]; then
+            for svc in "${!SERVICES[@]}"; do
+              CHANGED+=("$svc")
+            done
+          elif [[ -n "$MANUAL_INPUT" ]]; then
+            IFS=',' read -ra CHANGED <<< "$MANUAL_INPUT"
+          else
+            # Detect from git diff
+            CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git diff --name-only HEAD)
+            for svc in "${!SERVICES[@]}"; do
+              IFS=',' read -r path _ _ <<< "${SERVICES[$svc]}"
+              if echo "$CHANGED_FILES" | grep -q "^${path}/"; then
+                CHANGED+=("$svc")
+              fi
+            done
+          fi
+
+          # Build JSON matrix
+          if [[ ${#CHANGED[@]} -eq 0 ]]; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+            echo "matrix={\"include\":[]}" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+            MATRIX='{"include":['
+            FIRST=true
+            for svc in "${CHANGED[@]}"; do
+              svc=$(echo "$svc" | xargs)  # trim whitespace
+              if [[ -z "${SERVICES[$svc]}" ]]; then
+                echo "::warning::Unknown service: $svc"
+                continue
+              fi
+              IFS=',' read -r path dockerfile image <<< "${SERVICES[$svc]}"
+              if [[ "$FIRST" == "true" ]]; then
+                FIRST=false
+              else
+                MATRIX+=','
+              fi
+              MATRIX+="{\"service\":\"$svc\",\"context\":\"$path\",\"dockerfile\":\"$dockerfile\",\"image\":\"$image\"}"
+            done
+            MATRIX+=']}'
+            echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          fi
+
+          echo "### Changed Services" >> $GITHUB_STEP_SUMMARY
+          if [[ ${#CHANGED[@]} -gt 0 ]]; then
+            for svc in "${CHANGED[@]}"; do
+              echo "- $svc" >> $GITHUB_STEP_SUMMARY
+            done
+          else
+            echo "No services changed" >> $GITHUB_STEP_SUMMARY
+          fi
+
+  build:
+    name: Build ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: detect-changes
+    if: needs.detect-changes.outputs.has_changes == 'true'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.detect-changes.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:latest
+            ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy-azure:
+    name: Deploy to Azure VM
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      (github.event.inputs.deploy_target == 'azure' || (github.event_name == 'push'))
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed services list
+        id: services
+        env:
+          MATRIX_JSON: ${{ needs.detect-changes.outputs.matrix }}
+        run: |
+          SERVICES=$(echo "$MATRIX_JSON" | jq -r '.include[].service' | tr '\n' ' ')
+          echo "list=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Deploy via SSH
+        env:
+          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+          VM_HOST: ${{ secrets.VM_PUBLIC_IP }}
+          SERVICES: ${{ steps.services.outputs.list }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VM_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          # Build pull command for only changed services
+          COMPOSE_SERVICES=""
+          for svc in $SERVICES; do
+            COMPOSE_SERVICES="$COMPOSE_SERVICES $svc"
+          done
+
+          ssh -o StrictHostKeyChecking=no azureuser@"$VM_HOST" << EOF
+            cd /opt/portfolio
+            docker compose pull $COMPOSE_SERVICES
+            docker compose up -d $COMPOSE_SERVICES
+            # Fix backend permissions if backend was deployed
+            if echo "$COMPOSE_SERVICES" | grep -q "backend"; then
+              docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
+            fi
+            docker image prune -f
+          EOF
+
+      - name: Print deploy summary
+        env:
+          SERVICES: ${{ steps.services.outputs.list }}
+        run: |
+          echo "### Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "**Target:** Azure VM" >> $GITHUB_STEP_SUMMARY
+          echo "**Services:**" >> $GITHUB_STEP_SUMMARY
+          for svc in $SERVICES; do
+            echo "- $svc" >> $GITHUB_STEP_SUMMARY
+          done
+
+  deploy-digitalocean:
+    name: Deploy to DigitalOcean
+    runs-on: ubuntu-latest
+    needs: [detect-changes, build]
+    if: |
+      always() &&
+      needs.build.result == 'success' &&
+      github.event.inputs.deploy_target == 'digitalocean'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get changed services list
+        id: services
+        env:
+          MATRIX_JSON: ${{ needs.detect-changes.outputs.matrix }}
+        run: |
+          SERVICES=$(echo "$MATRIX_JSON" | jq -r '.include[].service' | tr '\n' ' ')
+          echo "list=$SERVICES" >> $GITHUB_OUTPUT
+
+      - name: Deploy via SSH
+        env:
+          DO_SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
+          DO_HOST: 147.182.169.160
+          SERVICES: ${{ steps.services.outputs.list }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$DO_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$DO_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          COMPOSE_SERVICES=""
+          for svc in $SERVICES; do
+            COMPOSE_SERVICES="$COMPOSE_SERVICES $svc"
+          done
+
+          ssh -o StrictHostKeyChecking=no root@"$DO_HOST" << EOF
+            cd /opt/portfolio
+            docker compose pull $COMPOSE_SERVICES
+            docker compose up -d $COMPOSE_SERVICES
+            if echo "$COMPOSE_SERVICES" | grep -q "backend"; then
+              docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
+            fi
+            docker image prune -f
+          EOF
