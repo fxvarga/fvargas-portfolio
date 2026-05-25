@@ -15,10 +15,12 @@ on:
     branches: [main]
     paths:
       - 'infrastructure-vm/**'
+      - '.github/workflows/infra.yml'
   pull_request:
     branches: [main]
     paths:
       - 'infrastructure-vm/**'
+      - '.github/workflows/infra.yml'
 
 permissions:
   id-token: write
