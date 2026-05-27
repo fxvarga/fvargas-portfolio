@@ -17,6 +17,7 @@ RUN echo 'server { \
   root /usr/share/nginx/html; \
   index index.html; \
   resolver 127.0.0.11 valid=30s; \
+  client_max_body_size 250m; \
   \
   location /api/ { \
     proxy_pass http://tinytoes-api:8080; \
