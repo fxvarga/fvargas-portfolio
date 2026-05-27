@@ -507,6 +507,26 @@ services:
       timeout: 10s
       retries: 3
 
+  # Hermes Agent - Personal AI assistant
+  hermes:
+    image: fxvarga/portfolio-hermes:latest
+    container_name: portfolio-hermes
+    restart: unless-stopped
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-placeholder}
+      - TELEGRAM_ALLOWED_USERS=${TELEGRAM_ALLOWED_USERS:-}
+      - GATEWAY_ALLOWED_USERS=${GATEWAY_ALLOWED_USERS:-}
+      - GMAIL_OAUTH_CLIENT_ID=${GMAIL_OAUTH_CLIENT_ID:-}
+      - GMAIL_OAUTH_CLIENT_SECRET=${GMAIL_OAUTH_CLIENT_SECRET:-}
+      - GMAIL_REFRESH_TOKEN=${GMAIL_REFRESH_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - hermes-data:/root/.hermes
+      - hermes-gh-config:/root/.config/gh
+    mem_limit: 1536m
+    networks:
+      - portfolio-network
+
   # Twingate Connector - provides zero-trust access to VM
   twingate-connector:
     image: twingate/connector:1
@@ -551,4 +571,8 @@ volumes:
   n8n-data:
     driver: local
   tinytoes-pgdata:
+    driver: local
+  hermes-data:
+    driver: local
+  hermes-gh-config:
     driver: local

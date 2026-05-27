@@ -1,0 +1,57 @@
+# Hermes Agent Configuration
+# Deployed on Azure VM via docker-compose
+# Docs: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+
+# Model provider — GitHub Copilot Enterprise (github.com SaaS)
+provider: copilot
+
+# Terminal backend — Docker sandboxing for tool execution
+terminal:
+  backend: docker
+  docker:
+    image: python:3.12-slim
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 512m
+    tmpfs:
+      /tmp: "size=128m,mode=1777"
+    network_mode: bridge
+    # Sandbox containers time out after 5 minutes
+    timeout: 300
+
+# Security settings
+approval:
+  mode: smart
+  # smart = auto-approve safe commands, prompt for dangerous, hardline-block always
+  destination: telegram
+
+authorization:
+  require_pairing: true
+  pair_ttl: 3600
+  rate_limit_per_user: "1/600s"
+  max_failed_attempts: 5
+
+# Messaging gateway
+gateway:
+  drivers:
+    - telegram
+  telegram:
+    mode: long_poll
+    # Bot token from TELEGRAM_BOT_TOKEN env var (injected by docker-compose)
+
+# Allowed users (Telegram numeric user IDs, comma-separated)
+# Set via TELEGRAM_ALLOWED_USERS and GATEWAY_ALLOWED_USERS env vars
+
+# Working directory for messaging sessions (non-sensitive)
+messaging_cwd: /tmp/hermes-workspace
+
+# Memory (built-in FTS5, no Honcho for v1)
+memory:
+  backend: sqlite
+  auto_nudge: true
+
+# Gmail integration (requires OAuth tokens — will fail gracefully without them)
+# Tokens obtained via deploy/hermes/scripts/gmail_oauth.py and set as env vars

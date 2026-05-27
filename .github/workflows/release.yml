@@ -86,6 +86,10 @@ jobs:
             context: frontend/tinytoes-app
             dockerfile: frontend/tinytoes-app/Dockerfile
             image: tinytoes-web
+          - service: hermes
+            context: deploy/hermes
+            dockerfile: deploy/hermes/Dockerfile
+            image: portfolio-hermes
     steps:
       - uses: actions/checkout@v4
 
@@ -150,6 +154,12 @@ jobs:
           TWINGATE_NETWORK: ${{ secrets.TWINGATE_NETWORK }}
           TWINGATE_CONNECTOR_ACCESS_TOKEN: ${{ secrets.TWINGATE_CONNECTOR_ACCESS_TOKEN }}
           TWINGATE_CONNECTOR_REFRESH_TOKEN: ${{ secrets.TWINGATE_CONNECTOR_REFRESH_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ALLOWED_USERS: ${{ secrets.TELEGRAM_ALLOWED_USERS }}
+          GATEWAY_ALLOWED_USERS: ${{ secrets.GATEWAY_ALLOWED_USERS }}
+          GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
+          GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
+          GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
         run: |
           envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 
@@ -176,6 +186,7 @@ jobs:
             deploy/clickhouse \
             deploy/grafana \
             deploy/prometheus \
+            deploy/hermes \
             azureuser@"$VM_HOST":/opt/portfolio/
 
           # Pull all images and restart everything
