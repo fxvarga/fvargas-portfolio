@@ -151,9 +151,6 @@ jobs:
           TINYTOES_SPACES_SECRET_KEY: ${{ secrets.TINYTOES_SPACES_SECRET_KEY }}
           TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
           TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
-          TWINGATE_NETWORK: ${{ secrets.TWINGATE_NETWORK }}
-          TWINGATE_CONNECTOR_ACCESS_TOKEN: ${{ secrets.TWINGATE_CONNECTOR_ACCESS_TOKEN }}
-          TWINGATE_CONNECTOR_REFRESH_TOKEN: ${{ secrets.TWINGATE_CONNECTOR_REFRESH_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_ALLOWED_USERS: ${{ secrets.TELEGRAM_ALLOWED_USERS }}
           GATEWAY_ALLOWED_USERS: ${{ secrets.GATEWAY_ALLOWED_USERS }}
@@ -192,13 +189,8 @@ jobs:
           # Pull all images and restart everything
           ssh -o StrictHostKeyChecking=no azureuser@"$VM_HOST" << 'EOF'
             cd /opt/portfolio
-            # Rename old manually-created connector so compose can claim the name
-            # (keeps it running so our SSH tunnel stays alive during deploy)
-            docker rename twingate-connector twingate-connector-old 2>/dev/null || true
             docker compose pull
             docker compose up -d
-            # Remove the old connector now that compose owns a new one
-            docker rm -f twingate-connector-old 2>/dev/null || true
             # Fix backend permissions
             docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
             docker image prune -f
