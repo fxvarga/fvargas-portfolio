@@ -192,6 +192,8 @@ jobs:
           # Pull all images and restart everything
           ssh -o StrictHostKeyChecking=no azureuser@"$VM_HOST" << 'EOF'
             cd /opt/portfolio
+            # Remove manually-created containers that now live in compose
+            docker rm -f twingate-connector 2>/dev/null || true
             docker compose pull
             docker compose up -d
             # Fix backend permissions
