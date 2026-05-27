@@ -192,10 +192,13 @@ jobs:
           # Pull all images and restart everything
           ssh -o StrictHostKeyChecking=no azureuser@"$VM_HOST" << 'EOF'
             cd /opt/portfolio
-            # Remove manually-created containers that now live in compose
-            docker rm -f twingate-connector 2>/dev/null || true
+            # Rename old manually-created connector so compose can claim the name
+            # (keeps it running so our SSH tunnel stays alive during deploy)
+            docker rename twingate-connector twingate-connector-old 2>/dev/null || true
             docker compose pull
             docker compose up -d
+            # Remove the old connector now that compose owns a new one
+            docker rm -f twingate-connector-old 2>/dev/null || true
             # Fix backend permissions
             docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
             docker image prune -f
