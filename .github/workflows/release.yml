@@ -147,13 +147,21 @@ jobs:
           TINYTOES_SPACES_SECRET_KEY: ${{ secrets.TINYTOES_SPACES_SECRET_KEY }}
           TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
           TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
+          TWINGATE_NETWORK: ${{ secrets.TWINGATE_NETWORK }}
+          TWINGATE_CONNECTOR_ACCESS_TOKEN: ${{ secrets.TWINGATE_CONNECTOR_ACCESS_TOKEN }}
+          TWINGATE_CONNECTOR_REFRESH_TOKEN: ${{ secrets.TWINGATE_CONNECTOR_REFRESH_TOKEN }}
         run: |
           envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
+
+      - name: Connect to Twingate
+        uses: twingate/github-action@v1
+        with:
+          service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
 
       - name: Deploy to VM
         env:
           VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
-          VM_HOST: ${{ secrets.VM_PUBLIC_IP }}
+          VM_HOST: ${{ secrets.VM_PRIVATE_IP }}
         run: |
           mkdir -p ~/.ssh
           echo "$VM_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519

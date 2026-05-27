@@ -17,9 +17,6 @@ param adminUsername string = 'azureuser'
 @secure()
 param adminSshPublicKey string
 
-@description('CIDR allowed for SSH access (your dev IP).')
-param allowedSshCidr string
-
 @description('OS disk size in GB.')
 param osDiskSizeGb int = 64
 
@@ -41,7 +38,6 @@ module nsg 'modules/networkSecurityGroup.bicep' = {
   params: {
     location: location
     applicationName: applicationNameWithEnvironment
-    allowedSshCidr: allowedSshCidr
   }
 }
 
@@ -137,7 +133,8 @@ module backup 'modules/recoveryServicesVault.bicep' = {
 output vmPublicIp string = publicIp.outputs.publicIpAddress
 output vmFqdn string = publicIp.outputs.fqdn
 output vmName string = vm.outputs.vmName
+output vmPrivateIp string = nic.outputs.privateIpAddress
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 output logAnalyticsWorkspaceName string = logAnalytics.outputs.workspaceName
-output sshCommand string = 'ssh ${adminUsername}@${publicIp.outputs.publicIpAddress}'
+output sshCommand string = 'ssh ${adminUsername}@<VM_PRIVATE_IP> (via Twingate)'

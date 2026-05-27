@@ -12,8 +12,6 @@ param adminUsername = 'azureuser'
 
 param adminSshPublicKey = readEnvironmentVariable('VM_SSH_PUBLIC_KEY', '')
 
-param allowedSshCidr = '*'
-
 param osDiskSizeGb = 64
 
 param dataDiskSizeGb = 128
