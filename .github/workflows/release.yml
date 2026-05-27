@@ -124,6 +124,18 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
           TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
+          TINYTOES_DB_PASSWORD: ${{ secrets.TINYTOES_DB_PASSWORD }}
+          TINYTOES_STRIPE_SECRET_KEY: ${{ secrets.TINYTOES_STRIPE_SECRET_KEY }}
+          TINYTOES_STRIPE_PRICE_ID: ${{ secrets.TINYTOES_STRIPE_PRICE_ID }}
+          TINYTOES_STRIPE_WEBHOOK_SECRET: ${{ secrets.TINYTOES_STRIPE_WEBHOOK_SECRET }}
+          TINYTOES_ADMIN_API_KEY: ${{ secrets.TINYTOES_ADMIN_API_KEY }}
+          TINYTOES_MS_GRAPH_CLIENT_ID: ${{ secrets.TINYTOES_MS_GRAPH_CLIENT_ID }}
+          TINYTOES_MS_GRAPH_TENANT_ID: ${{ secrets.TINYTOES_MS_GRAPH_TENANT_ID }}
+          TINYTOES_MAIL_USER_UPN: ${{ secrets.TINYTOES_MAIL_USER_UPN }}
+          TINYTOES_SPACES_ACCESS_KEY: ${{ secrets.TINYTOES_SPACES_ACCESS_KEY }}
+          TINYTOES_SPACES_SECRET_KEY: ${{ secrets.TINYTOES_SPACES_SECRET_KEY }}
+          TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
+          TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
         run: |
           envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 
@@ -189,6 +201,18 @@ jobs:
           TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
           TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
           TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
+          TINYTOES_DB_PASSWORD: ${{ secrets.TINYTOES_DB_PASSWORD }}
+          TINYTOES_STRIPE_SECRET_KEY: ${{ secrets.TINYTOES_STRIPE_SECRET_KEY }}
+          TINYTOES_STRIPE_PRICE_ID: ${{ secrets.TINYTOES_STRIPE_PRICE_ID }}
+          TINYTOES_STRIPE_WEBHOOK_SECRET: ${{ secrets.TINYTOES_STRIPE_WEBHOOK_SECRET }}
+          TINYTOES_ADMIN_API_KEY: ${{ secrets.TINYTOES_ADMIN_API_KEY }}
+          TINYTOES_MS_GRAPH_CLIENT_ID: ${{ secrets.TINYTOES_MS_GRAPH_CLIENT_ID }}
+          TINYTOES_MS_GRAPH_TENANT_ID: ${{ secrets.TINYTOES_MS_GRAPH_TENANT_ID }}
+          TINYTOES_MAIL_USER_UPN: ${{ secrets.TINYTOES_MAIL_USER_UPN }}
+          TINYTOES_SPACES_ACCESS_KEY: ${{ secrets.TINYTOES_SPACES_ACCESS_KEY }}
+          TINYTOES_SPACES_SECRET_KEY: ${{ secrets.TINYTOES_SPACES_SECRET_KEY }}
+          TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
+          TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
         run: |
           envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 

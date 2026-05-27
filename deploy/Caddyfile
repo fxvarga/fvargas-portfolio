@@ -188,3 +188,8 @@ n8n.fernando-vargas.com {
         }
     }
 }
+
+# TinyToes Baby Tracker
+tinytoes.fernando-vargas.com {
+    reverse_proxy tinytoes-web:80
+}
