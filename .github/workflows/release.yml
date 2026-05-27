@@ -120,6 +120,9 @@ jobs:
     needs: build
     if: |
       github.event.inputs.deploy_target == 'azure' || github.event_name == 'push'
+    permissions:
+      id-token: write
+      contents: read
     environment: production
     steps:
       - uses: actions/checkout@v4
@@ -164,6 +167,35 @@ jobs:
         uses: twingate/github-action@v1
         with:
           service-key: ${{ secrets.TWINGATE_SERVICE_KEY }}
+
+      - name: Azure Login (for VM run-command)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure Twingate connector is running
+        run: |
+          az vm run-command invoke \
+            --resource-group rg-fev-fevargas \
+            --name vm-fev-fevargas-prod-eastus2 \
+            --command-id RunShellScript \
+            --scripts "
+              if docker inspect --format='{{.State.Running}}' twingate-connector 2>/dev/null | grep -q true; then
+                echo 'Connector already running'
+              else
+                docker rm -f twingate-connector 2>/dev/null || true
+                docker run -d --name twingate-connector --restart unless-stopped --network host \
+                  -e TWINGATE_NETWORK=${{ secrets.TWINGATE_NETWORK }} \
+                  -e TWINGATE_ACCESS_TOKEN=${{ secrets.TWINGATE_CONNECTOR_ACCESS_TOKEN }} \
+                  -e TWINGATE_REFRESH_TOKEN=${{ secrets.TWINGATE_CONNECTOR_REFRESH_TOKEN }} \
+                  -e TWINGATE_LABEL_HOSTNAME=vm-fev-prod \
+                  twingate/connector:1
+                sleep 15
+                echo 'Connector recreated'
+              fi
+            "
 
       - name: Deploy to VM
         env:
