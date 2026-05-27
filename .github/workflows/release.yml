@@ -75,6 +75,14 @@ jobs:
             context: n8n-agent/python-helper
             dockerfile: n8n-agent/python-helper/Dockerfile
             image: portfolio-n8n-python-helper
+          - service: tinytoes-api
+            context: backend/dotnet
+            dockerfile: backend/dotnet/TinyToes.Api/Dockerfile
+            image: tinytoes-api
+          - service: tinytoes-web
+            context: frontend/tinytoes-app
+            dockerfile: frontend/tinytoes-app/Dockerfile
+            image: tinytoes-web
     steps:
       - uses: actions/checkout@v4
 
