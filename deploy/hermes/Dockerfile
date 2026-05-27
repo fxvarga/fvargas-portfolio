@@ -4,6 +4,7 @@ FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     git \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GitHub CLI (for Copilot auth via `gh auth token`)
