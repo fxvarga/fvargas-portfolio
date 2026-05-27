@@ -29,4 +29,4 @@ WORKDIR /root
 
 # Default entrypoint runs hermes with the messaging gateway
 ENTRYPOINT ["hermes"]
-CMD ["start", "--gateway"]
+CMD ["gateway"]
