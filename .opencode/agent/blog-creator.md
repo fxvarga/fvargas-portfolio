@@ -385,9 +385,9 @@ After creating all files, remind user to:
    ```
 
 3. **Deploy to production:**
-   ```bash
-   ./deploy/release.sh deploy && ./deploy/release.sh quick
-   ```
+   Push to `main` — the `.github/workflows/release.yml` GitHub Action builds
+   the Docker images and deploys them to the Azure VM automatically. You can
+   also trigger the workflow manually from the Actions tab.
 
 4. **Verify on live site:**
    - Check `/blog` listing shows new post

@@ -1,92 +1,106 @@
-using Amazon;
-using Amazon.S3;
-using Amazon.S3.Model;
+using Azure.Storage;
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using Azure.Storage.Sas;
 
 namespace TinyToes.Api.Services;
 
 /// <summary>
-/// Manages transient PDF storage on DigitalOcean Spaces (S3-compatible).
-/// PDFs are uploaded with a 24h signed URL and auto-deleted after 48h.
+/// Manages transient PDF storage on Azure Blob Storage.
+/// PDFs are uploaded with a 24h SAS URL and can be deleted explicitly;
+/// long-term cleanup is handled by an account-level lifecycle policy.
 /// </summary>
 public class BlobStorageService
 {
-    private readonly IAmazonS3 _s3;
-    private readonly string _bucket;
+    private readonly BlobContainerClient? _container;
+    private readonly StorageSharedKeyCredential? _sharedKey;
+    private readonly string _accountName;
+    private readonly string _containerName;
     private readonly ILogger<BlobStorageService> _logger;
 
     public BlobStorageService(IConfiguration config, ILogger<BlobStorageService> logger)
     {
         _logger = logger;
-        _bucket = config["SPACES_BUCKET"] ?? "tinytoes";
+        _containerName = config["AZURE_STORAGE_CONTAINER"] ?? "tinytoes";
 
-        var endpoint = config["SPACES_ENDPOINT"] ?? "https://sfo3.digitaloceanspaces.com";
-        var accessKey = config["SPACES_ACCESS_KEY"] ?? "";
-        var secretKey = config["SPACES_SECRET_KEY"] ?? "";
+        var connectionString = config["AZURE_STORAGE_CONNECTION_STRING"] ?? "";
+        var accountName = config["AZURE_STORAGE_ACCOUNT_NAME"] ?? "";
+        var accountKey = config["AZURE_STORAGE_ACCOUNT_KEY"] ?? "";
 
-        // Force SigV4 — DigitalOcean Spaces rejects legacy SigV2 presigned URLs
-        // Region must match the Spaces endpoint (e.g., sfo3 for sfo3.digitaloceanspaces.com)
-        AWSConfigsS3.UseSignatureVersion4 = true;
-        var region = endpoint.Replace("https://", "").Split('.')[0]; // "sfo3" from "https://sfo3.digitaloceanspaces.com"
-
-        var s3Config = new AmazonS3Config
+        if (!string.IsNullOrEmpty(connectionString))
         {
-            ServiceURL = endpoint,
-            ForcePathStyle = true,
-            AuthenticationRegion = region
-        };
-
-        _s3 = new AmazonS3Client(accessKey, secretKey, s3Config);
+            var service = new BlobServiceClient(connectionString);
+            _container = service.GetBlobContainerClient(_containerName);
+            _accountName = _container.AccountName;
+            _sharedKey = TryParseSharedKey(connectionString, _accountName);
+        }
+        else if (!string.IsNullOrEmpty(accountName) && !string.IsNullOrEmpty(accountKey))
+        {
+            _sharedKey = new StorageSharedKeyCredential(accountName, accountKey);
+            var serviceUri = new Uri($"https://{accountName}.blob.core.windows.net");
+            var service = new BlobServiceClient(serviceUri, _sharedKey);
+            _container = service.GetBlobContainerClient(_containerName);
+            _accountName = accountName;
+        }
+        else
+        {
+            _accountName = "";
+        }
     }
 
-    public bool IsConfigured =>
-        !string.IsNullOrEmpty(_s3.Config.ServiceURL) &&
-        _s3.Config.ServiceURL != "https://nyc3.digitaloceanspaces.com" || true; // Always "configured" if keys present
+    public bool IsConfigured => _container is not null && _sharedKey is not null;
 
     /// <summary>
-    /// Upload a PDF blob and return a signed URL valid for 24 hours.
+    /// Upload a PDF blob and return a SAS URL valid for 24 hours.
     /// </summary>
     public async Task<(string blobKey, string signedUrl)> UploadPdfAsync(Stream pdfStream, string fileName)
     {
+        if (_container is null)
+            throw new InvalidOperationException("Azure Storage is not configured.");
+
         var blobKey = $"print-jobs/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid()}/{fileName}";
+        var blob = _container.GetBlobClient(blobKey);
 
-        var putRequest = new PutObjectRequest
+        var headers = new BlobHttpHeaders { ContentType = "application/pdf" };
+        var metadata = new Dictionary<string, string> { ["auto_delete"] = "48h" };
+
+        await blob.UploadAsync(pdfStream, new BlobUploadOptions
         {
-            BucketName = _bucket,
-            Key = blobKey,
-            InputStream = pdfStream,
-            ContentType = "application/pdf",
-            CannedACL = S3CannedACL.Private
-        };
+            HttpHeaders = headers,
+            Metadata = metadata
+        });
 
-        // Add lifecycle tag for auto-cleanup
-        putRequest.TagSet =
-        [
-            new Tag { Key = "auto-delete", Value = "48h" }
-        ];
-
-        await _s3.PutObjectAsync(putRequest);
         _logger.LogInformation("Uploaded PDF blob: {BlobKey}", blobKey);
 
-        // Generate pre-signed URL valid for 24 hours (Lulu needs to download)
+        // Generate a SAS URL valid for 24 hours (Lulu needs to download)
         var signedUrl = GeneratePresignedUrl(blobKey, TimeSpan.FromHours(24));
 
         return (blobKey, signedUrl);
     }
 
     /// <summary>
-    /// Generate a fresh pre-signed URL for an existing blob.
+    /// Generate a fresh read-only SAS URL for an existing blob.
     /// </summary>
     public string GeneratePresignedUrl(string blobKey, TimeSpan validity)
     {
-        var request = new GetPreSignedUrlRequest
-        {
-            BucketName = _bucket,
-            Key = blobKey,
-            Expires = DateTime.UtcNow.Add(validity),
-            Verb = HttpVerb.GET
-        };
+        if (_container is null || _sharedKey is null)
+            throw new InvalidOperationException("Azure Storage is not configured.");
 
-        return _s3.GetPreSignedURL(request);
+        var blob = _container.GetBlobClient(blobKey);
+
+        var sasBuilder = new BlobSasBuilder
+        {
+            BlobContainerName = _containerName,
+            BlobName = blobKey,
+            Resource = "b",
+            StartsOn = DateTimeOffset.UtcNow.AddMinutes(-5),
+            ExpiresOn = DateTimeOffset.UtcNow.Add(validity),
+            Protocol = SasProtocol.Https
+        };
+        sasBuilder.SetPermissions(BlobSasPermissions.Read);
+
+        var sasToken = sasBuilder.ToSasQueryParameters(_sharedKey).ToString();
+        return $"{blob.Uri}?{sasToken}";
     }
 
     /// <summary>
@@ -94,14 +108,39 @@ public class BlobStorageService
     /// </summary>
     public async Task DeleteBlobAsync(string blobKey)
     {
+        if (_container is null)
+            return;
+
         try
         {
-            await _s3.DeleteObjectAsync(_bucket, blobKey);
+            await _container.GetBlobClient(blobKey).DeleteIfExistsAsync();
             _logger.LogInformation("Deleted PDF blob: {BlobKey}", blobKey);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to delete blob: {BlobKey}", blobKey);
         }
+    }
+
+    private static StorageSharedKeyCredential? TryParseSharedKey(string connectionString, string accountName)
+    {
+        // Parse "AccountName=x;AccountKey=y;..." style connection strings.
+        string? name = null;
+        string? key = null;
+        foreach (var part in connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var idx = part.IndexOf('=');
+            if (idx <= 0) continue;
+            var k = part[..idx].Trim();
+            var v = part[(idx + 1)..].Trim();
+            if (string.Equals(k, "AccountName", StringComparison.OrdinalIgnoreCase)) name = v;
+            else if (string.Equals(k, "AccountKey", StringComparison.OrdinalIgnoreCase)) key = v;
+        }
+
+        name ??= accountName;
+        if (string.IsNullOrEmpty(name) || string.IsNullOrEmpty(key))
+            return null;
+
+        return new StorageSharedKeyCredential(name, key);
     }
 }
