@@ -512,6 +512,8 @@ services:
     image: fxvarga/portfolio-hermes:latest
     container_name: portfolio-hermes
     restart: unless-stopped
+    ports:
+      - "9119:9119"
     environment:
       - TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS=$TELEGRAM_ALLOWED_USERS
