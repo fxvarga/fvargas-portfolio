@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useChat } from '@/hooks/useChat';
 import { MessageList } from '@/components/chat/MessageList';
 import { ChatInput } from '@/components/chat/ChatInput';
+import { VoiceChatPanel } from '@/components/chat/VoiceChatPanel';
 import { ApprovalList } from '@/components/approval/ApprovalList';
 import { RunStatus, AssistantType } from '@/types';
 import type { ChatTimelineItem } from '@/types';
@@ -44,6 +45,10 @@ export function ChatPage() {
 
   const handleNewChat = () => {
     navigate('/chat');
+  };
+
+  const handleVoiceConversationCreated = (conversationId: string) => {
+    navigate(`/chat/${conversationId}`);
   };
 
   const isDisabled =
@@ -267,6 +272,13 @@ export function ChatPage() {
         )}
 
         {/* Input */}
+        <VoiceChatPanel
+          conversationId={run?.runId}
+          assistantType={!run ? selectedAssistantType : undefined}
+          disabled={isDisabled || isCompleted}
+          onConversationCreated={handleVoiceConversationCreated}
+        />
+
         <ChatInput
           onSend={handleSendMessage}
           disabled={isDisabled || isCompleted}

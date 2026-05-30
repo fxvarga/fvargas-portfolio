@@ -1,7 +1,9 @@
 using System.Text.Json.Serialization;
+using AgentChat.ApiBff.Configuration;
 using AgentChat.ApiBff.Endpoints;
 using AgentChat.ApiBff.Hubs;
 using AgentChat.ApiBff.Middleware;
+using AgentChat.ApiBff.Services;
 using AgentChat.FinanceKnowledge.Services;
 using AgentChat.Infrastructure;
 using AgentChat.Shared.Contracts;
@@ -19,6 +21,17 @@ builder.Services.AddSingleton<IToolRegistry, StaticToolRegistry>();
 
 // Register HttpClient for proxying requests to tools service
 builder.Services.AddHttpClient();
+
+// Configure voice services
+builder.Services.Configure<VoiceOptions>(builder.Configuration.GetSection(VoiceOptions.SectionName));
+builder.Services.AddSingleton<IAudioStorageService, AudioStorageService>();
+builder.Services.AddSingleton<ISpeechProvider>(sp =>
+{
+    var options = sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<VoiceOptions>>().Value;
+    return string.Equals(options.Provider, "Azure", StringComparison.OrdinalIgnoreCase)
+        ? new AzureSpeechProvider(sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<VoiceOptions>>())
+        : new NoOpSpeechProvider();
+});
 
 // Configure JSON serialization to use string enums
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -88,6 +101,7 @@ app.MapRunEndpoints();
 app.MapApprovalEndpoints();
 app.MapKnowledgeEndpoints();
 app.MapToolsEndpoints();
+app.MapVoiceEndpoints();
 
 // SignalR hub for real-time events
 app.MapHub<RunEventsHub>("/hubs/runs");

@@ -64,6 +64,23 @@ interface CreateRunResponse {
   correlationId: string;
 }
 
+export interface VoiceTranscribeResponse {
+  text: string;
+  audioReference: string;
+}
+
+export interface VoiceChatRequest {
+  conversationId?: string;
+  audioReference: string;
+  assistantType?: string;
+}
+
+export interface VoiceChatResponse {
+  conversationId: string;
+  transcript: string;
+  audioUrl?: string;
+}
+
 export async function createRun(request: CreateRunRequest): Promise<CreateRunResponse> {
   const response = await fetch(`${API_BASE}/runs`, {
     method: 'POST',
@@ -89,6 +106,30 @@ export async function sendMessage(
     const text = await response.text();
     throw new ApiError(response.status, text || response.statusText);
   }
+}
+
+export async function transcribeAudio(audio: Blob): Promise<VoiceTranscribeResponse> {
+  const formData = new FormData();
+  formData.append('audio', audio, 'voice-input.webm');
+
+  const response = await fetch(`${API_BASE}/voice/transcribe`, {
+    method: 'POST',
+    headers: {
+      'X-Tenant-Id': '11111111-1111-1111-1111-111111111111',
+    },
+    body: formData,
+  });
+
+  return handleResponse<VoiceTranscribeResponse>(response);
+}
+
+export async function sendVoiceChat(request: VoiceChatRequest): Promise<VoiceChatResponse> {
+  const response = await fetch(`${API_BASE}/voice/chat`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(request),
+  });
+  return handleResponse<VoiceChatResponse>(response);
 }
 
 // SSE streaming endpoint
