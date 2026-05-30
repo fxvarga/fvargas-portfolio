@@ -22,11 +22,13 @@ RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/
 # Create hermes home directory
 RUN mkdir -p /root/.hermes
 
-# Copy config
+# Copy config and entrypoint
 COPY config.yaml /root/.hermes/config.yaml
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 WORKDIR /root
 
-# Default entrypoint runs hermes with the messaging gateway
-ENTRYPOINT ["hermes"]
+# Entrypoint generates Google credential files from env vars, then runs hermes
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["gateway"]
