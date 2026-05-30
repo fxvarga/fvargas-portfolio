@@ -39,6 +39,7 @@ export function VoiceChatPanel({
   const silenceStartedRef = useRef<number | null>(null);
 
   const canStart = !disabled && state !== 'Listening' && state !== 'Processing' && state !== 'Speaking';
+  const assistantLabel = assistantType === 'FinanceAdvisor' ? 'Finance Advisor' : 'Hermes';
 
   const statusClass = useMemo(() => {
     switch (state) {
@@ -274,7 +275,7 @@ export function VoiceChatPanel({
           {transcripts.slice(-6).map((line, index) => (
             <div key={`${line.role}-${index}`} className="text-xs">
               <span className={`mr-1 font-medium ${line.role === 'user' ? 'text-blue-300' : 'text-green-300'}`}>
-                {line.role === 'user' ? 'You' : 'Hermes'}:
+                {line.role === 'user' ? 'You' : assistantLabel}:
               </span>
               <span className="text-gray-300">{line.content}</span>
             </div>

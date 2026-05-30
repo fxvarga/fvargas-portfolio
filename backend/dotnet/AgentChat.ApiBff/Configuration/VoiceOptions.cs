@@ -18,5 +18,5 @@ public class AzureSpeechOptions
     public string SubscriptionKey { get; set; } = string.Empty;
     public string RecognitionLanguage { get; set; } = "en-US";
     public string VoiceName { get; set; } = "en-US-JennyNeural";
-    public string OutputFormat { get; set; } = "audio-24khz-48kbitrate-mono-mp3";
+    public string OutputFormat { get; set; } = "Audio24Khz48KBitRateMonoMp3";
 }
