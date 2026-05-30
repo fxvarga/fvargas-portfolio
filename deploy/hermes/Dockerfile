@@ -21,9 +21,17 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
     && apt-get update && apt-get install -y gh \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Node.js (for dashboard web UI build)
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install Hermes Agent (pinned release)
 ARG HERMES_VERSION=latest
 RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
+
+# Pre-build the dashboard web UI
+RUN cd /usr/local/lib/hermes-agent/web && npm install && npm run build
 
 # Install Google Workspace Python dependencies
 RUN pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
