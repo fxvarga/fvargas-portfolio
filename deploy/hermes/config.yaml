@@ -5,22 +5,9 @@
 # Model provider — GitHub Copilot Enterprise (github.com SaaS)
 provider: copilot
 
-# Terminal backend — Docker sandboxing for tool execution
+# Terminal backend — local execution (inside the hermes container)
 terminal:
-  backend: docker
-  docker:
-    image: python:3.12-slim
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    pids_limit: 256
-    mem_limit: 512m
-    tmpfs:
-      /tmp: "size=128m,mode=1777"
-    network_mode: bridge
-    # Sandbox containers time out after 5 minutes
-    timeout: 300
+  backend: local
 
 # Security settings
 approval:
