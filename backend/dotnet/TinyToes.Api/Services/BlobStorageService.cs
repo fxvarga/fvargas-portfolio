@@ -55,8 +55,8 @@ public class BlobStorageService
     /// </summary>
     public async Task<(string blobKey, string signedUrl)> UploadPdfAsync(Stream pdfStream, string fileName)
     {
-        if (_container is null)
-            throw new InvalidOperationException("Azure Storage is not configured.");
+        if (_container is null || _sharedKey is null)
+            throw new InvalidOperationException("Azure Storage is not fully configured.");
 
         var blobKey = $"print-jobs/{DateTime.UtcNow:yyyy/MM/dd}/{Guid.NewGuid()}/{fileName}";
         var blob = _container.GetBlobClient(blobKey);
