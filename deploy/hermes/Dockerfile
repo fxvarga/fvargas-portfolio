@@ -19,6 +19,9 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg \
 ARG HERMES_VERSION=latest
 RUN curl -fsSL https://raw.githubusercontent.com/NousResearch/hermes-agent/main/scripts/install.sh | bash
 
+# Install Google Workspace Python dependencies
+RUN pip install --no-cache-dir google-api-python-client google-auth-httplib2 google-auth-oauthlib
+
 # Create hermes home directory
 RUN mkdir -p /root/.hermes
 
