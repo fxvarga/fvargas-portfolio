@@ -1,33 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Mic, Loader2, X, RotateCcw, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import * as api from '@/api/client';
-import type { AssistantType } from '@/types';
 
 type VoiceState = 'Idle' | 'Listening' | 'Processing' | 'Speaking' | 'Error';
-
-interface VoiceChatPanelProps {
-  conversationId?: string;
-  assistantType?: AssistantType;
-  disabled?: boolean;
-  onConversationCreated?: (conversationId: string) => void;
-}
 
 interface TranscriptLine {
   role: 'user' | 'assistant';
   content: string;
 }
 
-export function VoiceChatPanel({
-  conversationId,
-  assistantType,
-  disabled = false,
-  onConversationCreated,
-}: VoiceChatPanelProps) {
+interface VoiceChatResponse {
+  sessionId: string;
+  userTranscript: string;
+  assistantText: string;
+  audioUrl?: string;
+}
+
+const SESSION_STORAGE_KEY = 'voice-bridge:sessionId';
+
+export function VoiceChatPanel() {
   const [state, setState] = useState<VoiceState>('Idle');
   const [error, setError] = useState<string | null>(null);
   const [transcripts, setTranscripts] = useState<TranscriptLine[]>([]);
   const [lastBlob, setLastBlob] = useState<Blob | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(() =>
+    typeof window !== 'undefined' ? window.sessionStorage.getItem(SESSION_STORAGE_KEY) : null,
+  );
 
   const streamRef = useRef<MediaStream | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -37,9 +35,9 @@ export function VoiceChatPanel({
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const silenceStartedRef = useRef<number | null>(null);
+  const audioElementRef = useRef<HTMLAudioElement | null>(null);
 
-  const canStart = !disabled && state !== 'Listening' && state !== 'Processing' && state !== 'Speaking';
-  const assistantLabel = assistantType === 'FinanceAdvisor' ? 'Finance Advisor' : 'Hermes';
+  const canStart = state !== 'Listening' && state !== 'Processing' && state !== 'Speaking';
 
   const statusClass = useMemo(() => {
     switch (state) {
@@ -55,6 +53,25 @@ export function VoiceChatPanel({
         return 'text-gray-400';
     }
   }, [state]);
+
+  const persistSessionId = (id: string) => {
+    setSessionId(id);
+    try {
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, id);
+    } catch {
+      // Ignore quota/availability errors
+    }
+  };
+
+  const resetSession = () => {
+    setSessionId(null);
+    setTranscripts([]);
+    try {
+      window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+  };
 
   const startListening = async () => {
     if (!canStart) return;
@@ -115,7 +132,7 @@ export function VoiceChatPanel({
   };
 
   const retryLast = async () => {
-    if (!lastBlob || disabled) return;
+    if (!lastBlob) return;
     await runVoiceFlow(lastBlob);
   };
 
@@ -123,24 +140,35 @@ export function VoiceChatPanel({
     setState('Processing');
 
     try {
-      const response = await api.sendVoiceChat({
-        conversationId,
-        audio: blob,
-        assistantType,
+      const formData = new FormData();
+      formData.append('audio', blob, 'voice-input.webm');
+      if (sessionId) formData.append('sessionId', sessionId);
+
+      const response = await fetch('/api/voice/chat', {
+        method: 'POST',
+        body: formData,
+        credentials: 'same-origin',
       });
 
-      if (!conversationId && response.conversationId) {
-        onConversationCreated?.(response.conversationId);
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        throw new Error(text || `Voice request failed (${response.status})`);
       }
 
-      setTranscripts((prev) => [...prev, { role: 'user', content: response.userTranscript }]);
-      setTranscripts((prev) => [...prev, { role: 'assistant', content: response.transcript }]);
+      const data = (await response.json()) as VoiceChatResponse;
 
-      if (response.audioUrl) {
-        setState('Speaking');
-        const audio = new Audio(response.audioUrl);
-        await audio.play();
-        audio.onended = () => setState('Idle');
+      if (data.sessionId && data.sessionId !== sessionId) {
+        persistSessionId(data.sessionId);
+      }
+
+      setTranscripts((prev) => [
+        ...prev,
+        { role: 'user', content: data.userTranscript },
+        { role: 'assistant', content: data.assistantText },
+      ]);
+
+      if (data.audioUrl) {
+        await playAudio(data.audioUrl);
       } else {
         setState('Idle');
       }
@@ -149,6 +177,29 @@ export function VoiceChatPanel({
       setError(e instanceof Error ? e.message : 'Voice request failed.');
     }
   };
+
+  const playAudio = (url: string) =>
+    new Promise<void>((resolve) => {
+      const audio = new Audio(url);
+      audioElementRef.current = audio;
+
+      audio.onended = () => {
+        setState('Idle');
+        resolve();
+      };
+      audio.onerror = () => {
+        setState('Error');
+        setError('Failed to play assistant audio.');
+        resolve();
+      };
+
+      setState('Speaking');
+      audio.play().catch((err) => {
+        setState('Error');
+        setError(err instanceof Error ? err.message : 'Audio playback blocked.');
+        resolve();
+      });
+    });
 
   const stopMedia = () => {
     if (silenceIntervalRef.current !== null) {
@@ -172,11 +223,15 @@ export function VoiceChatPanel({
   useEffect(() => {
     return () => {
       stopMedia();
+      audioElementRef.current?.pause();
+      audioElementRef.current = null;
     };
   }, []);
 
   const startSilenceDetection = (stream: MediaStream) => {
-    const AudioContextCtor = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const AudioContextCtor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     if (!AudioContextCtor) return;
 
     const context = new AudioContextCtor();
@@ -220,10 +275,10 @@ export function VoiceChatPanel({
   };
 
   return (
-    <div className="border-t border-gray-700/50 bg-gray-800/40 px-4 md:px-6 py-3 space-y-3">
+    <div className="rounded-lg border border-gray-700/50 bg-gray-800/40 p-4 md:p-6 space-y-4">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Mic className={`w-4 h-4 ${statusClass}`} />
+          <Mic className={`w-5 h-5 ${statusClass}`} />
           <span className="text-sm text-gray-300">Voice: {state}</span>
         </div>
 
@@ -257,11 +312,21 @@ export function VoiceChatPanel({
             variant="ghost"
             onClick={retryLast}
             size="sm"
-            disabled={!lastBlob || disabled || state === 'Listening'}
+            disabled={!lastBlob || state === 'Listening'}
             className="gap-1.5"
           >
             <RotateCcw className="w-4 h-4" />
             Retry
+          </Button>
+
+          <Button
+            variant="ghost"
+            onClick={resetSession}
+            size="sm"
+            disabled={!sessionId && transcripts.length === 0}
+            className="gap-1.5"
+          >
+            New Session
           </Button>
         </div>
       </div>
@@ -269,13 +334,17 @@ export function VoiceChatPanel({
       {error && <p className="text-xs text-amber-400">{error}</p>}
 
       {transcripts.length > 0 && (
-        <div className="max-h-28 overflow-y-auto rounded-md border border-gray-700 bg-gray-900/60 p-2 space-y-1">
-          {transcripts.slice(-6).map((line, index) => (
-            <div key={`${line.role}-${index}`} className="text-xs">
-              <span className={`mr-1 font-medium ${line.role === 'user' ? 'text-blue-300' : 'text-green-300'}`}>
-                {line.role === 'user' ? 'You' : assistantLabel}:
+        <div className="max-h-60 overflow-y-auto rounded-md border border-gray-700 bg-gray-900/60 p-3 space-y-2">
+          {transcripts.map((line, index) => (
+            <div key={`${line.role}-${index}`} className="text-sm">
+              <span
+                className={`mr-2 font-medium ${
+                  line.role === 'user' ? 'text-blue-300' : 'text-green-300'
+                }`}
+              >
+                {line.role === 'user' ? 'You' : 'Hermes'}:
               </span>
-              <span className="text-gray-300">{line.content}</span>
+              <span className="text-gray-200">{line.content}</span>
             </div>
           ))}
         </div>

@@ -148,30 +148,6 @@ var appSettings = [
     name: 'KernelMemory__Services__AzureOpenAIText__Endpoint'
     value: createAzureOpenAiResource4o.outputs.azureOpenAiUrl
   }
-  {
-    name: 'Voice__Provider'
-    value: 'Azure'
-  }
-  {
-    name: 'Voice__AzureSpeech__Region'
-    value: createAzureSpeechResource.outputs.region
-  }
-  {
-    name: 'Voice__AzureSpeech__SubscriptionKey'
-    value: listKeys(resourceId('Microsoft.CognitiveServices/accounts', azureSpeechResourceName), '2023-10-01-preview').key1
-  }
-  {
-    name: 'Voice__AzureSpeech__RecognitionLanguage'
-    value: azureSpeech.recognitionLanguage
-  }
-  {
-    name: 'Voice__AzureSpeech__VoiceName'
-    value: azureSpeech.voiceName
-  }
-  {
-    name: 'Voice__AzureSpeech__OutputFormat'
-    value: azureSpeech.outputFormat
-  }
 ]
 param azureOpenAi4o {
   deploymentName: string

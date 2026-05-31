@@ -521,6 +521,12 @@ services:
       - GMAIL_OAUTH_CLIENT_ID=$GMAIL_OAUTH_CLIENT_ID
       - GMAIL_OAUTH_CLIENT_SECRET=$GMAIL_OAUTH_CLIENT_SECRET
       - GMAIL_REFRESH_TOKEN=$GMAIL_REFRESH_TOKEN
+      # Hermes built-in OpenAI-compatible API server (consumed internally by voice-bridge).
+      # Port 8642 is NOT published — only reachable inside portfolio-network.
+      - API_SERVER_ENABLED=true
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_PORT=8642
+      - API_SERVER_KEY=$HERMES_API_KEY
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - hermes-data:/root/.hermes
@@ -528,6 +534,51 @@ services:
     mem_limit: 1536m
     networks:
       - portfolio-network
+
+  # Voice bridge: browser → Azure Speech STT → Hermes API → Azure Speech TTS → browser.
+  # Internal-only; reached via agentchat-web nginx proxy on /api/voice/*.
+  voice-bridge:
+    build: ../services/voice-bridge
+    image: fxvarga/portfolio-voice-bridge:latest
+    container_name: portfolio-voice-bridge
+    restart: unless-stopped
+    environment:
+      - AZURE_SPEECH_KEY=$AZURE_SPEECH_KEY
+      - AZURE_SPEECH_REGION=$AZURE_SPEECH_REGION
+      - AZURE_SPEECH_VOICE=$AZURE_SPEECH_VOICE
+      - AZURE_SPEECH_LANGUAGE=$AZURE_SPEECH_LANGUAGE
+      - HERMES_BASE_URL=http://hermes:8642/v1
+      - HERMES_API_KEY=$HERMES_API_KEY
+      - HERMES_MODEL=$HERMES_MODEL
+      - AUDIO_TOKEN_SECRET=$AUDIO_TOKEN_SECRET
+    depends_on:
+      - hermes
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Agent Chat web (hosts /voice page). Twingate-only — port 9118 is NOT in any cloud firewall.
+  agentchat-web:
+    image: fxvarga/agentchat-web:latest
+    container_name: portfolio-agentchat-web
+    restart: unless-stopped
+    ports:
+      - "9118:80"
+    depends_on:
+      - voice-bridge
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # NOTE: twingate-connector is managed outside compose (manually deployed).
   # Do NOT add it here — killing/recreating it drops the SSH tunnel used for deploys.
