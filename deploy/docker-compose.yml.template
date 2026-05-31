@@ -538,7 +538,6 @@ services:
   # Voice bridge: browser → Azure Speech STT → Hermes API → Azure Speech TTS → browser.
   # Internal-only; reached via agentchat-web nginx proxy on /api/voice/*.
   voice-bridge:
-    build: ../services/voice-bridge
     image: fxvarga/portfolio-voice-bridge:latest
     container_name: portfolio-voice-bridge
     restart: unless-stopped
