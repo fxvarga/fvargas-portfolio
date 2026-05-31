@@ -72,7 +72,6 @@ public static class VoiceEndpoints
     }
 
     private static async Task<IResult> ChatAsync(
-        [FromBody] VoiceChatRequest request,
         HttpContext context,
         [FromServices] ISpeechProvider speechProvider,
         [FromServices] IAudioStorageService audioStorage,
@@ -96,10 +95,16 @@ public static class VoiceEndpoints
             ["UserId"] = userId
         });
 
-        if (string.IsNullOrWhiteSpace(request.AudioReference))
-            return Results.BadRequest(new { error = "audioReference is required." });
+        var (request, parseError) = await ReadVoiceChatRequestAsync(
+            context.Request,
+            audioStorage,
+            tenantId,
+            userId,
+            cancellationToken);
+        if (parseError is not null)
+            return parseError;
 
-        var sourceAudio = await audioStorage.GetAsync(request.AudioReference, tenantId, userId, cancellationToken);
+        var sourceAudio = await audioStorage.GetAsync(request.AudioReference!, tenantId, userId, cancellationToken);
         if (sourceAudio is null)
             return Results.NotFound(new { error = "Audio reference not found." });
 
@@ -238,7 +243,7 @@ public static class VoiceEndpoints
         totalTimer.Stop();
         logger.LogInformation("Voice chat total request completed in {DurationMs}ms", totalTimer.ElapsedMilliseconds);
 
-        return Results.Ok(new VoiceChatResponse(runId.ToString(), assistantTranscript, audioUrl));
+        return Results.Ok(new VoiceChatResponse(runId.ToString(), userTranscript, assistantTranscript, audioUrl));
     }
 
     private static async Task<IResult> GetAudioAsync(
@@ -308,6 +313,48 @@ public static class VoiceEndpoints
         return new AudioInput(rawAudio.ToArray(), request.ContentType ?? "application/octet-stream");
     }
 
+    private static async Task<(VoiceChatRequest Request, IResult? Error)> ReadVoiceChatRequestAsync(
+        HttpRequest request,
+        IAudioStorageService audioStorage,
+        Guid tenantId,
+        Guid userId,
+        CancellationToken cancellationToken)
+    {
+        if (request.HasFormContentType)
+        {
+            var form = await request.ReadFormAsync(cancellationToken);
+            var conversationId = form["conversationId"].FirstOrDefault();
+            var assistantType = form["assistantType"].FirstOrDefault();
+            var audioReference = form["audioReference"].FirstOrDefault();
+            var file = form.Files["audio"] ?? form.Files.FirstOrDefault();
+
+            if (file is not null && file.Length > 0)
+            {
+                await using var stream = file.OpenReadStream();
+                using var memory = new MemoryStream();
+                await stream.CopyToAsync(memory, cancellationToken);
+
+                var contentType = string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType;
+                var content = memory.ToArray();
+                var storedReference = await audioStorage.SaveAsync(content, contentType, tenantId, userId, cancellationToken);
+                return (
+                    new VoiceChatRequest(conversationId, storedReference, assistantType),
+                    null);
+            }
+
+            if (string.IsNullOrWhiteSpace(audioReference))
+                return (new VoiceChatRequest(conversationId, null, assistantType), Results.BadRequest(new { error = "audio file or audioReference is required." }));
+
+            return (new VoiceChatRequest(conversationId, audioReference, assistantType), null);
+        }
+
+        var payload = await request.ReadFromJsonAsync<VoiceChatRequest>(cancellationToken);
+        if (payload is null || string.IsNullOrWhiteSpace(payload.AudioReference))
+            return (new VoiceChatRequest(null, null), Results.BadRequest(new { error = "audioReference is required." }));
+
+        return (payload, null);
+    }
+
     private static Guid GetTenantId(HttpContext context) =>
         Guid.Parse(context.Items["TenantId"]?.ToString() ?? Guid.Empty.ToString());
 
@@ -316,6 +363,6 @@ public static class VoiceEndpoints
 
     private sealed record AudioInput(byte[] Content, string ContentType);
     public sealed record VoiceTranscribeResponse(string Text, string AudioReference);
-    public sealed record VoiceChatRequest(string? ConversationId, string AudioReference, string? AssistantType = null);
-    public sealed record VoiceChatResponse(string ConversationId, string Transcript, string? AudioUrl);
+    public sealed record VoiceChatRequest(string? ConversationId, string? AudioReference, string? AssistantType = null);
+    public sealed record VoiceChatResponse(string ConversationId, string UserTranscript, string Transcript, string? AudioUrl);
 }

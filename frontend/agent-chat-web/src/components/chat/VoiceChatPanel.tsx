@@ -123,12 +123,9 @@ export function VoiceChatPanel({
     setState('Processing');
 
     try {
-      const transcribed = await api.transcribeAudio(blob);
-      setTranscripts((prev) => [...prev, { role: 'user', content: transcribed.text }]);
-
       const response = await api.sendVoiceChat({
         conversationId,
-        audioReference: transcribed.audioReference,
+        audio: blob,
         assistantType,
       });
 
@@ -136,6 +133,7 @@ export function VoiceChatPanel({
         onConversationCreated?.(response.conversationId);
       }
 
+      setTranscripts((prev) => [...prev, { role: 'user', content: response.userTranscript }]);
       setTranscripts((prev) => [...prev, { role: 'assistant', content: response.transcript }]);
 
       if (response.audioUrl) {

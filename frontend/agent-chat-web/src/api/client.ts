@@ -71,12 +71,14 @@ export interface VoiceTranscribeResponse {
 
 export interface VoiceChatRequest {
   conversationId?: string;
-  audioReference: string;
+  audioReference?: string;
+  audio?: Blob;
   assistantType?: string;
 }
 
 export interface VoiceChatResponse {
   conversationId: string;
+  userTranscript: string;
   transcript: string;
   audioUrl?: string;
 }
@@ -124,11 +126,26 @@ export async function transcribeAudio(audio: Blob): Promise<VoiceTranscribeRespo
 }
 
 export async function sendVoiceChat(request: VoiceChatRequest): Promise<VoiceChatResponse> {
-  const response = await fetch(`${API_BASE}/voice/chat`, {
-    method: 'POST',
-    headers: getHeaders(),
-    body: JSON.stringify(request),
-  });
+  const response = request.audio
+    ? await (() => {
+        const formData = new FormData();
+        formData.append('audio', request.audio, 'voice-input.webm');
+        if (request.conversationId) formData.append('conversationId', request.conversationId);
+        if (request.audioReference) formData.append('audioReference', request.audioReference);
+        if (request.assistantType) formData.append('assistantType', request.assistantType);
+        return fetch(`${API_BASE}/voice/chat`, {
+          method: 'POST',
+          headers: {
+            'X-Tenant-Id': '11111111-1111-1111-1111-111111111111',
+          },
+          body: formData,
+        });
+      })()
+    : await fetch(`${API_BASE}/voice/chat`, {
+        method: 'POST',
+        headers: getHeaders(),
+        body: JSON.stringify(request),
+      });
   return handleResponse<VoiceChatResponse>(response);
 }
 
