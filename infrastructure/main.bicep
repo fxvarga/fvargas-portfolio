@@ -159,7 +159,14 @@ param azureOpenAiEmbeddings {
   apiVersion: string
   capacity: int
 }
+param azureSpeech {
+  sku: string
+  recognitionLanguage: string
+  voiceName: string
+  outputFormat: string
+}
 var applicationNameWithEnvironment = '${applicationName}-${env}-${location}'
+var azureSpeechResourceName = 'speech-${applicationNameWithEnvironment}'
 
 module createCdnProfile 'modules/cdnProfile.bicep' = {
   name: '${deployment().name}-createCdnProfile'
@@ -220,6 +227,15 @@ module createAzureOpenAiResourceEmbedding 'modules/azureOpenAiModelDeployment.bi
   dependsOn: [
     createAzureOpenAiResource4o
   ]
+}
+module createAzureSpeechResource 'modules/azureSpeechResource.bicep' = {
+  name: '${deployment().name}-azureSpeechResource'
+  params: {
+    location: location
+    speechResourceName: azureSpeechResourceName
+    subdomainName: 'speech-${applicationNameWithEnvironment}'
+    skuSize: azureSpeech.sku
+  }
 }
 module createAppConfig 'modules/appConfiguration.bicep' = {
   name: '${deployment().name}-createAppConfig'
