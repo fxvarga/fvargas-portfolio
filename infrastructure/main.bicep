@@ -158,7 +158,7 @@ var appSettings = [
   }
   {
     name: 'Voice__AzureSpeech__SubscriptionKey'
-    value: createAzureSpeechResource.outputs.primaryKey
+    value: listKeys(resourceId('Microsoft.CognitiveServices/accounts', azureSpeechResourceName), '2023-10-01-preview').key1
   }
   {
     name: 'Voice__AzureSpeech__RecognitionLanguage'
@@ -190,6 +190,7 @@ param azureSpeech {
   outputFormat: string
 }
 var applicationNameWithEnvironment = '${applicationName}-${env}-${location}'
+var azureSpeechResourceName = 'speech-${applicationNameWithEnvironment}'
 
 module createCdnProfile 'modules/cdnProfile.bicep' = {
   name: '${deployment().name}-createCdnProfile'
@@ -255,7 +256,7 @@ module createAzureSpeechResource 'modules/azureSpeechResource.bicep' = {
   name: '${deployment().name}-azureSpeechResource'
   params: {
     location: location
-    speechResourceName: 'speech-${applicationNameWithEnvironment}'
+    speechResourceName: azureSpeechResourceName
     subdomainName: 'speech-${applicationNameWithEnvironment}'
     skuSize: azureSpeech.sku
   }

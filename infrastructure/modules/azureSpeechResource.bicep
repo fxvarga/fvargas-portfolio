@@ -21,4 +21,4 @@ resource azureSpeechResource 'Microsoft.CognitiveServices/accounts@2023-10-01-pr
 
 output endpoint string = azureSpeechResource.properties.endpoint
 output region string = azureSpeechResource.location
-output primaryKey string = listKeys(azureSpeechResource.id, azureSpeechResource.apiVersion).key1
+output resourceName string = azureSpeechResource.name
