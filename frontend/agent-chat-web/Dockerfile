@@ -6,6 +6,11 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
+# pnpm 10 fails installs that have any ignored build scripts.
+# We allowlist esbuild via package.json#pnpm.onlyBuiltDependencies, but also
+# turn off strict-dep-builds so unrelated future warnings don't fail the build.
+ENV PNPM_CONFIG_STRICT_DEP_BUILDS=false
+
 # Copy package files
 COPY package.json pnpm-lock.yaml ./
 
