@@ -148,6 +148,30 @@ var appSettings = [
     name: 'KernelMemory__Services__AzureOpenAIText__Endpoint'
     value: createAzureOpenAiResource4o.outputs.azureOpenAiUrl
   }
+  {
+    name: 'Voice__Provider'
+    value: 'Azure'
+  }
+  {
+    name: 'Voice__AzureSpeech__Region'
+    value: createAzureSpeechResource.outputs.region
+  }
+  {
+    name: 'Voice__AzureSpeech__SubscriptionKey'
+    value: createAzureSpeechResource.outputs.primaryKey
+  }
+  {
+    name: 'Voice__AzureSpeech__RecognitionLanguage'
+    value: azureSpeech.recognitionLanguage
+  }
+  {
+    name: 'Voice__AzureSpeech__VoiceName'
+    value: azureSpeech.voiceName
+  }
+  {
+    name: 'Voice__AzureSpeech__OutputFormat'
+    value: azureSpeech.outputFormat
+  }
 ]
 param azureOpenAi4o {
   deploymentName: string
@@ -158,6 +182,12 @@ param azureOpenAiEmbeddings {
   deploymentName: string
   apiVersion: string
   capacity: int
+}
+param azureSpeech {
+  sku: string
+  recognitionLanguage: string
+  voiceName: string
+  outputFormat: string
 }
 var applicationNameWithEnvironment = '${applicationName}-${env}-${location}'
 
@@ -220,6 +250,15 @@ module createAzureOpenAiResourceEmbedding 'modules/azureOpenAiModelDeployment.bi
   dependsOn: [
     createAzureOpenAiResource4o
   ]
+}
+module createAzureSpeechResource 'modules/azureSpeechResource.bicep' = {
+  name: '${deployment().name}-azureSpeechResource'
+  params: {
+    location: location
+    speechResourceName: 'speech-${applicationNameWithEnvironment}'
+    subdomainName: 'speech-${applicationNameWithEnvironment}'
+    skuSize: azureSpeech.sku
+  }
 }
 module createAppConfig 'modules/appConfiguration.bicep' = {
   name: '${deployment().name}-createAppConfig'

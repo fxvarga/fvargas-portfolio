@@ -64,6 +64,14 @@
         "apiVersion": "2",
         "capacity": 100
       }
+    },
+    "azureSpeech": {
+      "value": {
+        "sku": "S0",
+        "recognitionLanguage": "en-US",
+        "voiceName": "en-US-JennyNeural",
+        "outputFormat": "Audio24Khz48KBitRateMonoMp3"
+      }
     }
   }
 }
