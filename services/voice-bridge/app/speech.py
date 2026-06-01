@@ -54,7 +54,13 @@ class AzureSpeech:
         if not audio_bytes:
             raise SpeechError("Empty audio payload.")
 
-        push_stream = speechsdk.audio.PushAudioInputStream()
+        # Browser MediaRecorder produces webm/opus (or mp4/aac depending on browser).
+        # Tell the SDK the input is compressed; ANY lets GStreamer auto-detect.
+        # Requires gstreamer1.0-* packages on Linux (installed in the Dockerfile).
+        stream_format = speechsdk.audio.AudioStreamFormat(
+            compressed_stream_format=speechsdk.AudioStreamContainerFormat.ANY
+        )
+        push_stream = speechsdk.audio.PushAudioInputStream(stream_format=stream_format)
         # Feed in chunks; SDK is happy with one big write too.
         push_stream.write(audio_bytes)
         push_stream.close()
