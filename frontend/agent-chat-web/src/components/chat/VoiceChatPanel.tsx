@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Mic, Loader2, X, RotateCcw, Volume2 } from 'lucide-react';
+import { Mic, Loader2, X, RotateCcw, Volume2, Square } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 type VoiceState = 'Idle' | 'Listening' | 'Processing' | 'Speaking' | 'Error';
@@ -283,28 +283,38 @@ export function VoiceChatPanel() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            onMouseDown={startListening}
-            onMouseUp={stopListening}
-            onMouseLeave={stopListening}
-            onTouchStart={startListening}
-            onTouchEnd={stopListening}
-            disabled={!canStart}
-            size="sm"
-            className="gap-1.5"
-          >
-            {state === 'Processing' || state === 'Speaking' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Mic className="w-4 h-4" />
-            )}
-            Hold to Talk
-          </Button>
-
-          {state === 'Listening' && (
-            <Button variant="ghost" onClick={cancelListening} size="sm" className="gap-1.5">
-              <X className="w-4 h-4" />
-              Cancel
+          {state === 'Listening' ? (
+            <>
+              <Button
+                onClick={stopListening}
+                size="sm"
+                className="gap-1.5 bg-red-600 hover:bg-red-700"
+              >
+                <Square className="w-4 h-4" />
+                Stop
+              </Button>
+              <Button variant="ghost" onClick={cancelListening} size="sm" className="gap-1.5">
+                <X className="w-4 h-4" />
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <Button
+              onClick={startListening}
+              disabled={!canStart}
+              size="sm"
+              className="gap-1.5"
+            >
+              {state === 'Processing' || state === 'Speaking' ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Mic className="w-4 h-4" />
+              )}
+              {state === 'Processing'
+                ? 'Processing'
+                : state === 'Speaking'
+                  ? 'Speaking'
+                  : 'Record'}
             </Button>
           )}
 
