@@ -201,6 +201,8 @@ tinytoes.fernando-vargas.com {
 voice.fernando-vargas.com {
     tls {
         dns godaddy {env.GODADDY_API_TOKEN}
+        propagation_delay 60s
+        propagation_timeout 5m
     }
     reverse_proxy agentchat-web:80
 }
