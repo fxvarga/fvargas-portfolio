@@ -409,12 +409,16 @@ services:
       start_period: 10s
 
   caddy:
-    image: caddy:2-alpine
+    image: fxvarga/portfolio-caddy:latest
     container_name: portfolio-caddy
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    environment:
+      # Required for DNS-01 issuance of voice.fernando-vargas.com (private-IP host).
+      # Format: "<godaddy-api-key>:<godaddy-api-secret>".
+      - GODADDY_API_TOKEN=$GODADDY_API_TOKEN
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
