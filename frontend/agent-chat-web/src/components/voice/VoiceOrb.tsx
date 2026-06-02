@@ -51,6 +51,8 @@ export function VoiceOrb() {
     typeof window !== 'undefined' ? window.sessionStorage.getItem(SESSION_STORAGE_KEY) : null,
   );
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [permissionState, setPermissionState] = useState<string>('unknown');
+  const [diagnostics, setDiagnostics] = useState<string>('');
 
   const orbRef = useRef<HTMLDivElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -99,24 +101,54 @@ export function VoiceOrb() {
   // up front that the mic is blocked, instead of waiting for them to tap the
   // orb and see a generic error.
   useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.permissions?.query) return;
+    if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
+      setPermissionState('permissions-api-unsupported');
+      return;
+    }
     let cancelled = false;
     navigator.permissions
       // PermissionName doesn't include 'microphone' in lib.dom.d.ts; cast is intentional.
       .query({ name: 'microphone' as PermissionName })
       .then((status) => {
         if (cancelled) return;
-        const apply = () => setPermissionDenied(status.state === 'denied');
+        const apply = () => {
+          setPermissionState(status.state);
+          setPermissionDenied(status.state === 'denied');
+        };
         apply();
         status.onchange = apply;
       })
-      .catch(() => {
-        // Safari < 16 throws; ignore silently.
+      .catch((e: unknown) => {
+        const msg = e instanceof Error ? `${e.name}:${e.message}` : 'error';
+        setPermissionState(`query-failed(${msg})`);
       });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // Collect environment info we care about for diagnosing iOS Safari mic
+  // failures. Updated whenever the error state changes so the user can
+  // screenshot it.
+  useEffect(() => {
+    const lines: string[] = [];
+    lines.push(`isSecureContext: ${String(window.isSecureContext)}`);
+    lines.push(`protocol: ${window.location.protocol}`);
+    lines.push(`host: ${window.location.host}`);
+    lines.push(`mediaDevices: ${typeof navigator.mediaDevices}`);
+    lines.push(`getUserMedia: ${typeof navigator.mediaDevices?.getUserMedia}`);
+    lines.push(`MediaRecorder: ${typeof MediaRecorder}`);
+    lines.push(`webmOpus: ${MediaRecorder?.isTypeSupported?.('audio/webm;codecs=opus') ?? 'n/a'}`);
+    lines.push(`mp4: ${MediaRecorder?.isTypeSupported?.('audio/mp4') ?? 'n/a'}`);
+    lines.push(`permissions.query: ${typeof navigator.permissions?.query}`);
+    lines.push(`permState: ${permissionState}`);
+    lines.push(`UA: ${navigator.userAgent}`);
+    if (error) {
+      lines.push(`errName: ${error.name}`);
+      lines.push(`errMsg: ${error.message}`);
+    }
+    setDiagnostics(lines.join('\n'));
+  }, [state, error, permissionState]);
 
   const persistSessionId = (id: string) => {
     setSessionId(id);
@@ -250,6 +282,48 @@ export function VoiceOrb() {
             : { name: 'Error', message: 'Microphone unavailable.' };
         setError(err);
         setPermissionDenied(err.name === 'NotAllowedError' || err.name === 'SecurityError');
+        setState('error');
+      });
+  };
+
+  /**
+   * Diagnostic-only path. Bypasses MediaRecorder, AnalyserNode, AudioContext,
+   * and the orb state machine entirely. Just calls getUserMedia synchronously
+   * from a clean tap, then immediately stops. Surfaces the raw outcome so we
+   * can tell whether the failure is permission-level (NotAllowedError) or
+   * something inside our recorder/analyser setup.
+   */
+  const handleRawMicTest = () => {
+    const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
+    if (!micPromise) {
+      setError({
+        name: 'NoMediaDevices',
+        message: 'navigator.mediaDevices.getUserMedia is undefined.',
+      });
+      setState('error');
+      return;
+    }
+    setError(null);
+    micPromise
+      .then((stream) => {
+        const trackInfo = stream
+          .getAudioTracks()
+          .map((t) => `${t.label || '(no label)'}|enabled=${t.enabled}|state=${t.readyState}`)
+          .join(' / ');
+        stream.getTracks().forEach((t) => t.stop());
+        setError({
+          name: 'RawTestSuccess',
+          message: `Got ${stream.getAudioTracks().length} track(s): ${trackInfo}`,
+        });
+        setState('error'); // 'error' state just so the diagnostic panel shows
+        setPermissionDenied(false);
+      })
+      .catch((e: unknown) => {
+        const err =
+          e instanceof Error
+            ? { name: e.name || 'Error', message: e.message }
+            : { name: 'Error', message: 'Raw mic test failed.' };
+        setError(err);
         setState('error');
       });
   };
@@ -426,9 +500,28 @@ export function VoiceOrb() {
           Enable microphone
         </button>
       ) : null}
+      <button
+        type="button"
+        onClick={handleRawMicTest}
+        className="px-3 py-1 text-xs rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100"
+      >
+        Raw mic test (diagnostic)
+      </button>
       {state === 'error' && error ? (
         <p className="text-xs text-gray-400 font-mono">{error.name}</p>
       ) : null}
+      {/* Always-visible diagnostics panel. Tiny and dim when no error, more
+          visible when something failed. Useful for triaging iOS Safari mic
+          problems where the failure mode varies subtly across iOS versions. */}
+      <pre
+        className={
+          state === 'error'
+            ? 'text-[10px] leading-tight font-mono text-gray-600 bg-gray-100 p-2 rounded max-w-[90vw] overflow-x-auto whitespace-pre-wrap break-all'
+            : 'text-[9px] leading-tight font-mono text-gray-300 max-w-[90vw] overflow-x-auto whitespace-pre-wrap break-all'
+        }
+      >
+        {diagnostics}
+      </pre>
     </div>
   );
 }
