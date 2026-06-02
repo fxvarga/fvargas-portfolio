@@ -116,7 +116,13 @@ export function VoiceOrb() {
         if (cancelled) return;
         const apply = () => {
           setPermissionState(status.state);
-          setPermissionDenied(status.state === 'denied');
+          // iOS Safari frequently stale-reports 'denied' even after the user
+          // has just granted. Only USE the probe to set the flag positively
+          // when actually denied; never use it to clear, since a successful
+          // getUserMedia is the authoritative signal that mic is granted.
+          if (status.state === 'denied') {
+            setPermissionDenied(true);
+          }
         };
         apply();
         status.onchange = apply;
@@ -180,14 +186,24 @@ export function VoiceOrb() {
     streamRef.current = stream;
     chunksRef.current = [];
 
+    // eslint-disable-next-line no-console
+    console.log('[voice-orb] beginListening: stream tracks', stream.getAudioTracks().length);
+
     let recorder: MediaRecorder;
     try {
+      const webmOpus = MediaRecorder.isTypeSupported('audio/webm;codecs=opus');
+      const mp4 = MediaRecorder.isTypeSupported('audio/mp4');
+      // eslint-disable-next-line no-console
+      console.log('[voice-orb] mimeType support', { webmOpus, mp4 });
+      // Prefer webm/opus where supported (Chromium, Firefox); fall back to
+      // browser default (iOS Safari emits audio/mp4 with AAC). The voice-bridge
+      // backend feeds both through GStreamer via AudioStreamContainerFormat.ANY.
       recorder = new MediaRecorder(stream, {
-        mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-          ? 'audio/webm;codecs=opus'
-          : undefined,
+        mimeType: webmOpus ? 'audio/webm;codecs=opus' : undefined,
       });
     } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[voice-orb] MediaRecorder ctor failed', e);
       cleanupCapture();
       const err = e instanceof Error ? e : new Error('MediaRecorder unavailable');
       setError({ name: err.name || 'Error', message: err.message });
@@ -209,10 +225,31 @@ export function VoiceOrb() {
       }
       await runVoiceFlow(blob);
     };
+    recorder.onerror = (ev) => {
+      // eslint-disable-next-line no-console
+      console.error('[voice-orb] MediaRecorder error event', ev);
+    };
 
-    recorder.start();
+    try {
+      recorder.start();
+      // eslint-disable-next-line no-console
+      console.log('[voice-orb] recorder.start OK');
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.error('[voice-orb] recorder.start threw', e);
+      cleanupCapture();
+      const err = e instanceof Error ? e : new Error('MediaRecorder.start failed');
+      setError({ name: err.name || 'Error', message: err.message });
+      setState('error');
+      return;
+    }
     setState('listening');
-    startAudioMeter(stream);
+    try {
+      startAudioMeter(stream);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn('[voice-orb] audio meter setup failed (non-fatal)', e);
+    }
   };
 
   const stopListening = () => {
@@ -469,8 +506,9 @@ export function VoiceOrb() {
     (state === 'error' && error?.name === 'SecurityError');
 
   const statusText = (() => {
-    if (state === 'error' && error) return describeError(error);
-    if (permissionDenied) return 'Microphone is blocked. Tap "Enable microphone" below.';
+    // Active states win over any permission flag: if we're actually recording,
+    // thinking, or speaking, the mic is clearly not blocked even if iOS
+    // Safari's permissions.query keeps stale-reporting 'denied'.
     switch (state) {
       case 'listening':
         return 'Listening — tap to send';
@@ -478,9 +516,10 @@ export function VoiceOrb() {
         return 'Thinking…';
       case 'speaking':
         return 'Speaking — tap to interrupt';
-      default:
-        return 'Tap the orb to talk';
     }
+    if (state === 'error' && error) return describeError(error);
+    if (permissionDenied) return 'Microphone is blocked. Tap "Enable microphone" below.';
+    return 'Tap the orb to talk';
   })();
 
   const orbClasses = ['voice-orb'];
