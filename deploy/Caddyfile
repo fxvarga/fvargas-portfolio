@@ -205,3 +205,13 @@ tinytoes.fernando-vargas.com {
 voice.fernando-vargas.com {
     reverse_proxy oauth2-proxy:4180
 }
+
+# Fallback / test hostname while GoDaddy DNS access is being recovered.
+# sslip.io auto-resolves <anything>-<a-b-c-d>.sslip.io to a.b.c.d, so this
+# hostname resolves to the VM's public IP (20.114.187.45) without needing
+# any DNS account. Caddy issues a normal HTTP-01 cert. Same oauth2-proxy
+# upstream and same Entra app reg (a second redirect URI was registered).
+# Remove this block once voice.fernando-vargas.com is fully working.
+voice-20-114-187-45.sslip.io {
+    reverse_proxy oauth2-proxy:4180
+}
