@@ -57,7 +57,7 @@ export function VoiceOrb() {
   const [permissionState, setPermissionState] = useState<string>('unknown');
   const [diagnostics, setDiagnostics] = useState<string>('');
 
-  const orbRef = useRef<HTMLDivElement | null>(null);
+  const orbRef = useRef<HTMLElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
@@ -530,13 +530,16 @@ export function VoiceOrb() {
   return (
     <div className="flex flex-col items-center gap-6 select-none">
       {/*
-        Must be a real <button>, not a styled <div role="button">. iOS Safari
-        treats the activation token from a <div onClick> tap as weaker and
-        silently rejects getUserMedia in some versions, even when an identical
-        call from a real <button onClick> succeeds. The raw-mic-test button
-        below is what surfaced this difference.
+        The orb IS the button -- no inner element. Previous attempts wrapped a
+        styled div as the click target; iOS Safari was silently rejecting
+        getUserMedia from that gesture while accepting an identical call from
+        the smaller diagnostic button. Putting the visual directly on the
+        <button> eliminates any ambiguity about the event target. The
+        `voice-orb-button` class adds touch-action:manipulation and removes
+        the default button chrome so the orb visual is preserved.
       */}
       <button
+        ref={orbRef as React.RefObject<HTMLButtonElement>}
         type="button"
         aria-label={statusText}
         aria-pressed={state === 'listening'}
@@ -547,10 +550,8 @@ export function VoiceOrb() {
             handleOrbClick();
           }
         }}
-        className="voice-orb-stage appearance-none bg-transparent border-0 p-0 cursor-pointer"
-      >
-        <div ref={orbRef} className={orbClasses.join(' ')} aria-hidden />
-      </button>
+        className={`voice-orb-button ${orbClasses.join(' ')}`}
+      />
       <p
         className={
           state === 'error' || permissionDenied

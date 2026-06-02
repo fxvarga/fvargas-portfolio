@@ -1,15 +1,33 @@
-.voice-orb-stage {
-  width: 320px;
-  height: 320px;
-  display: grid;
-  place-items: center;
-  position: relative;
+/*
+ * Voice orb visual. Applied directly to a <button> element so the click
+ * target IS the orb -- no inner div wrapper. Previously the orb was a div
+ * inside a button, and iOS Safari was rejecting getUserMedia on taps even
+ * though an identical call from a sibling button succeeded; collapsing the
+ * structure removes that ambiguity.
+ *
+ * `touch-action: manipulation` opts out of iOS's implicit double-tap-to-zoom
+ * and similar gestures that can consume the transient user-activation token
+ * before our click handler runs, which is one of the documented reasons
+ * getUserMedia can silently fail with NotAllowedError on iOS Safari.
+ */
+.voice-orb-button {
+  /* Strip default <button> chrome so the orb visual is preserved. */
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+
+  /* Click affordance + iOS gesture handling. */
   cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-}
+  touch-action: manipulation;
 
-.voice-orb {
+  /* Orb visual. */
   --orb-size: 240px;
   --orb-scale: 1;
   --orb-glow: 60px;
@@ -34,7 +52,7 @@
   will-change: transform, border-radius, background-position;
 }
 
-.voice-orb.is-listening {
+.voice-orb-button.is-listening {
   background: linear-gradient(135deg, #00e676 0%, #1de9b6 50%, #00bfa5 100%);
   background-size: 200% 200%;
   box-shadow:
@@ -43,14 +61,14 @@
     inset 20px 20px 50px rgba(0, 0, 0, 0.05);
 }
 
-.voice-orb.is-processing {
+.voice-orb-button.is-processing {
   animation:
     voice-orb-morph 9s ease-in-out infinite,
     voice-orb-gradient 14s ease infinite,
     voice-orb-pulse 1.4s ease-in-out infinite;
 }
 
-.voice-orb.is-speaking {
+.voice-orb-button.is-speaking {
   background: linear-gradient(135deg, #6a82fb 0%, #84fab0 50%, #8fd3f4 100%);
   background-size: 200% 200%;
   box-shadow:
@@ -96,7 +114,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .voice-orb {
+  .voice-orb-button {
     animation: none;
   }
 }
