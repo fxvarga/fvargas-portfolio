@@ -11,6 +11,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  // Baked-in build identifier surfaced in the voice orb's diagnostic panel.
+  // Lets us verify at a glance whether the browser is running the latest
+  // bundle (iOS Safari is aggressive about caching index.html).
+  define: {
+    __BUILD_ID__: JSON.stringify(new Date().toISOString()),
+  },
   build: {
     sourcemap: true,
     minify: false,

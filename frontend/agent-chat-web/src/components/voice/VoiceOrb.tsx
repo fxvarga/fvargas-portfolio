@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './VoiceOrb.css';
 
+// Baked at build time by Vite (see vite.config.ts -> define).
+declare const __BUILD_ID__: string;
+
 type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
 
 interface VoiceChatResponse {
@@ -132,6 +135,7 @@ export function VoiceOrb() {
   // screenshot it.
   useEffect(() => {
     const lines: string[] = [];
+    lines.push(`build: ${__BUILD_ID__}`);
     lines.push(`isSecureContext: ${String(window.isSecureContext)}`);
     lines.push(`protocol: ${window.location.protocol}`);
     lines.push(`host: ${window.location.host}`);
@@ -165,6 +169,9 @@ export function VoiceOrb() {
    * the same handler can consume the activation token and cause the prompt to
    * be silently rejected with NotAllowedError. Callers pass an already-resolved
    * MediaStream into the rest of the listening flow.
+   *
+   * Kept as a thin wrapper purely for documentation; callers MUST invoke it
+   * inline as the first statement of their click handler.
    */
   const acquireMicStream = (): Promise<MediaStream> =>
     navigator.mediaDevices.getUserMedia({ audio: true });
@@ -222,20 +229,37 @@ export function VoiceOrb() {
    * Orb tap handler. The synchronous-first-line getUserMedia call is load-
    * bearing: iOS Safari requires getUserMedia to be invoked inside the same
    * task as the user gesture, before any awaits or state-setter side-effects.
+   *
+   * NOTE: the getUserMedia call is INLINED here (not via acquireMicStream())
+   * to be byte-for-byte identical to handleRawMicTest, because the raw test
+   * succeeds on the same iOS device where the orb tap previously failed.
    */
   const handleOrbClick = () => {
     if (state === 'idle' || state === 'error') {
-      // Synchronous invocation -- preserves the user-activation token.
-      const micPromise = acquireMicStream();
+      // eslint-disable-next-line no-console
+      console.log('[voice-orb] orb tap, calling getUserMedia', { state, buildId: __BUILD_ID__ });
+      const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
+      if (!micPromise) {
+        setError({
+          name: 'NoMediaDevices',
+          message: 'navigator.mediaDevices.getUserMedia is undefined.',
+        });
+        setState('error');
+        return;
+      }
       // Now that the permission request is in-flight, it's safe to do React
       // state updates and other async work.
       setError(null);
       micPromise
         .then((stream) => {
+          // eslint-disable-next-line no-console
+          console.log('[voice-orb] getUserMedia OK, starting recorder');
           setPermissionDenied(false);
           beginListening(stream);
         })
         .catch((e: unknown) => {
+          // eslint-disable-next-line no-console
+          console.warn('[voice-orb] getUserMedia REJECTED', e);
           cleanupCapture();
           const err =
             e instanceof Error
