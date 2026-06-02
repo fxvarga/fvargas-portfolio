@@ -466,9 +466,15 @@ export function VoiceOrb() {
 
   return (
     <div className="flex flex-col items-center gap-6 select-none">
-      <div
-        role="button"
-        tabIndex={0}
+      {/*
+        Must be a real <button>, not a styled <div role="button">. iOS Safari
+        treats the activation token from a <div onClick> tap as weaker and
+        silently rejects getUserMedia in some versions, even when an identical
+        call from a real <button onClick> succeeds. The raw-mic-test button
+        below is what surfaced this difference.
+      */}
+      <button
+        type="button"
         aria-label={statusText}
         aria-pressed={state === 'listening'}
         onClick={handleOrbClick}
@@ -478,10 +484,10 @@ export function VoiceOrb() {
             handleOrbClick();
           }
         }}
-        className="voice-orb-stage"
+        className="voice-orb-stage appearance-none bg-transparent border-0 p-0 cursor-pointer"
       >
         <div ref={orbRef} className={orbClasses.join(' ')} aria-hidden />
-      </div>
+      </button>
       <p
         className={
           state === 'error' || permissionDenied
