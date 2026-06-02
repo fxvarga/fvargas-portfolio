@@ -436,6 +436,7 @@ services:
       - grafana
       - n8n
       - tinytoes-web
+      - oauth2-proxy
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -578,6 +579,64 @@ services:
       - portfolio-network
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # OAuth2 Proxy — Entra ID (AAD) gateway in front of the voice orb.
+  # Caddy routes voice.fernando-vargas.com -> oauth2-proxy -> agentchat-web.
+  # Unauthenticated requests are 302'd to Microsoft login. Only the single
+  # allowed OID (OAUTH2_PROXY_ALLOWED_OID) is permitted through. This is
+  # what lets us expose voice on the public IP without leaving an open
+  # mic-enabled endpoint to the internet.
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: portfolio-oauth2-proxy
+    restart: unless-stopped
+    depends_on:
+      - agentchat-web
+    networks:
+      - portfolio-network
+    environment:
+      # Provider — generic OIDC pointed at the Entra v2.0 issuer for our tenant.
+      - OAUTH2_PROXY_PROVIDER=oidc
+      - OAUTH2_PROXY_OIDC_ISSUER_URL=https://login.microsoftonline.com/$ENTRA_TENANT_ID/v2.0
+      - OAUTH2_PROXY_CLIENT_ID=$ENTRA_CLIENT_ID
+      - OAUTH2_PROXY_CLIENT_SECRET=$ENTRA_CLIENT_SECRET
+      - OAUTH2_PROXY_REDIRECT_URL=https://voice.fernando-vargas.com/oauth2/callback
+      # Upstream — the existing nginx that serves the orb + /api/voice/.
+      - OAUTH2_PROXY_UPSTREAMS=http://agentchat-web:80
+      # Listen address inside the container (Caddy reaches us on this port).
+      - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
+      - OAUTH2_PROXY_REVERSE_PROXY=true
+      # Cookie config — encrypted session cookie, set on the apex of voice.f-v.com.
+      - OAUTH2_PROXY_COOKIE_SECRET=$OAUTH2_PROXY_COOKIE_SECRET
+      - OAUTH2_PROXY_COOKIE_DOMAINS=voice.fernando-vargas.com
+      - OAUTH2_PROXY_COOKIE_SECURE=true
+      - OAUTH2_PROXY_COOKIE_SAMESITE=lax
+      - OAUTH2_PROXY_COOKIE_REFRESH=1h
+      # Allow-list a single Entra object ID (the user's oid). All other
+      # authenticated identities will be rejected with 403 after login.
+      # email_domains=* is required by oauth2-proxy schema; the real gate
+      # is the OID validation below via auth-request-style header check.
+      - OAUTH2_PROXY_EMAIL_DOMAINS=*
+      # Lock by sub / oid via the allowed-groups feature targeting the oid
+      # claim. oauth2-proxy maps Azure 'oid' to its groups list when we set
+      # this env. Anyone whose token oid != OAUTH2_PROXY_ALLOWED_OID is denied.
+      - OAUTH2_PROXY_ALLOWED_GROUPS=$OAUTH2_PROXY_ALLOWED_OID
+      - OAUTH2_PROXY_OIDC_GROUPS_CLAIM=oid
+      # Scopes — openid + profile + email is enough; we only need id_token.
+      - OAUTH2_PROXY_SCOPE=openid profile email
+      # Skip the oauth2-proxy interstitial "sign in with" page; redirect
+      # straight to Entra on first hit.
+      - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true
+      # Pass identity headers downstream so the orb / voice-bridge can log
+      # the authenticated user if useful (optional, non-load-bearing).
+      - OAUTH2_PROXY_PASS_USER_HEADERS=true
+      - OAUTH2_PROXY_SET_XAUTHREQUEST=true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4180/ping"]
       interval: 30s
       timeout: 5s
       retries: 3

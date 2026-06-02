@@ -194,15 +194,14 @@ tinytoes.fernando-vargas.com {
     reverse_proxy tinytoes-web:80
 }
 
-# Voice (Twingate-only). Public DNS resolves voice.fernando-vargas.com to the
-# VM's private IP (10.20.1.4), so only Twingate-routed clients can reach it.
-# Let's Encrypt HTTP-01 would fail (port 80 not public on that name), so we
-# use DNS-01 via the GoDaddy plugin. GODADDY_API_TOKEN is "<key>:<secret>".
+# Voice — public, Entra-gated.
+# The A record for voice.fernando-vargas.com must point at the VM's public
+# IP (20.114.187.45). Caddy issues a real LE cert via HTTP-01 against that
+# public address. Auth is enforced upstream by oauth2-proxy, which sits
+# between Caddy and agentchat-web: unauthenticated requests get bounced
+# through Microsoft login, and only the single allowed Entra OID is let
+# through. iOS Safari's RFC1918 getUserMedia restriction is moot here
+# because the resolved address is now public.
 voice.fernando-vargas.com {
-    tls {
-        dns godaddy {env.GODADDY_API_TOKEN}
-        propagation_delay 60s
-        propagation_timeout 5m
-    }
-    reverse_proxy agentchat-web:80
+    reverse_proxy oauth2-proxy:4180
 }

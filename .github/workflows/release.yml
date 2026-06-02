@@ -182,6 +182,11 @@ jobs:
           AZURE_SPEECH_LANGUAGE: ${{ secrets.AZURE_SPEECH_LANGUAGE }}
           AUDIO_TOKEN_SECRET: ${{ secrets.AUDIO_TOKEN_SECRET }}
           GODADDY_API_TOKEN: ${{ secrets.GODADDY_API_TOKEN }}
+          ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
+          ENTRA_CLIENT_ID: ${{ secrets.ENTRA_CLIENT_ID }}
+          ENTRA_CLIENT_SECRET: ${{ secrets.ENTRA_CLIENT_SECRET }}
+          OAUTH2_PROXY_COOKIE_SECRET: ${{ secrets.OAUTH2_PROXY_COOKIE_SECRET }}
+          OAUTH2_PROXY_ALLOWED_OID: ${{ secrets.OAUTH2_PROXY_ALLOWED_OID }}
         run: |
           envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 
