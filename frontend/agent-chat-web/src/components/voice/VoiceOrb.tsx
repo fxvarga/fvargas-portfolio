@@ -18,6 +18,9 @@ interface VoiceError {
 const SESSION_STORAGE_KEY = 'voice-bridge:sessionId';
 const MAX_ORB_SCALE = 1.35;
 const MIN_RECORDING_BYTES = 2048;
+const SILENCE_RMS_THRESHOLD = 0.018;
+const SILENCE_HOLD_MS = 1200;
+const MIN_AUTO_STOP_MS = 1800;
 
 /**
  * Map a DOMException-style error.name into a user-facing instruction.
@@ -66,6 +69,9 @@ export function VoiceOrb() {
   const rafRef = useRef<number | null>(null);
   const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingObjectUrlRef = useRef<string | null>(null);
+  const recordingStartedAtRef = useRef<number | null>(null);
+  const lastVoiceAtRef = useRef<number | null>(null);
+  const encodedBytesRef = useRef(0);
 
   const setOrbScale = (scale: number) => {
     if (orbRef.current) {
@@ -84,6 +90,9 @@ export function VoiceOrb() {
     analyserRef.current = null;
     sourceRef.current = null;
     audioCtxRef.current = null;
+    recordingStartedAtRef.current = null;
+    lastVoiceAtRef.current = null;
+    encodedBytesRef.current = 0;
     if (stopStream) {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -119,6 +128,9 @@ export function VoiceOrb() {
   const beginListening = (stream: MediaStream) => {
     streamRef.current = stream;
     chunksRef.current = [];
+    encodedBytesRef.current = 0;
+    recordingStartedAtRef.current = null;
+    lastVoiceAtRef.current = null;
 
     let recorder: MediaRecorder;
     try {
@@ -140,7 +152,10 @@ export function VoiceOrb() {
     recorderRef.current = recorder;
 
     recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) chunksRef.current.push(event.data);
+      if (event.data.size > 0) {
+        encodedBytesRef.current += event.data.size;
+        chunksRef.current.push(event.data);
+      }
     };
     recorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
@@ -174,6 +189,7 @@ export function VoiceOrb() {
       // waiting until stop. This avoids the observed 5-byte second-turn blobs
       // where stop fires before a real encoded chunk is available.
       recorder.start(250);
+      recordingStartedAtRef.current = performance.now();
     } catch (e) {
       cleanupCapture();
       const err = e instanceof Error ? e : new Error('MediaRecorder.start failed');
@@ -192,6 +208,12 @@ export function VoiceOrb() {
   const stopListening = () => {
     const recorder = recorderRef.current;
     if (recorder && recorder.state === 'recording') {
+      try {
+        recorder.requestData();
+      } catch {
+        // Some browsers throw if a data request is already pending; stop still
+        // flushes what it can.
+      }
       recorder.stop(); // triggers onstop -> runVoiceFlow
     } else {
       cleanupCapture();
@@ -318,6 +340,31 @@ export function VoiceOrb() {
       const scale = 1 + Math.min(MAX_ORB_SCALE - 1, rms * 3.5);
       setOrbScale(scale);
 
+      const now = performance.now();
+      const startedAt = recordingStartedAtRef.current;
+      if (rms >= SILENCE_RMS_THRESHOLD) {
+        lastVoiceAtRef.current = now;
+      }
+
+      const elapsedMs = startedAt === null ? 0 : now - startedAt;
+      const silenceMs = lastVoiceAtRef.current === null ? 0 : now - lastVoiceAtRef.current;
+      const canAutoStop =
+        recorderRef.current?.state === 'recording' &&
+        elapsedMs >= MIN_AUTO_STOP_MS &&
+        encodedBytesRef.current >= MIN_RECORDING_BYTES &&
+        lastVoiceAtRef.current !== null &&
+        silenceMs >= SILENCE_HOLD_MS;
+
+      if (canAutoStop) {
+        try {
+          recorderRef.current?.requestData();
+        } catch {
+          // Non-fatal; stop will still flush any available data.
+        }
+        recorderRef.current?.stop();
+        return;
+      }
+
       rafRef.current = requestAnimationFrame(tick);
     };
 
@@ -430,7 +477,7 @@ export function VoiceOrb() {
     // Safari's permissions.query keeps stale-reporting 'denied'.
     switch (state) {
       case 'listening':
-        return 'Listening — tap to send';
+        return 'Listening — pause and I’ll send';
       case 'processing':
         return 'Thinking…';
       case 'speaking':
@@ -479,7 +526,7 @@ export function VoiceOrb() {
           onClick={stopListening}
           className="px-6 py-3 text-base rounded-full border border-emerald-300 bg-emerald-50 text-emerald-700 active:bg-emerald-100"
         >
-          Stop and send
+          Send now
         </button>
       ) : state === 'processing' ? (
         <button
