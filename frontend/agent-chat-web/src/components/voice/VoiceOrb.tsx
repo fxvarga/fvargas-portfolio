@@ -70,6 +70,7 @@ export function VoiceOrb() {
   const rafRef = useRef<number | null>(null);
   const silenceStartRef = useRef<number | null>(null);
   const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const pendingObjectUrlRef = useRef<string | null>(null);
 
   const setOrbScale = (scale: number) => {
     if (orbRef.current) {
@@ -105,6 +106,10 @@ export function VoiceOrb() {
       cleanupCapture();
       playbackAudioRef.current?.pause();
       playbackAudioRef.current = null;
+      if (pendingObjectUrlRef.current) {
+        URL.revokeObjectURL(pendingObjectUrlRef.current);
+        pendingObjectUrlRef.current = null;
+      }
     };
   }, [cleanupCapture]);
 
@@ -469,9 +474,25 @@ export function VoiceOrb() {
       if (data.sessionId && data.sessionId !== sessionId) persistSessionId(data.sessionId);
 
       if (data.audioUrl) {
-        const played = await playAudio(data.audioUrl);
+        const audioResponse = await fetch(data.audioUrl, {
+          method: 'GET',
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
+        if (!audioResponse.ok) {
+          throw new Error(`Audio download failed (${audioResponse.status})`);
+        }
+
+        const audioBlob = await audioResponse.blob();
+        if (pendingObjectUrlRef.current) {
+          URL.revokeObjectURL(pendingObjectUrlRef.current);
+        }
+        const objectUrl = URL.createObjectURL(audioBlob);
+        pendingObjectUrlRef.current = objectUrl;
+
+        const played = await playAudio(objectUrl);
         if (!played) {
-          setPendingAudioUrl(data.audioUrl);
+          setPendingAudioUrl(objectUrl);
         }
       } else {
         setState('idle');
@@ -490,6 +511,10 @@ export function VoiceOrb() {
       setPendingAudioUrl(null);
       audio.onended = () => {
         playbackAudioRef.current = null;
+        if (pendingObjectUrlRef.current === url) {
+          URL.revokeObjectURL(url);
+          pendingObjectUrlRef.current = null;
+        }
         setState('idle');
         resolve(true);
       };
@@ -514,7 +539,13 @@ export function VoiceOrb() {
     });
 
   const handlePlayPendingAudio = () => {
-    if (pendingAudioUrl) void playAudio(pendingAudioUrl);
+    if (!pendingAudioUrl) return;
+    const src = pendingAudioUrl;
+    void playAudio(src).then((played) => {
+      if (!played && pendingObjectUrlRef.current === src) {
+        setPendingAudioUrl(src);
+      }
+    });
   };
 
   const showEnableMicButton =
