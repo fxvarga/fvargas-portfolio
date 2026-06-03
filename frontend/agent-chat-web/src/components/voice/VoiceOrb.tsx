@@ -42,6 +42,8 @@ function describeError(err: VoiceError): string {
       return 'Mic does not satisfy the required constraints.';
     case 'AbortError':
       return 'Mic capture was aborted. Try again.';
+    case 'AudioBlocked':
+      return 'Response is ready. Tap "Play response" to hear it.';
     default:
       return err.message || 'Microphone unavailable.';
   }
@@ -55,6 +57,8 @@ export function VoiceOrb() {
   );
   const [permissionState, setPermissionState] = useState<string>('unknown');
   const [diagnostics, setDiagnostics] = useState<string>('');
+  const [hasMicStream, setHasMicStream] = useState(false);
+  const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
 
   const orbRef = useRef<HTMLElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -73,7 +77,7 @@ export function VoiceOrb() {
     }
   };
 
-  const cleanupCapture = useCallback(() => {
+  const cleanupCapture = useCallback((stopStream = true) => {
     if (rafRef.current !== null) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
@@ -85,8 +89,13 @@ export function VoiceOrb() {
     sourceRef.current = null;
     audioCtxRef.current = null;
     silenceStartRef.current = null;
-    streamRef.current?.getTracks().forEach((t) => t.stop());
-    streamRef.current = null;
+    if (stopStream) {
+      streamRef.current?.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+      setHasMicStream(false);
+    } else {
+      setHasMicStream(Boolean(streamRef.current?.getAudioTracks().some((t) => t.readyState === 'live')));
+    }
     recorderRef.current = null;
     setOrbScale(1);
   }, []);
@@ -139,6 +148,9 @@ export function VoiceOrb() {
     lines.push(`host: ${window.location.host}`);
     lines.push(`mediaDevices: ${typeof navigator.mediaDevices}`);
     lines.push(`getUserMedia: ${typeof navigator.mediaDevices?.getUserMedia}`);
+    lines.push(`hasMicStream: ${String(hasMicStream)}`);
+    lines.push(`streamLive: ${String(streamRef.current?.getAudioTracks().some((t) => t.readyState === 'live') ?? false)}`);
+    lines.push(`pendingAudio: ${String(Boolean(pendingAudioUrl))}`);
     lines.push(`MediaRecorder: ${typeof MediaRecorder}`);
     lines.push(`webmOpus: ${MediaRecorder?.isTypeSupported?.('audio/webm;codecs=opus') ?? 'n/a'}`);
     lines.push(`mp4: ${MediaRecorder?.isTypeSupported?.('audio/mp4') ?? 'n/a'}`);
@@ -150,7 +162,7 @@ export function VoiceOrb() {
       lines.push(`errMsg: ${error.message}`);
     }
     setDiagnostics(lines.join('\n'));
-  }, [state, error, permissionState]);
+  }, [state, error, permissionState, hasMicStream, pendingAudioUrl]);
 
   const persistSessionId = (id: string) => {
     setSessionId(id);
@@ -210,7 +222,11 @@ export function VoiceOrb() {
     };
     recorder.onstop = async () => {
       const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' });
-      cleanupCapture();
+      // Keep the granted MediaStream alive after a recording finishes. iOS
+      // Safari can grant getUserMedia once and then reject subsequent
+      // re-requests in the same page session; reusing the live stream avoids
+      // the permission path after the first successful grant.
+      cleanupCapture(false);
       if (blob.size === 0) {
         setState('idle');
         return;
@@ -262,7 +278,7 @@ export function VoiceOrb() {
    * helper call, or feature check before it. iOS Safari is extremely sensitive
    * to what happens before media capture inside a tap handler.
    */
-  const handleStartRecording = () => {
+  const handleRequestMicAndStart = () => {
     const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
     if (!micPromise) {
       setError({
@@ -273,8 +289,11 @@ export function VoiceOrb() {
       return;
     }
     setError(null);
+    setPendingAudioUrl(null);
     micPromise
       .then((stream) => {
+        streamRef.current = stream;
+        setHasMicStream(true);
         beginListening(stream);
       })
       .catch((e: unknown) => {
@@ -286,6 +305,23 @@ export function VoiceOrb() {
         setError(err);
         setState('error');
       });
+  };
+
+  const handleStartWithExistingStream = () => {
+    const stream = streamRef.current;
+    const hasLiveAudio = stream?.getAudioTracks().some((track) => track.readyState === 'live');
+    if (!stream || !hasLiveAudio) {
+      setHasMicStream(false);
+      setError({
+        name: 'MicStreamExpired',
+        message: 'The previous microphone stream expired. Tap again to re-enable the microphone.',
+      });
+      setState('error');
+      return;
+    }
+    setError(null);
+    setPendingAudioUrl(null);
+    beginListening(stream);
   };
 
   const handleInterruptSpeaking = () => {
@@ -433,7 +469,10 @@ export function VoiceOrb() {
       if (data.sessionId && data.sessionId !== sessionId) persistSessionId(data.sessionId);
 
       if (data.audioUrl) {
-        await playAudio(data.audioUrl);
+        const played = await playAudio(data.audioUrl);
+        if (!played) {
+          setPendingAudioUrl(data.audioUrl);
+        }
       } else {
         setState('idle');
       }
@@ -445,29 +484,38 @@ export function VoiceOrb() {
   };
 
   const playAudio = (url: string) =>
-    new Promise<void>((resolve) => {
+    new Promise<boolean>((resolve) => {
       const audio = new Audio(url);
       playbackAudioRef.current = audio;
+      setPendingAudioUrl(null);
       audio.onended = () => {
         playbackAudioRef.current = null;
         setState('idle');
-        resolve();
+        resolve(true);
       };
       audio.onerror = () => {
         playbackAudioRef.current = null;
         setError({ name: 'AudioError', message: 'Audio playback failed.' });
         setState('error');
-        resolve();
+        resolve(false);
       };
       setState('speaking');
       audio.play().catch((err: unknown) => {
         playbackAudioRef.current = null;
         const e = err instanceof Error ? err : new Error('Audio blocked.');
-        setError({ name: e.name || 'AudioError', message: e.message });
-        setState('error');
-        resolve();
+        // iOS Safari can block async audio.play() because the playback happens
+        // after a network round trip, outside the original stop/send gesture.
+        // That's not a fatal voice error: keep the audio URL and ask the user
+        // for a fresh gesture via the Play response button.
+        setError({ name: 'AudioBlocked', message: e.message });
+        setState('idle');
+        resolve(false);
       });
     });
+
+  const handlePlayPendingAudio = () => {
+    if (pendingAudioUrl) void playAudio(pendingAudioUrl);
+  };
 
   const showEnableMicButton =
     (state === 'error' && error?.name === 'NotAllowedError') ||
@@ -485,6 +533,7 @@ export function VoiceOrb() {
       case 'speaking':
         return 'Speaking — tap to interrupt';
     }
+    if (pendingAudioUrl) return 'Response is ready — tap Play response';
     if (state === 'error' && error) return describeError(error);
     return 'Tap the orb to talk';
   })();
@@ -512,6 +561,15 @@ export function VoiceOrb() {
       >
         {statusText}
       </p>
+      {pendingAudioUrl ? (
+        <button
+          type="button"
+          onClick={handlePlayPendingAudio}
+          className="px-6 py-3 text-base rounded-full border border-sky-300 bg-sky-50 text-sky-700 active:bg-sky-100"
+        >
+          Play response
+        </button>
+      ) : null}
       {state === 'listening' ? (
         <button
           type="button"
@@ -539,10 +597,10 @@ export function VoiceOrb() {
       ) : (
         <button
           type="button"
-          onClick={handleStartRecording}
+          onClick={hasMicStream ? handleStartWithExistingStream : handleRequestMicAndStart}
           className="px-6 py-3 text-base rounded-full border border-gray-300 bg-white text-gray-800 shadow-sm active:bg-gray-100"
         >
-          Tap to talk
+          {hasMicStream ? 'Talk again' : 'Tap to talk'}
         </button>
       )}
       {showEnableMicButton ? (
