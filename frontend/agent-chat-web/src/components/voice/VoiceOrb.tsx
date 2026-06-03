@@ -19,9 +19,8 @@ interface VoiceError {
 }
 
 const SESSION_STORAGE_KEY = 'voice-bridge:sessionId';
-const SILENCE_RMS_THRESHOLD = 0.02;
-const SILENCE_HOLD_MS = 1500;
 const MAX_ORB_SCALE = 1.35;
+const MIN_RECORDING_BYTES = 2048;
 
 /**
  * Map a DOMException-style error.name into a user-facing instruction.
@@ -44,6 +43,8 @@ function describeError(err: VoiceError): string {
       return 'Mic capture was aborted. Try again.';
     case 'AudioBlocked':
       return 'Response is ready. Tap "Play response" to hear it.';
+    case 'RecordingTooShort':
+      return 'I did not catch enough audio. Tap Talk again, speak, then tap Stop and send.';
     default:
       return err.message || 'Microphone unavailable.';
   }
@@ -68,7 +69,6 @@ export function VoiceOrb() {
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
-  const silenceStartRef = useRef<number | null>(null);
   const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
   const pendingObjectUrlRef = useRef<string | null>(null);
 
@@ -89,7 +89,6 @@ export function VoiceOrb() {
     analyserRef.current = null;
     sourceRef.current = null;
     audioCtxRef.current = null;
-    silenceStartRef.current = null;
     if (stopStream) {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
@@ -232,8 +231,17 @@ export function VoiceOrb() {
       // re-requests in the same page session; reusing the live stream avoids
       // the permission path after the first successful grant.
       cleanupCapture(false);
-      if (blob.size === 0) {
-        setState('idle');
+      if (blob.size < MIN_RECORDING_BYTES) {
+        // iOS Safari can occasionally fire stop before MediaRecorder has
+        // emitted a usable chunk (we observed 5-byte blobs reaching the
+        // backend, which Azure STT rejects with a timeout). Keep this local
+        // and ask the user to try again instead of sending guaranteed-bad
+        // audio to voice-bridge.
+        setError({
+          name: 'RecordingTooShort',
+          message: `Recording too short (${blob.size} bytes).`,
+        });
+        setState('error');
         return;
       }
       await runVoiceFlow(blob);
@@ -244,7 +252,10 @@ export function VoiceOrb() {
     };
 
     try {
-      recorder.start();
+      // Timeslice makes Safari emit data chunks while recording instead of
+      // waiting until stop. This avoids the observed 5-byte second-turn blobs
+      // where stop fires before a real encoded chunk is available.
+      recorder.start(250);
       // eslint-disable-next-line no-console
       console.log('[voice-orb] recorder.start OK');
     } catch (e) {
@@ -431,20 +442,6 @@ export function VoiceOrb() {
 
       const scale = 1 + Math.min(MAX_ORB_SCALE - 1, rms * 3.5);
       setOrbScale(scale);
-
-      const now = performance.now();
-      if (rms < SILENCE_RMS_THRESHOLD) {
-        if (silenceStartRef.current === null) silenceStartRef.current = now;
-        if (
-          now - silenceStartRef.current > SILENCE_HOLD_MS &&
-          recorderRef.current?.state === 'recording'
-        ) {
-          recorderRef.current.stop();
-          return;
-        }
-      } else {
-        silenceStartRef.current = null;
-      }
 
       rafRef.current = requestAnimationFrame(tick);
     };
