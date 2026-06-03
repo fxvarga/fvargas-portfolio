@@ -53,7 +53,6 @@ export function VoiceOrb() {
   const [sessionId, setSessionId] = useState<string | null>(() =>
     typeof window !== 'undefined' ? window.sessionStorage.getItem(SESSION_STORAGE_KEY) : null,
   );
-  const [permissionDenied, setPermissionDenied] = useState(false);
   const [permissionState, setPermissionState] = useState<string>('unknown');
   const [diagnostics, setDiagnostics] = useState<string>('');
 
@@ -100,9 +99,9 @@ export function VoiceOrb() {
     };
   }, [cleanupCapture]);
 
-  // Pre-flight permission probe. Where supported, this lets us tell the user
-  // up front that the mic is blocked, instead of waiting for them to tap the
-  // orb and see a generic error.
+  // Pre-flight permission probe for diagnostics only. iOS Safari has proven
+  // unreliable here: it can report "denied" even after getUserMedia succeeds.
+  // Therefore this state must NEVER drive UI or control flow.
   useEffect(() => {
     if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
       setPermissionState('permissions-api-unsupported');
@@ -116,13 +115,6 @@ export function VoiceOrb() {
         if (cancelled) return;
         const apply = () => {
           setPermissionState(status.state);
-          // iOS Safari frequently stale-reports 'denied' even after the user
-          // has just granted. Only USE the probe to set the flag positively
-          // when actually denied; never use it to clear, since a successful
-          // getUserMedia is the authoritative signal that mic is granted.
-          if (status.state === 'denied') {
-            setPermissionDenied(true);
-          }
         };
         apply();
         status.onchange = apply;
@@ -263,63 +255,43 @@ export function VoiceOrb() {
   };
 
   /**
-   * Orb tap handler. The synchronous-first-line getUserMedia call is load-
-   * bearing: iOS Safari requires getUserMedia to be invoked inside the same
-   * task as the user gesture, before any awaits or state-setter side-effects.
+   * Start recording from the primary native button.
    *
-   * NOTE: the getUserMedia call is INLINED here (not via acquireMicStream())
-   * to be byte-for-byte identical to handleRawMicTest, because the raw test
-   * succeeds on the same iOS device where the orb tap previously failed.
+   * This is intentionally structured like handleRawMicTest: the FIRST
+   * executable line is the getUserMedia call, with no state branch, logging,
+   * helper call, or feature check before it. iOS Safari is extremely sensitive
+   * to what happens before media capture inside a tap handler.
    */
-  const handleOrbClick = () => {
-    if (state === 'idle' || state === 'error') {
-      // eslint-disable-next-line no-console
-      console.log('[voice-orb] orb tap, calling getUserMedia', { state, buildId: __BUILD_ID__ });
-      const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
-      if (!micPromise) {
-        setError({
-          name: 'NoMediaDevices',
-          message: 'navigator.mediaDevices.getUserMedia is undefined.',
-        });
+  const handleStartRecording = () => {
+    const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
+    if (!micPromise) {
+      setError({
+        name: 'NoMediaDevices',
+        message: 'navigator.mediaDevices.getUserMedia is undefined.',
+      });
+      setState('error');
+      return;
+    }
+    setError(null);
+    micPromise
+      .then((stream) => {
+        beginListening(stream);
+      })
+      .catch((e: unknown) => {
+        cleanupCapture();
+        const err =
+          e instanceof Error
+            ? { name: e.name || 'Error', message: e.message }
+            : { name: 'Error', message: 'Microphone unavailable.' };
+        setError(err);
         setState('error');
-        return;
-      }
-      // Now that the permission request is in-flight, it's safe to do React
-      // state updates and other async work.
-      setError(null);
-      micPromise
-        .then((stream) => {
-          // eslint-disable-next-line no-console
-          console.log('[voice-orb] getUserMedia OK, starting recorder');
-          setPermissionDenied(false);
-          beginListening(stream);
-        })
-        .catch((e: unknown) => {
-          // eslint-disable-next-line no-console
-          console.warn('[voice-orb] getUserMedia REJECTED', e);
-          cleanupCapture();
-          const err =
-            e instanceof Error
-              ? { name: e.name || 'Error', message: e.message }
-              : { name: 'Error', message: 'Microphone unavailable.' };
-          if (err.name === 'NotAllowedError' || err.name === 'SecurityError') {
-            setPermissionDenied(true);
-          }
-          setError(err);
-          setState('error');
-        });
-      return;
-    }
-    if (state === 'listening') {
-      stopListening();
-      return;
-    }
-    if (state === 'speaking') {
-      playbackAudioRef.current?.pause();
-      playbackAudioRef.current = null;
-      setState('idle');
-    }
-    // Processing: ignore clicks; request is in-flight.
+      });
+  };
+
+  const handleInterruptSpeaking = () => {
+    playbackAudioRef.current?.pause();
+    playbackAudioRef.current = null;
+    setState('idle');
   };
 
   /**
@@ -333,7 +305,6 @@ export function VoiceOrb() {
     micPromise
       .then((stream) => {
         stream.getTracks().forEach((t) => t.stop());
-        setPermissionDenied(false);
         setState('idle');
       })
       .catch((e: unknown) => {
@@ -342,7 +313,6 @@ export function VoiceOrb() {
             ? { name: e.name || 'Error', message: e.message }
             : { name: 'Error', message: 'Microphone unavailable.' };
         setError(err);
-        setPermissionDenied(err.name === 'NotAllowedError' || err.name === 'SecurityError');
         setState('error');
       });
   };
@@ -377,7 +347,6 @@ export function VoiceOrb() {
           message: `Got ${stream.getAudioTracks().length} track(s): ${trackInfo}`,
         });
         setState('error'); // 'error' state just so the diagnostic panel shows
-        setPermissionDenied(false);
       })
       .catch((e: unknown) => {
         const err =
@@ -501,7 +470,6 @@ export function VoiceOrb() {
     });
 
   const showEnableMicButton =
-    permissionDenied ||
     (state === 'error' && error?.name === 'NotAllowedError') ||
     (state === 'error' && error?.name === 'SecurityError');
 
@@ -518,7 +486,6 @@ export function VoiceOrb() {
         return 'Speaking — tap to interrupt';
     }
     if (state === 'error' && error) return describeError(error);
-    if (permissionDenied) return 'Microphone is blocked. Tap "Enable microphone" below.';
     return 'Tap the orb to talk';
   })();
 
@@ -538,25 +505,46 @@ export function VoiceOrb() {
       <div ref={orbRef as React.RefObject<HTMLDivElement>} className={`voice-orb-button ${orbClasses.join(' ')}`} aria-hidden />
       <p
         className={
-          state === 'error' || permissionDenied
+          state === 'error'
             ? 'text-sm text-red-500 text-center max-w-xs'
             : 'text-sm text-gray-500 tracking-wide'
         }
       >
         {statusText}
       </p>
-      <button
-        type="button"
-        onClick={handleOrbClick}
-        disabled={state === 'processing'}
-        className={
-          state === 'listening'
-            ? 'px-6 py-3 text-base rounded-full border border-emerald-300 bg-emerald-50 text-emerald-700 active:bg-emerald-100 disabled:opacity-60'
-            : 'px-6 py-3 text-base rounded-full border border-gray-300 bg-white text-gray-800 shadow-sm active:bg-gray-100 disabled:opacity-60'
-        }
-      >
-        {state === 'listening' ? 'Stop and send' : state === 'processing' ? 'Thinking...' : 'Tap to talk'}
-      </button>
+      {state === 'listening' ? (
+        <button
+          type="button"
+          onClick={stopListening}
+          className="px-6 py-3 text-base rounded-full border border-emerald-300 bg-emerald-50 text-emerald-700 active:bg-emerald-100"
+        >
+          Stop and send
+        </button>
+      ) : state === 'processing' ? (
+        <button
+          type="button"
+          disabled
+          className="px-6 py-3 text-base rounded-full border border-gray-300 bg-white text-gray-500 shadow-sm opacity-60"
+        >
+          Thinking...
+        </button>
+      ) : state === 'speaking' ? (
+        <button
+          type="button"
+          onClick={handleInterruptSpeaking}
+          className="px-6 py-3 text-base rounded-full border border-sky-300 bg-sky-50 text-sky-700 active:bg-sky-100"
+        >
+          Stop playback
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={handleStartRecording}
+          className="px-6 py-3 text-base rounded-full border border-gray-300 bg-white text-gray-800 shadow-sm active:bg-gray-100"
+        >
+          Tap to talk
+        </button>
+      )}
       {showEnableMicButton ? (
         <button
           type="button"
