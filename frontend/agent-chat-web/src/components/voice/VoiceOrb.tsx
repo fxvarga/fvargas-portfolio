@@ -530,28 +530,12 @@ export function VoiceOrb() {
   return (
     <div className="flex flex-col items-center gap-6 select-none">
       {/*
-        The orb IS the button -- no inner element. Previous attempts wrapped a
-        styled div as the click target; iOS Safari was silently rejecting
-        getUserMedia from that gesture while accepting an identical call from
-        the smaller diagnostic button. Putting the visual directly on the
-        <button> eliminates any ambiguity about the event target. The
-        `voice-orb-button` class adds touch-action:manipulation and removes
-        the default button chrome so the orb visual is preserved.
+        Decorative/audio-reactive orb only. iOS Safari proved unreliable when
+        the animated/transformed orb itself was the getUserMedia trigger, while
+        a plain native button on the same page succeeds. Keep the visual, but
+        use a simple native button below as the actual mic control.
       */}
-      <button
-        ref={orbRef as React.RefObject<HTMLButtonElement>}
-        type="button"
-        aria-label={statusText}
-        aria-pressed={state === 'listening'}
-        onClick={handleOrbClick}
-        onKeyDown={(e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault();
-            handleOrbClick();
-          }
-        }}
-        className={`voice-orb-button ${orbClasses.join(' ')}`}
-      />
+      <div ref={orbRef as React.RefObject<HTMLDivElement>} className={`voice-orb-button ${orbClasses.join(' ')}`} aria-hidden />
       <p
         className={
           state === 'error' || permissionDenied
@@ -561,6 +545,18 @@ export function VoiceOrb() {
       >
         {statusText}
       </p>
+      <button
+        type="button"
+        onClick={handleOrbClick}
+        disabled={state === 'processing'}
+        className={
+          state === 'listening'
+            ? 'px-6 py-3 text-base rounded-full border border-emerald-300 bg-emerald-50 text-emerald-700 active:bg-emerald-100 disabled:opacity-60'
+            : 'px-6 py-3 text-base rounded-full border border-gray-300 bg-white text-gray-800 shadow-sm active:bg-gray-100 disabled:opacity-60'
+        }
+      >
+        {state === 'listening' ? 'Stop and send' : state === 'processing' ? 'Thinking...' : 'Tap to talk'}
+      </button>
       {showEnableMicButton ? (
         <button
           type="button"

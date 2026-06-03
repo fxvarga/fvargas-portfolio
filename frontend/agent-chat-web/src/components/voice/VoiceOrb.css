@@ -1,31 +1,10 @@
-/*
- * Voice orb visual. Applied directly to a <button> element so the click
- * target IS the orb -- no inner div wrapper. Previously the orb was a div
- * inside a button, and iOS Safari was rejecting getUserMedia on taps even
- * though an identical call from a sibling button succeeded; collapsing the
- * structure removes that ambiguity.
- *
- * `touch-action: manipulation` opts out of iOS's implicit double-tap-to-zoom
- * and similar gestures that can consume the transient user-activation token
- * before our click handler runs, which is one of the documented reasons
- * getUserMedia can silently fail with NotAllowedError on iOS Safari.
- */
+/* Decorative/audio-reactive orb. The actual mic trigger is a plain native
+ * button in the React markup because iOS Safari reliably grants mic access
+ * from that path on the test device, while the animated/transformed orb path
+ * kept hitting NotAllowedError. */
 .voice-orb-button {
-  /* Strip default <button> chrome so the orb visual is preserved. */
-  appearance: none;
-  -webkit-appearance: none;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  color: inherit;
-
-  /* Click affordance + iOS gesture handling. */
-  cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
 
   /* Orb visual. */
   --orb-size: 240px;
