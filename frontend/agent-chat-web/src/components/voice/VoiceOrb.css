@@ -1,10 +1,15 @@
-/* Decorative/audio-reactive orb. The actual mic trigger is a plain native
- * button in the React markup because iOS Safari reliably grants mic access
- * from that path on the test device, while the animated/transformed orb path
- * kept hitting NotAllowedError. */
+/* Native button styled as the audio-reactive orb. */
 .voice-orb-button {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  display: block;
+  cursor: pointer;
   user-select: none;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 
   /* Orb visual. */
   --orb-size: 240px;
@@ -54,6 +59,10 @@
     0 0 calc(var(--orb-glow) * 1.2) 0 rgba(106, 130, 251, 0.45),
     inset -20px -20px 50px rgba(255, 255, 255, 0.18),
     inset 20px 20px 50px rgba(0, 0, 0, 0.05);
+}
+
+.voice-orb-button:disabled {
+  cursor: wait;
 }
 
 @keyframes voice-orb-morph {

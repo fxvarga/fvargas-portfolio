@@ -68,6 +68,8 @@ export function VoiceOrb() {
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const playbackAudioRef = useRef<HTMLAudioElement | null>(null);
+  const playbackCtxRef = useRef<AudioContext | null>(null);
+  const playbackSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const pendingObjectUrlRef = useRef<string | null>(null);
   const recordingStartedAtRef = useRef<number | null>(null);
   const lastVoiceAtRef = useRef<number | null>(null);
@@ -77,6 +79,20 @@ export function VoiceOrb() {
     if (orbRef.current) {
       orbRef.current.style.setProperty('--orb-scale', scale.toFixed(3));
     }
+  };
+
+  const getPlaybackContext = () => {
+    const AudioCtor =
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtor) return null;
+    if (!playbackCtxRef.current || playbackCtxRef.current.state === 'closed') {
+      playbackCtxRef.current = new AudioCtor();
+    }
+    if (playbackCtxRef.current.state === 'suspended') {
+      void playbackCtxRef.current.resume().catch(() => undefined);
+    }
+    return playbackCtxRef.current;
   };
 
   const cleanupCapture = useCallback((stopStream = true) => {
@@ -109,6 +125,10 @@ export function VoiceOrb() {
       cleanupCapture();
       playbackAudioRef.current?.pause();
       playbackAudioRef.current = null;
+      playbackSourceRef.current?.stop();
+      playbackSourceRef.current = null;
+      playbackCtxRef.current?.close().catch(() => undefined);
+      playbackCtxRef.current = null;
       if (pendingObjectUrlRef.current) {
         URL.revokeObjectURL(pendingObjectUrlRef.current);
         pendingObjectUrlRef.current = null;
@@ -231,6 +251,7 @@ export function VoiceOrb() {
    */
   const handleRequestMicAndStart = () => {
     const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
+    getPlaybackContext();
     if (!micPromise) {
       setError({
         name: 'NoMediaDevices',
@@ -259,6 +280,7 @@ export function VoiceOrb() {
   };
 
   const handleStartWithExistingStream = () => {
+    getPlaybackContext();
     const stream = streamRef.current;
     const hasLiveAudio = stream?.getAudioTracks().some((track) => track.readyState === 'live');
     if (!stream || !hasLiveAudio) {
@@ -278,6 +300,8 @@ export function VoiceOrb() {
   const handleInterruptSpeaking = () => {
     playbackAudioRef.current?.pause();
     playbackAudioRef.current = null;
+    playbackSourceRef.current?.stop();
+    playbackSourceRef.current = null;
     setState('idle');
   };
 
@@ -403,6 +427,9 @@ export function VoiceOrb() {
         }
 
         const audioBlob = await audioResponse.blob();
+        const playedWithWebAudio = await playAudioBlob(audioBlob);
+        if (playedWithWebAudio) return;
+
         if (pendingObjectUrlRef.current) {
           URL.revokeObjectURL(pendingObjectUrlRef.current);
         }
@@ -457,6 +484,40 @@ export function VoiceOrb() {
       });
     });
 
+  const playAudioBlob = async (blob: Blob) => {
+    const ctx = getPlaybackContext();
+    if (!ctx) return false;
+
+    try {
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+      if (ctx.state !== 'running') {
+        return false;
+      }
+
+      const audioBuffer = await ctx.decodeAudioData(await blob.arrayBuffer());
+      return await new Promise<boolean>((resolve) => {
+        const source = ctx.createBufferSource();
+        playbackSourceRef.current = source;
+        source.buffer = audioBuffer;
+        source.connect(ctx.destination);
+        source.onended = () => {
+          if (playbackSourceRef.current === source) {
+            playbackSourceRef.current = null;
+          }
+          setState('idle');
+          resolve(true);
+        };
+        setState('speaking');
+        source.start(0);
+      });
+    } catch {
+      playbackSourceRef.current = null;
+      return false;
+    }
+  };
+
   const handlePlayPendingAudio = () => {
     if (!pendingAudioUrl) return;
     const src = pendingAudioUrl;
@@ -495,13 +556,23 @@ export function VoiceOrb() {
 
   return (
     <div className="flex flex-col items-center gap-6 select-none">
-      {/*
-        Decorative/audio-reactive orb only. iOS Safari proved unreliable when
-        the animated/transformed orb itself was the getUserMedia trigger, while
-        a plain native button on the same page succeeds. Keep the visual, but
-        use a simple native button below as the actual mic control.
-      */}
-      <div ref={orbRef as React.RefObject<HTMLDivElement>} className={`voice-orb-button ${orbClasses.join(' ')}`} aria-hidden />
+      <button
+        ref={orbRef as React.RefObject<HTMLButtonElement>}
+        type="button"
+        aria-label={statusText}
+        aria-pressed={state === 'listening'}
+        disabled={state === 'processing'}
+        onClick={
+          state === 'listening'
+            ? stopListening
+            : state === 'speaking'
+              ? handleInterruptSpeaking
+              : hasMicStream
+                ? handleStartWithExistingStream
+                : handleRequestMicAndStart
+        }
+        className={`voice-orb-button ${orbClasses.join(' ')}`}
+      />
       <p
         className={
           state === 'error'
