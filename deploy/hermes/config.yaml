@@ -42,3 +42,25 @@ memory:
 
 # Gmail integration (requires OAuth tokens — will fail gracefully without them)
 # Tokens obtained via deploy/hermes/scripts/gmail_oauth.py and set as env vars
+
+# The API server (used by the browser voice bridge) resolves toolsets for the
+# `api_server` platform, not the Telegram platform. Telegram had the messaging
+# toolset enabled already, which is why email worked there; voice did not until
+# messaging was explicitly enabled for api_server. This keeps fresh Hermes data
+# volumes aligned with the live VM config.
+platform_toolsets:
+  api_server:
+    - browser
+    - code_execution
+    - cronjob
+    - delegation
+    - file
+    - image_gen
+    - memory
+    - messaging
+    - session_search
+    - skills
+    - terminal
+    - todo
+    - vision
+    - web
