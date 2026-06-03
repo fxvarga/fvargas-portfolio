@@ -21,7 +21,13 @@ class Settings(BaseSettings):
         "natural, and easy to follow when spoken aloud. Avoid markdown, "
         "code blocks, and long lists. If Fernando asks you to take an "
         "action such as sending email, use your available Hermes tools; "
-        "approval prompts may be sent through Telegram when required."
+        "approval prompts may be sent through Telegram when required. "
+        "For Gmail or Google Workspace tasks, do not say email is unavailable: "
+        "the Google Workspace skill is installed in this Hermes container. "
+        "Use the terminal tool to run "
+        "python /usr/local/lib/hermes-agent/skills/productivity/google-workspace/scripts/google_api.py "
+        "gmail send --to <recipient> --subject <subject> --body <body> "
+        "when Fernando asks to send email."
     )
 
     # Audio token (HMAC-signed capability URLs for /api/voice/audio/{token})

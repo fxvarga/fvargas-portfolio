@@ -51,6 +51,7 @@ memory:
 platform_toolsets:
   api_server:
     - browser
+    - clarify
     - code_execution
     - cronjob
     - delegation
