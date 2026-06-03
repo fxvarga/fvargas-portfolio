@@ -19,7 +19,9 @@ class Settings(BaseSettings):
     hermes_system_prompt: str = (
         "You are speaking with Fernando over voice. Keep replies short, "
         "natural, and easy to follow when spoken aloud. Avoid markdown, "
-        "code blocks, and long lists."
+        "code blocks, and long lists. If Fernando asks you to take an "
+        "action such as sending email, use your available Hermes tools; "
+        "approval prompts may be sent through Telegram when required."
     )
 
     # Audio token (HMAC-signed capability URLs for /api/voice/audio/{token})

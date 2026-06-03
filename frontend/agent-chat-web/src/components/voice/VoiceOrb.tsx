@@ -1,9 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import './VoiceOrb.css';
 
-// Baked at build time by Vite (see vite.config.ts -> define).
-declare const __BUILD_ID__: string;
-
 type VoiceState = 'idle' | 'listening' | 'processing' | 'speaking' | 'error';
 
 interface VoiceChatResponse {
@@ -56,8 +53,6 @@ export function VoiceOrb() {
   const [sessionId, setSessionId] = useState<string | null>(() =>
     typeof window !== 'undefined' ? window.sessionStorage.getItem(SESSION_STORAGE_KEY) : null,
   );
-  const [permissionState, setPermissionState] = useState<string>('unknown');
-  const [diagnostics, setDiagnostics] = useState<string>('');
   const [hasMicStream, setHasMicStream] = useState(false);
   const [pendingAudioUrl, setPendingAudioUrl] = useState<string | null>(null);
 
@@ -112,62 +107,6 @@ export function VoiceOrb() {
     };
   }, [cleanupCapture]);
 
-  // Pre-flight permission probe for diagnostics only. iOS Safari has proven
-  // unreliable here: it can report "denied" even after getUserMedia succeeds.
-  // Therefore this state must NEVER drive UI or control flow.
-  useEffect(() => {
-    if (typeof navigator === 'undefined' || !navigator.permissions?.query) {
-      setPermissionState('permissions-api-unsupported');
-      return;
-    }
-    let cancelled = false;
-    navigator.permissions
-      // PermissionName doesn't include 'microphone' in lib.dom.d.ts; cast is intentional.
-      .query({ name: 'microphone' as PermissionName })
-      .then((status) => {
-        if (cancelled) return;
-        const apply = () => {
-          setPermissionState(status.state);
-        };
-        apply();
-        status.onchange = apply;
-      })
-      .catch((e: unknown) => {
-        const msg = e instanceof Error ? `${e.name}:${e.message}` : 'error';
-        setPermissionState(`query-failed(${msg})`);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  // Collect environment info we care about for diagnosing iOS Safari mic
-  // failures. Updated whenever the error state changes so the user can
-  // screenshot it.
-  useEffect(() => {
-    const lines: string[] = [];
-    lines.push(`build: ${__BUILD_ID__}`);
-    lines.push(`isSecureContext: ${String(window.isSecureContext)}`);
-    lines.push(`protocol: ${window.location.protocol}`);
-    lines.push(`host: ${window.location.host}`);
-    lines.push(`mediaDevices: ${typeof navigator.mediaDevices}`);
-    lines.push(`getUserMedia: ${typeof navigator.mediaDevices?.getUserMedia}`);
-    lines.push(`hasMicStream: ${String(hasMicStream)}`);
-    lines.push(`streamLive: ${String(streamRef.current?.getAudioTracks().some((t) => t.readyState === 'live') ?? false)}`);
-    lines.push(`pendingAudio: ${String(Boolean(pendingAudioUrl))}`);
-    lines.push(`MediaRecorder: ${typeof MediaRecorder}`);
-    lines.push(`webmOpus: ${MediaRecorder?.isTypeSupported?.('audio/webm;codecs=opus') ?? 'n/a'}`);
-    lines.push(`mp4: ${MediaRecorder?.isTypeSupported?.('audio/mp4') ?? 'n/a'}`);
-    lines.push(`permissions.query: ${typeof navigator.permissions?.query}`);
-    lines.push(`permState: ${permissionState}`);
-    lines.push(`UA: ${navigator.userAgent}`);
-    if (error) {
-      lines.push(`errName: ${error.name}`);
-      lines.push(`errMsg: ${error.message}`);
-    }
-    setDiagnostics(lines.join('\n'));
-  }, [state, error, permissionState, hasMicStream, pendingAudioUrl]);
-
   const persistSessionId = (id: string) => {
     setSessionId(id);
     try {
@@ -177,32 +116,13 @@ export function VoiceOrb() {
     }
   };
 
-  /**
-   * Acquire the mic stream. MUST be called synchronously from a user-gesture
-   * handler on iOS Safari -- any prior `await` or React state-setter chain in
-   * the same handler can consume the activation token and cause the prompt to
-   * be silently rejected with NotAllowedError. Callers pass an already-resolved
-   * MediaStream into the rest of the listening flow.
-   *
-   * Kept as a thin wrapper purely for documentation; callers MUST invoke it
-   * inline as the first statement of their click handler.
-   */
-  const acquireMicStream = (): Promise<MediaStream> =>
-    navigator.mediaDevices.getUserMedia({ audio: true });
-
   const beginListening = (stream: MediaStream) => {
     streamRef.current = stream;
     chunksRef.current = [];
 
-    // eslint-disable-next-line no-console
-    console.log('[voice-orb] beginListening: stream tracks', stream.getAudioTracks().length);
-
     let recorder: MediaRecorder;
     try {
       const webmOpus = MediaRecorder.isTypeSupported('audio/webm;codecs=opus');
-      const mp4 = MediaRecorder.isTypeSupported('audio/mp4');
-      // eslint-disable-next-line no-console
-      console.log('[voice-orb] mimeType support', { webmOpus, mp4 });
       // Prefer webm/opus where supported (Chromium, Firefox); fall back to
       // browser default (iOS Safari emits audio/mp4 with AAC). The voice-bridge
       // backend feeds both through GStreamer via AudioStreamContainerFormat.ANY.
@@ -210,8 +130,6 @@ export function VoiceOrb() {
         mimeType: webmOpus ? 'audio/webm;codecs=opus' : undefined,
       });
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[voice-orb] MediaRecorder ctor failed', e);
       cleanupCapture();
       const err = e instanceof Error ? e : new Error('MediaRecorder unavailable');
       setError({ name: err.name || 'Error', message: err.message });
@@ -246,9 +164,9 @@ export function VoiceOrb() {
       }
       await runVoiceFlow(blob);
     };
-    recorder.onerror = (ev) => {
-      // eslint-disable-next-line no-console
-      console.error('[voice-orb] MediaRecorder error event', ev);
+    recorder.onerror = () => {
+      setError({ name: 'RecorderError', message: 'Recording failed. Please try again.' });
+      setState('error');
     };
 
     try {
@@ -256,11 +174,7 @@ export function VoiceOrb() {
       // waiting until stop. This avoids the observed 5-byte second-turn blobs
       // where stop fires before a real encoded chunk is available.
       recorder.start(250);
-      // eslint-disable-next-line no-console
-      console.log('[voice-orb] recorder.start OK');
     } catch (e) {
-      // eslint-disable-next-line no-console
-      console.error('[voice-orb] recorder.start threw', e);
       cleanupCapture();
       const err = e instanceof Error ? e : new Error('MediaRecorder.start failed');
       setError({ name: err.name || 'Error', message: err.message });
@@ -270,9 +184,8 @@ export function VoiceOrb() {
     setState('listening');
     try {
       startAudioMeter(stream);
-    } catch (e) {
-      // eslint-disable-next-line no-console
-      console.warn('[voice-orb] audio meter setup failed (non-fatal)', e);
+    } catch {
+      // Audio metering is visual-only; recording can continue without it.
     }
   };
 
@@ -346,37 +259,7 @@ export function VoiceOrb() {
     setState('idle');
   };
 
-  /**
-   * Dedicated "Enable microphone" button -- mirrors the pattern mictests.com
-   * uses to recover from cached iOS permission state. Acquires a stream, then
-   * immediately releases it, just to force the OS prompt from a clean gesture.
-   */
   const handleEnableMic = () => {
-    const micPromise = acquireMicStream();
-    setError(null);
-    micPromise
-      .then((stream) => {
-        stream.getTracks().forEach((t) => t.stop());
-        setState('idle');
-      })
-      .catch((e: unknown) => {
-        const err =
-          e instanceof Error
-            ? { name: e.name || 'Error', message: e.message }
-            : { name: 'Error', message: 'Microphone unavailable.' };
-        setError(err);
-        setState('error');
-      });
-  };
-
-  /**
-   * Diagnostic-only path. Bypasses MediaRecorder, AnalyserNode, AudioContext,
-   * and the orb state machine entirely. Just calls getUserMedia synchronously
-   * from a clean tap, then immediately stops. Surfaces the raw outcome so we
-   * can tell whether the failure is permission-level (NotAllowedError) or
-   * something inside our recorder/analyser setup.
-   */
-  const handleRawMicTest = () => {
     const micPromise = navigator.mediaDevices?.getUserMedia?.({ audio: true });
     if (!micPromise) {
       setError({
@@ -389,22 +272,14 @@ export function VoiceOrb() {
     setError(null);
     micPromise
       .then((stream) => {
-        const trackInfo = stream
-          .getAudioTracks()
-          .map((t) => `${t.label || '(no label)'}|enabled=${t.enabled}|state=${t.readyState}`)
-          .join(' / ');
         stream.getTracks().forEach((t) => t.stop());
-        setError({
-          name: 'RawTestSuccess',
-          message: `Got ${stream.getAudioTracks().length} track(s): ${trackInfo}`,
-        });
-        setState('error'); // 'error' state just so the diagnostic panel shows
+        setState('idle');
       })
       .catch((e: unknown) => {
         const err =
           e instanceof Error
             ? { name: e.name || 'Error', message: e.message }
-            : { name: 'Error', message: 'Raw mic test failed.' };
+            : { name: 'Error', message: 'Microphone unavailable.' };
         setError(err);
         setState('error');
       });
@@ -640,28 +515,9 @@ export function VoiceOrb() {
           Enable microphone
         </button>
       ) : null}
-      <button
-        type="button"
-        onClick={handleRawMicTest}
-        className="px-3 py-1 text-xs rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 active:bg-gray-100"
-      >
-        Raw mic test (diagnostic)
-      </button>
       {state === 'error' && error ? (
         <p className="text-xs text-gray-400 font-mono">{error.name}</p>
       ) : null}
-      {/* Always-visible diagnostics panel. Tiny and dim when no error, more
-          visible when something failed. Useful for triaging iOS Safari mic
-          problems where the failure mode varies subtly across iOS versions. */}
-      <pre
-        className={
-          state === 'error'
-            ? 'text-[10px] leading-tight font-mono text-gray-600 bg-gray-100 p-2 rounded max-w-[90vw] overflow-x-auto whitespace-pre-wrap break-all'
-            : 'text-[9px] leading-tight font-mono text-gray-300 max-w-[90vw] overflow-x-auto whitespace-pre-wrap break-all'
-        }
-      >
-        {diagnostics}
-      </pre>
     </div>
   );
 }
