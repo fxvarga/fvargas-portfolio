@@ -1,6 +1,8 @@
 import type { SessionInfo, Product, EntitlementsResponse, PrintProduct, CostEstimate, ShippingOption, PrintOrder } from '@/types';
+import { isNativeApp } from './storage-adapter';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL
+  || (isNativeApp() ? 'https://tinytoes.fernando-vargas.com/api' : '/api');
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {

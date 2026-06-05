@@ -468,8 +468,8 @@ services:
       - ConnectionStrings__TinyToes=Host=tinytoes-db;Port=5432;Database=tinytoes;Username=tinytoes;Password=${TINYTOES_DB_PASSWORD}
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:8080
-      - FRONTEND_ORIGIN=https://tinytoes.fernando-vargas.com
-      - Cors__AllowedOrigins=https://tinytoes.fernando-vargas.com
+      - FRONTEND_ORIGIN=https://tinytoes.fernando-vargas.com,app://localhost
+      - Cors__AllowedOrigins=https://tinytoes.fernando-vargas.com,app://localhost
       - STRIPE_SECRET_KEY=${TINYTOES_STRIPE_SECRET_KEY}
       - STRIPE_PRICE_ID=${TINYTOES_STRIPE_PRICE_ID}
       - STRIPE_WEBHOOK_SECRET=${TINYTOES_STRIPE_WEBHOOK_SECRET}

@@ -62,7 +62,7 @@ class WebViewStore: ObservableObject {
       webView.load(URLRequest(url: appURL))
     } else {
       print("[TinyToes] www/ NOT FOUND — falling back to remote")
-      let remoteURL = URL(string: "https://tinytoes.fvargas.com")!
+      let remoteURL = URL(string: "https://tinytoes.fernando-vargas.com")!
       webView.load(URLRequest(url: remoteURL))
     }
   }
