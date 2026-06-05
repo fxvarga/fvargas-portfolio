@@ -66,6 +66,10 @@ services:
       AZURE_STORAGE_ACCOUNT_NAME: ${AZURE_STORAGE_ACCOUNT_NAME:-}
       AZURE_STORAGE_ACCOUNT_KEY: ${AZURE_STORAGE_ACCOUNT_KEY:-}
       AZURE_STORAGE_CONTAINER: ${AZURE_STORAGE_CONTAINER:-tinytoes}
+      Apple__KeyId: ${TINYTOES_APPLE_KEY_ID:-}
+      Apple__IssuerId: ${TINYTOES_APPLE_ISSUER_ID:-}
+      Apple__PrivateKey: ${TINYTOES_APPLE_PRIVATE_KEY:-}
+      Apple__UseSandbox: ${TINYTOES_APPLE_USE_SANDBOX:-true}
     networks:
       - tinytoes-net
     healthcheck:

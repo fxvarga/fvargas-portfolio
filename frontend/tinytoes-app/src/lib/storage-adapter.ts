@@ -21,7 +21,13 @@ declare global {
     nativeIAP?: {
       purchase(): Promise<{ transactionId: string; purchased: boolean }>;
       restore(): Promise<{ transactionId: string; purchased: boolean }>;
-      getStatus(): Promise<{ transactionId: string; purchased: boolean; price: string }>;
+      getStatus(): Promise<{
+        transactionId: string;
+        purchased: boolean;
+        price: string;
+        productAvailable?: boolean;
+        error?: string;
+      }>;
     };
   }
 }

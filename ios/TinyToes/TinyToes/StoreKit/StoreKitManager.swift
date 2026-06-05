@@ -32,7 +32,12 @@ class StoreKitManager: ObservableObject {
         do {
             let products = try await Product.products(for: [Self.productId])
             product = products.first
+            if product == nil {
+                errorMessage = "In-app purchase product not found. Check App Store Connect product id: \(Self.productId)."
+                print("[StoreKit] Product not found: \(Self.productId)")
+            }
         } catch {
+            errorMessage = "Failed to load in-app purchase product: \(error.localizedDescription)"
             print("[StoreKit] Failed to load products: \(error)")
         }
     }
@@ -40,7 +45,13 @@ class StoreKitManager: ObservableObject {
     // MARK: - Purchase
 
     func purchase() async {
-        guard let product else { return }
+        if product == nil {
+            await loadProducts()
+        }
+        guard let product else {
+            errorMessage = "Purchase unavailable. Add the non-consumable product \(Self.productId) in App Store Connect and make sure this build uses bundle id com.tinytoes.app."
+            return
+        }
 
         isLoading = true
         errorMessage = nil

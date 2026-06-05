@@ -40,6 +40,12 @@ public class AppleVerificationService
 
     public async Task<AppleVerifyResult> VerifyAndGrantAsync(string transactionId, Guid buyerId)
     {
+        if (!IsConfigured())
+        {
+            _logger.LogWarning("Apple IAP verification is not configured. Missing Apple:KeyId, Apple:IssuerId, or Apple:PrivateKey.");
+            return AppleVerifyResult.Fail("Apple purchase verification is not configured yet.");
+        }
+
         // 1. Check if this transaction was already processed
         var existing = await _db.BuyerProducts
             .AnyAsync(bp => bp.AppleTransactionId == transactionId);
@@ -84,6 +90,11 @@ public class AppleVerificationService
         _logger.LogInformation("Granted Apple IAP entitlements for buyer {BuyerId}, txn {Txn}", buyerId, transactionId);
         return AppleVerifyResult.Success();
     }
+
+    private bool IsConfigured() =>
+        !string.IsNullOrWhiteSpace(_config["Apple:KeyId"]) &&
+        !string.IsNullOrWhiteSpace(_config["Apple:IssuerId"]) &&
+        !string.IsNullOrWhiteSpace(_config["Apple:PrivateKey"]);
 
     private async Task<AppleTransactionInfo?> GetTransactionFromApple(string transactionId)
     {
@@ -130,8 +141,9 @@ public class AppleVerificationService
             ?? throw new InvalidOperationException("Apple:KeyId not configured");
         var issuerId = _config["Apple:IssuerId"]
             ?? throw new InvalidOperationException("Apple:IssuerId not configured");
-        var privateKeyPem = _config["Apple:PrivateKey"]
-            ?? throw new InvalidOperationException("Apple:PrivateKey not configured");
+        var privateKeyPem = NormalizePrivateKey(
+            _config["Apple:PrivateKey"]
+                ?? throw new InvalidOperationException("Apple:PrivateKey not configured"));
 
         var ecdsa = ECDsa.Create();
         ecdsa.ImportFromPem(privateKeyPem);
@@ -153,6 +165,26 @@ public class AppleVerificationService
         token.Header["kid"] = keyId;
 
         return handler.WriteToken(token);
+    }
+
+    private static string NormalizePrivateKey(string configuredValue)
+    {
+        var trimmed = configuredValue.Trim();
+        if (trimmed.Contains("BEGIN PRIVATE KEY", StringComparison.OrdinalIgnoreCase))
+            return trimmed;
+
+        // The iOS build workflow stores APPLE_API_PRIVATE_KEY as base64 and
+        // decodes it before xcodebuild upload. Reusing that same secret for
+        // backend transaction verification means the API may receive base64
+        // instead of raw PEM; support both forms.
+        try
+        {
+            return Encoding.UTF8.GetString(Convert.FromBase64String(trimmed));
+        }
+        catch
+        {
+            return trimmed;
+        }
     }
 
     private static byte[] Base64UrlDecode(string input)

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { isNativeApp } from '@/lib/storage-adapter';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,14 +29,22 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
   const [codeSuccess, setCodeSuccess] = useState<string | null>(null);
   const [codeSubmitting, setCodeSubmitting] = useState(false);
 
-  // Get price from StoreKit on mount
-  useState(() => {
+  // Get price/product availability from StoreKit on mount.
+  useEffect(() => {
     if (isNativeApp() && window.nativeIAP) {
       window.nativeIAP.getStatus().then((status) => {
         if (status.price) setPrice(status.price);
+        if (status.productAvailable === false) {
+          setError(
+            status.error ||
+              'In-app purchase is not available. Check App Store Connect product setup.'
+          );
+        }
+      }).catch((err) => {
+        setError(err instanceof Error ? err.message : 'Could not load in-app purchase.');
       });
     }
-  });
+  }, []);
 
   const handlePurchase = async () => {
     if (!window.nativeIAP) return;
@@ -50,6 +58,8 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
         // Verify with our server
         await api.verifyApple(result.transactionId);
         onUnlocked();
+      } else {
+        setError('Purchase was not completed. If no App Store sheet appeared, check the product in App Store Connect.');
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Purchase failed. Please try again.');

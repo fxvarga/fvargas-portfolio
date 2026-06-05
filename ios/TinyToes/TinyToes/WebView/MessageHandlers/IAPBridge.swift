@@ -52,12 +52,18 @@ class IAPBridge: NSObject, WKScriptMessageHandler {
                 }
 
             case "getStatus":
+                await storeKitManager.loadProducts()
                 await storeKitManager.checkEntitlement()
                 let txnId = storeKitManager.transactionId ?? ""
                 let purchased = storeKitManager.isPurchased
                 let price = storeKitManager.product?.displayPrice ?? ""
+                let available = storeKitManager.product != nil
+                let err = storeKitManager.errorMessage ?? ""
+                let escapedError = err
+                    .replacingOccurrences(of: "\\", with: "\\\\")
+                    .replacingOccurrences(of: "\"", with: "\\\"")
                 self.callback(webView: webView, id: id, error: nil,
-                              result: "{\"transactionId\":\"\(txnId)\",\"purchased\":\(purchased),\"price\":\"\(price)\"}")
+                              result: "{\"transactionId\":\"\(txnId)\",\"purchased\":\(purchased),\"price\":\"\(price)\",\"productAvailable\":\(available),\"error\":\"\(escapedError)\"}")
 
             default:
                 self.callback(webView: webView, id: id, error: "Unknown IAP action: \(action)", result: nil)

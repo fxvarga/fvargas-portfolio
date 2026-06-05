@@ -166,6 +166,14 @@ jobs:
           TINYTOES_AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.TINYTOES_AZURE_STORAGE_CONNECTION_STRING }}
           TINYTOES_AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.TINYTOES_AZURE_STORAGE_ACCOUNT_NAME }}
           TINYTOES_AZURE_STORAGE_ACCOUNT_KEY: ${{ secrets.TINYTOES_AZURE_STORAGE_ACCOUNT_KEY }}
+          # Reuse the existing App Store Connect API key used by the iOS build/upload
+          # workflow for App Store Server API transaction verification.
+          TINYTOES_APPLE_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          TINYTOES_APPLE_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          TINYTOES_APPLE_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          # TestFlight/Sandbox receipts require sandbox verification. Override to
+          # false when validating production App Store purchases.
+          TINYTOES_APPLE_USE_SANDBOX: ${{ secrets.TINYTOES_APPLE_USE_SANDBOX || 'true' }}
           TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
           TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
