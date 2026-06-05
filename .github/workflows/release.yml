@@ -9,7 +9,6 @@ on:
         type: choice
         options:
           - azure
-          - digitalocean
           - none
         default: azure
   push:
@@ -164,8 +163,9 @@ jobs:
           TINYTOES_MS_GRAPH_CLIENT_ID: ${{ secrets.TINYTOES_MS_GRAPH_CLIENT_ID }}
           TINYTOES_MS_GRAPH_TENANT_ID: ${{ secrets.TINYTOES_MS_GRAPH_TENANT_ID }}
           TINYTOES_MAIL_USER_UPN: ${{ secrets.TINYTOES_MAIL_USER_UPN }}
-          TINYTOES_SPACES_ACCESS_KEY: ${{ secrets.TINYTOES_SPACES_ACCESS_KEY }}
-          TINYTOES_SPACES_SECRET_KEY: ${{ secrets.TINYTOES_SPACES_SECRET_KEY }}
+          TINYTOES_AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.TINYTOES_AZURE_STORAGE_CONNECTION_STRING }}
+          TINYTOES_AZURE_STORAGE_ACCOUNT_NAME: ${{ secrets.TINYTOES_AZURE_STORAGE_ACCOUNT_NAME }}
+          TINYTOES_AZURE_STORAGE_ACCOUNT_KEY: ${{ secrets.TINYTOES_AZURE_STORAGE_ACCOUNT_KEY }}
           TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
           TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -264,67 +264,3 @@ jobs:
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "**All 9 services built and deployed**" >> $GITHUB_STEP_SUMMARY
 
-  deploy-digitalocean:
-    name: Deploy to DigitalOcean
-    runs-on: ubuntu-latest
-    needs: build
-    if: github.event.inputs.deploy_target == 'digitalocean'
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Render docker-compose.yml from template
-        env:
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          CMS_ADMIN_PASSWORD: ${{ secrets.CMS_ADMIN_PASSWORD }}
-          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          PLAUSIBLE_SECRET_KEY_BASE: ${{ secrets.PLAUSIBLE_SECRET_KEY_BASE }}
-          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          N8N_DB_PASSWORD: ${{ secrets.N8N_DB_PASSWORD }}
-          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
-          MS_GRAPH_CLIENT_SECRET: ${{ secrets.MS_GRAPH_CLIENT_SECRET }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
-          TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
-          TINYTOES_DB_PASSWORD: ${{ secrets.TINYTOES_DB_PASSWORD }}
-          TINYTOES_STRIPE_SECRET_KEY: ${{ secrets.TINYTOES_STRIPE_SECRET_KEY }}
-          TINYTOES_STRIPE_PRICE_ID: ${{ secrets.TINYTOES_STRIPE_PRICE_ID }}
-          TINYTOES_STRIPE_WEBHOOK_SECRET: ${{ secrets.TINYTOES_STRIPE_WEBHOOK_SECRET }}
-          TINYTOES_ADMIN_API_KEY: ${{ secrets.TINYTOES_ADMIN_API_KEY }}
-          TINYTOES_MS_GRAPH_CLIENT_ID: ${{ secrets.TINYTOES_MS_GRAPH_CLIENT_ID }}
-          TINYTOES_MS_GRAPH_TENANT_ID: ${{ secrets.TINYTOES_MS_GRAPH_TENANT_ID }}
-          TINYTOES_MAIL_USER_UPN: ${{ secrets.TINYTOES_MAIL_USER_UPN }}
-          TINYTOES_SPACES_ACCESS_KEY: ${{ secrets.TINYTOES_SPACES_ACCESS_KEY }}
-          TINYTOES_SPACES_SECRET_KEY: ${{ secrets.TINYTOES_SPACES_SECRET_KEY }}
-          TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
-          TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
-        run: |
-          envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
-
-      - name: Deploy to DO
-        env:
-          DO_SSH_PRIVATE_KEY: ${{ secrets.DO_SSH_PRIVATE_KEY }}
-          DO_HOST: 147.182.169.160
-        run: |
-          mkdir -p ~/.ssh
-          echo "$DO_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$DO_HOST" >> ~/.ssh/known_hosts 2>/dev/null
-
-          scp -o StrictHostKeyChecking=no -r \
-            deploy/docker-compose.yml \
-            deploy/Caddyfile \
-            deploy/Caddyfile.production \
-            deploy/clickhouse \
-            deploy/grafana \
-            deploy/prometheus \
-            root@"$DO_HOST":/opt/portfolio/
-
-          ssh -o StrictHostKeyChecking=no root@"$DO_HOST" << 'EOF'
-            cd /opt/portfolio
-            docker compose pull
-            docker compose up -d
-            docker exec -u root portfolio-backend sh -c 'chown -R appuser:appuser /app/wwwroot/uploads' 2>/dev/null || true
-            docker image prune -f
-          EOF

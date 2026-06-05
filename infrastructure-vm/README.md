@@ -1,6 +1,6 @@
 # Infrastructure VM
 
-Bicep IaC for provisioning an Azure VM to host the portfolio Docker workloads (mirrors the current DigitalOcean droplet).
+Bicep IaC for provisioning an Azure VM to host the portfolio Docker workloads.
 
 ## What Gets Created
 
