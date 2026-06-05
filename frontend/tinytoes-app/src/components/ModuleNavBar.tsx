@@ -1,7 +1,10 @@
+import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
+import { useTrialImages } from '@/hooks/useTrialImages';
 import { isNativeApp } from '@/lib/storage-adapter';
+import { IOSPaywall } from '@/components/IOSPaywall';
 import { UtensilsCrossed, Trophy, BookOpen, BookMarked, Clapperboard, Lock } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -27,62 +30,81 @@ export function ModuleNavBar({ activeSlug }: ModuleNavBarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isAuthenticated } = useAuth();
-  const { products: entitlements, hasAnyCoreProduct } = useEntitlements(isAuthenticated);
+  const { products: entitlements, hasAnyCoreProduct, refresh: refreshEntitlements } = useEntitlements(isAuthenticated);
+  const trial = useTrialImages();
+  const [showPaywall, setShowPaywall] = useState(false);
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 z-50 no-print safe-area-bottom"
-      style={{
-        backgroundColor: 'var(--color-panel)',
-        borderTop: '1px solid var(--color-accent)',
-        boxShadow: '0 -2px 16px rgba(61,44,46,0.04)',
-      }}
-    >
-      <div className="flex items-stretch justify-around h-[3.5rem]">
-        {MODULE_NAV.map(mod => {
-          const isFreeFeature = FREE_FEATURE_SLUGS.includes(mod.slug);
-          // On iOS native, first-foods is always accessible (trial mode with 5 free images)
-          const isNativeTrial = isNativeApp() && mod.slug === 'first-foods';
-          const owned = isNativeTrial || (isFreeFeature ? hasAnyCoreProduct() : entitlements.includes(mod.slug));
-          const isActive = mod.slug === activeSlug;
-          return (
-            <button
-              key={mod.slug}
-              onClick={() => {
-                if (!owned) {
-                  navigate('/store');
-                  return;
-                }
-                if (mod.path !== location.pathname) {
-                  window.scrollTo({ top: 0, behavior: 'instant' });
-                  navigate(mod.path);
-                }
-              }}
-              className={`flex flex-col items-center justify-center flex-1 gap-0.5 transition-colors relative ${
-                !owned ? 'opacity-40' : ''
-              }`}
-              style={{
-                color: isActive ? 'var(--color-primary)' : 'var(--color-muted)',
-              }}
-              aria-label={!owned ? `${mod.label} — tap to view in store` : mod.label}
-              aria-current={isActive ? 'page' : undefined}
-            >
-              {/* Active indicator bar */}
-              {isActive && (
-                <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full"
-                  style={{ backgroundColor: 'var(--color-primary)' }}
-                />
-              )}
-              <mod.icon size={21} strokeWidth={isActive ? 2.2 : 1.6} />
-              <span className={`text-[10px] leading-tight tracking-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
-                {mod.label}
-              </span>
-              {!owned && <Lock size={10} className="absolute top-2 right-1/4" />}
-            </button>
-          );
-        })}
-      </div>
-    </nav>
+    <>
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 no-print safe-area-bottom"
+        style={{
+          backgroundColor: 'var(--color-panel)',
+          borderTop: '1px solid var(--color-accent)',
+          boxShadow: '0 -2px 16px rgba(61,44,46,0.04)',
+        }}
+      >
+        <div className="flex items-stretch justify-around h-[3.5rem]">
+          {MODULE_NAV.map(mod => {
+            const isFreeFeature = FREE_FEATURE_SLUGS.includes(mod.slug);
+            // On iOS native, first-foods is always accessible (trial mode with free images)
+            const isNativeTrial = isNativeApp() && mod.slug === 'first-foods';
+            const owned = isNativeTrial || (isFreeFeature ? hasAnyCoreProduct() : entitlements.includes(mod.slug));
+            const isActive = mod.slug === activeSlug;
+            return (
+              <button
+                key={mod.slug}
+                onClick={() => {
+                  if (!owned) {
+                    if (isNativeApp()) {
+                      setShowPaywall(true);
+                    } else {
+                      navigate('/store');
+                    }
+                    return;
+                  }
+                  if (mod.path !== location.pathname) {
+                    window.scrollTo({ top: 0, behavior: 'instant' });
+                    navigate(mod.path);
+                  }
+                }}
+                className={`flex flex-col items-center justify-center flex-1 gap-0.5 transition-colors relative ${
+                  !owned ? 'opacity-40' : ''
+                }`}
+                style={{
+                  color: isActive ? 'var(--color-primary)' : 'var(--color-muted)',
+                }}
+                aria-label={!owned ? `${mod.label} — tap to unlock` : mod.label}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {isActive && (
+                  <span
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-10 h-[3px] rounded-full"
+                    style={{ backgroundColor: 'var(--color-primary)' }}
+                  />
+                )}
+                <mod.icon size={21} strokeWidth={isActive ? 2.2 : 1.6} />
+                <span className={`text-[10px] leading-tight tracking-tight ${isActive ? 'font-semibold' : 'font-medium'}`}>
+                  {mod.label}
+                </span>
+                {!owned && <Lock size={10} className="absolute top-2 right-1/4" />}
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {showPaywall && (
+        <IOSPaywall
+          trialRemaining={trial.remaining}
+          trialLimit={trial.trialLimit}
+          onUnlocked={() => {
+            setShowPaywall(false);
+            refreshEntitlements();
+          }}
+          onClose={() => setShowPaywall(false)}
+        />
+      )}
+    </>
   );
 }
