@@ -1,0 +1,181 @@
+name: Infrastructure Shared - Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+  push:
+    branches: [main]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infra-shared.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'infrastructure/**'
+      - '.github/workflows/infra-shared.yml'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+env:
+  RESOURCE_GROUP: rg-fev-fevargas
+  TEMPLATE_FILE: infrastructure/main.bicep
+  PARAMETER_FILE: infrastructure/main.test.parameters.bicepparam
+
+jobs:
+  lint:
+    name: Lint & Validate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Bicep Lint
+        run: az bicep lint --file ${{ env.TEMPLATE_FILE }}
+
+      - name: Bicep Build (validate syntax)
+        run: az bicep build --file ${{ env.TEMPLATE_FILE }} --stdout > /dev/null
+
+  plan:
+    name: What-If (Plan)
+    runs-on: ubuntu-latest
+    needs: lint
+    outputs:
+      whatif: ${{ steps.whatif.outputs.result }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Run What-If
+        id: whatif
+        run: |
+          RESULT=$(az deployment group what-if \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file ${{ env.TEMPLATE_FILE }} \
+            --parameters ${{ env.PARAMETER_FILE }} \
+            --no-pretty-print 2>&1) || true
+          echo "result<<EOF" >> $GITHUB_OUTPUT
+          echo "$RESULT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Post What-If to PR
+        if: github.event_name == 'pull_request'
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: bicep-whatif-shared
+          message: |
+            ## Bicep What-If Results (shared infra)
+
+            ```
+            ${{ steps.whatif.outputs.result }}
+            ```
+
+      - name: Print What-If to Summary
+        env:
+          WHATIF_RESULT: ${{ steps.whatif.outputs.result }}
+        run: |
+          echo "## What-If Results" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$WHATIF_RESULT" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  apply:
+    name: Deploy Shared Infrastructure
+    runs-on: ubuntu-latest
+    needs: plan
+    if: >
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    environment: infra-prod
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy Bicep
+        id: deploy
+        run: |
+          OUTPUT=$(az deployment group create \
+            --name "infra-shared-$(date +%Y%m%d%H%M%S)" \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --template-file ${{ env.TEMPLATE_FILE }} \
+            --parameters ${{ env.PARAMETER_FILE }} \
+            --query "properties.outputs" \
+            --output json)
+
+          echo "$OUTPUT" | jq .
+          echo "speech_name=$(echo $OUTPUT | jq -r '.speechResourceName.value')" >> $GITHUB_OUTPUT
+          echo "speech_region=$(echo $OUTPUT | jq -r '.speechRegion.value')" >> $GITHUB_OUTPUT
+          echo "speech_endpoint=$(echo $OUTPUT | jq -r '.speechEndpoint.value')" >> $GITHUB_OUTPUT
+
+      - name: Fetch Speech key
+        id: keys
+        run: |
+          KEY=$(az cognitiveservices account keys list \
+            --name "${{ steps.deploy.outputs.speech_name }}" \
+            --resource-group "${{ env.RESOURCE_GROUP }}" \
+            --query "key1" -o tsv)
+          echo "::add-mask::$KEY"
+          echo "speech_key=$KEY" >> $GITHUB_OUTPUT
+
+      - name: Sync secrets to GitHub repo
+        if: ${{ env.GH_PAT != '' }}
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          SPEECH_KEY: ${{ steps.keys.outputs.speech_key }}
+          SPEECH_REGION: ${{ steps.deploy.outputs.speech_region }}
+        run: |
+          echo -n "$SPEECH_KEY" | gh secret set AZURE_SPEECH_KEY --repo ${{ github.repository }}
+          echo -n "$SPEECH_REGION" | gh secret set AZURE_SPEECH_REGION --repo ${{ github.repository }}
+          echo "Synced AZURE_SPEECH_KEY and AZURE_SPEECH_REGION to GitHub secrets." >> $GITHUB_STEP_SUMMARY
+
+      - name: Warn if GH_PAT not configured
+        if: ${{ env.GH_PAT == '' }}
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          echo "## :warning: GH_PAT secret not set" >> $GITHUB_STEP_SUMMARY
+          echo "Skipped syncing AZURE_SPEECH_KEY / AZURE_SPEECH_REGION to GitHub secrets." >> $GITHUB_STEP_SUMMARY
+          echo "Add a PAT with \`secrets:write\` as repo secret \`GH_PAT\` to enable auto-sync." >> $GITHUB_STEP_SUMMARY
+          echo "Or run locally:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "az cognitiveservices account keys list -n ${{ steps.deploy.outputs.speech_name }} -g ${{ env.RESOURCE_GROUP }} --query key1 -o tsv | gh secret set AZURE_SPEECH_KEY" >> $GITHUB_STEP_SUMMARY
+          echo "echo -n ${{ steps.deploy.outputs.speech_region }} | gh secret set AZURE_SPEECH_REGION" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+      - name: Print deployment summary
+        run: |
+          echo "## Shared Infra Deployment Complete" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Speech Resource | ${{ steps.deploy.outputs.speech_name }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Region | ${{ steps.deploy.outputs.speech_region }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Endpoint | ${{ steps.deploy.outputs.speech_endpoint }} |" >> $GITHUB_STEP_SUMMARY

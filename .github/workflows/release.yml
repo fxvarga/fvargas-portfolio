@@ -22,10 +22,12 @@ on:
       - 'frontend/portfolio-opsblueprint/**'
       - 'frontend/portfolio-brad/**'
       - 'frontend/portfolio-pinchos/**'
+      - 'frontend/agent-chat-web/**'
       - 'frontend/tinytoes-app/**'
       - 'backend/dotnet/TinyToes.Api/**'
       - 'backend/dotnet/TinyToes.Infrastructure/**'
       - 'n8n-agent/python-helper/**'
+      - 'services/voice-bridge/**'
       - 'deploy/**'
       - '.github/workflows/release.yml'
 
@@ -89,6 +91,18 @@ jobs:
             context: deploy/hermes
             dockerfile: deploy/hermes/Dockerfile
             image: portfolio-hermes
+          - service: agentchat-web
+            context: frontend/agent-chat-web
+            dockerfile: frontend/agent-chat-web/Dockerfile
+            image: agentchat-web
+          - service: voice-bridge
+            context: services/voice-bridge
+            dockerfile: services/voice-bridge/Dockerfile
+            image: portfolio-voice-bridge
+          - service: caddy
+            context: deploy/caddy
+            dockerfile: deploy/caddy/Dockerfile
+            image: portfolio-caddy
     steps:
       - uses: actions/checkout@v4
 
@@ -160,6 +174,19 @@ jobs:
           GMAIL_OAUTH_CLIENT_ID: ${{ secrets.GMAIL_OAUTH_CLIENT_ID }}
           GMAIL_OAUTH_CLIENT_SECRET: ${{ secrets.GMAIL_OAUTH_CLIENT_SECRET }}
           GMAIL_REFRESH_TOKEN: ${{ secrets.GMAIL_REFRESH_TOKEN }}
+          HERMES_API_KEY: ${{ secrets.HERMES_API_KEY }}
+          HERMES_MODEL: ${{ secrets.HERMES_MODEL }}
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+          AZURE_SPEECH_VOICE: ${{ secrets.AZURE_SPEECH_VOICE }}
+          AZURE_SPEECH_LANGUAGE: ${{ secrets.AZURE_SPEECH_LANGUAGE }}
+          AUDIO_TOKEN_SECRET: ${{ secrets.AUDIO_TOKEN_SECRET }}
+          GODADDY_API_TOKEN: ${{ secrets.GODADDY_API_TOKEN }}
+          ENTRA_TENANT_ID: ${{ secrets.ENTRA_TENANT_ID }}
+          ENTRA_CLIENT_ID: ${{ secrets.ENTRA_CLIENT_ID }}
+          ENTRA_CLIENT_SECRET: ${{ secrets.ENTRA_CLIENT_SECRET }}
+          OAUTH2_PROXY_COOKIE_SECRET: ${{ secrets.OAUTH2_PROXY_COOKIE_SECRET }}
+          OAUTH2_PROXY_ALLOWED_OID: ${{ secrets.OAUTH2_PROXY_ALLOWED_OID }}
         run: |
           envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
 

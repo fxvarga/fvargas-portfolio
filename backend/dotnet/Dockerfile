@@ -1,5 +1,5 @@
 # Build stage
-FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0@sha256:0d2d99c1f384a6b9c8f37aaea952937b2ffff20aa150c7eb4fdeb0a968797d31 AS build
 WORKDIR /src
 
 # Copy solution and project files first for better layer caching
@@ -31,7 +31,7 @@ COPY . .
 RUN dotnet publish FV.Api/FV.Api.csproj -c Release -o /app/publish
 
 # Runtime stage
-FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:9.0@sha256:906fe6afa26ebfb013a769a659a5bc1eb30424152bcec3c6cd8b0bd88dd69d1c AS runtime
 WORKDIR /app
 
 # Install curl for health checks

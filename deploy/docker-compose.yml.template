@@ -409,12 +409,16 @@ services:
       start_period: 10s
 
   caddy:
-    image: caddy:2-alpine
+    image: fxvarga/portfolio-caddy:latest
     container_name: portfolio-caddy
     ports:
       - "80:80"
       - "443:443"
       - "443:443/udp"
+    environment:
+      # Required for DNS-01 issuance of voice.fernando-vargas.com (private-IP host).
+      # Format: "<godaddy-api-key>:<godaddy-api-secret>".
+      - GODADDY_API_TOKEN=$GODADDY_API_TOKEN
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
@@ -432,6 +436,7 @@ services:
       - grafana
       - n8n
       - tinytoes-web
+      - oauth2-proxy
     networks:
       - portfolio-network
     restart: unless-stopped
@@ -512,6 +517,8 @@ services:
     image: fxvarga/portfolio-hermes:latest
     container_name: portfolio-hermes
     restart: unless-stopped
+    ports:
+      - "9119:9119"
     environment:
       - TELEGRAM_BOT_TOKEN=$TELEGRAM_BOT_TOKEN
       - TELEGRAM_ALLOWED_USERS=$TELEGRAM_ALLOWED_USERS
@@ -519,6 +526,12 @@ services:
       - GMAIL_OAUTH_CLIENT_ID=$GMAIL_OAUTH_CLIENT_ID
       - GMAIL_OAUTH_CLIENT_SECRET=$GMAIL_OAUTH_CLIENT_SECRET
       - GMAIL_REFRESH_TOKEN=$GMAIL_REFRESH_TOKEN
+      # Hermes built-in OpenAI-compatible API server (consumed internally by voice-bridge).
+      # Port 8642 is NOT published — only reachable inside portfolio-network.
+      - API_SERVER_ENABLED=true
+      - API_SERVER_HOST=0.0.0.0
+      - API_SERVER_PORT=8642
+      - API_SERVER_KEY=$HERMES_API_KEY
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - hermes-data:/root/.hermes
@@ -526,6 +539,114 @@ services:
     mem_limit: 1536m
     networks:
       - portfolio-network
+
+  # Voice bridge: browser → Azure Speech STT → Hermes API → Azure Speech TTS → browser.
+  # Internal-only; reached via agentchat-web nginx proxy on /api/voice/*.
+  voice-bridge:
+    image: fxvarga/portfolio-voice-bridge:latest
+    container_name: portfolio-voice-bridge
+    restart: unless-stopped
+    environment:
+      - AZURE_SPEECH_KEY=$AZURE_SPEECH_KEY
+      - AZURE_SPEECH_REGION=$AZURE_SPEECH_REGION
+      - AZURE_SPEECH_VOICE=$AZURE_SPEECH_VOICE
+      - AZURE_SPEECH_LANGUAGE=$AZURE_SPEECH_LANGUAGE
+      - HERMES_BASE_URL=http://hermes:8642/v1
+      - HERMES_API_KEY=$HERMES_API_KEY
+      - HERMES_MODEL=$HERMES_MODEL
+      - AUDIO_TOKEN_SECRET=$AUDIO_TOKEN_SECRET
+    depends_on:
+      - hermes
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Agent Chat web (hosts /voice page). Twingate-only — port 9118 is NOT in any cloud firewall.
+  agentchat-web:
+    image: fxvarga/agentchat-web:latest
+    container_name: portfolio-agentchat-web
+    restart: unless-stopped
+    ports:
+      - "9118:80"
+    depends_on:
+      - voice-bridge
+    networks:
+      - portfolio-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # OAuth2 Proxy — Entra ID (AAD) gateway in front of the voice orb.
+  # Caddy routes voice.fernando-vargas.com -> oauth2-proxy -> agentchat-web.
+  # Unauthenticated requests are 302'd to Microsoft login. Only the single
+  # allowed OID (OAUTH2_PROXY_ALLOWED_OID) is permitted through. This is
+  # what lets us expose voice on the public IP without leaving an open
+  # mic-enabled endpoint to the internet.
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: portfolio-oauth2-proxy
+    restart: unless-stopped
+    depends_on:
+      - agentchat-web
+    networks:
+      - portfolio-network
+    environment:
+      # Provider — generic OIDC pointed at the Entra v2.0 issuer for our tenant.
+      - OAUTH2_PROXY_PROVIDER=oidc
+      - OAUTH2_PROXY_OIDC_ISSUER_URL=https://login.microsoftonline.com/$ENTRA_TENANT_ID/v2.0
+      - OAUTH2_PROXY_CLIENT_ID=$ENTRA_CLIENT_ID
+      - OAUTH2_PROXY_CLIENT_SECRET=$ENTRA_CLIENT_SECRET
+      # No fixed REDIRECT_URL: oauth2-proxy derives it per-request from the
+      # Host header, so the same instance serves both
+      # voice.fernando-vargas.com and the sslip.io fallback hostname. Both
+      # callback URLs are registered on the Entra app reg. WHITELIST_DOMAINS
+      # is the security gate: oauth2-proxy will only emit redirects back to
+      # these hostnames.
+      - OAUTH2_PROXY_WHITELIST_DOMAINS=voice.fernando-vargas.com,voice-20-114-187-45.sslip.io
+      # Upstream — the existing nginx that serves the orb + /api/voice/.
+      - OAUTH2_PROXY_UPSTREAMS=http://agentchat-web:80
+      # Listen address inside the container (Caddy reaches us on this port).
+      - OAUTH2_PROXY_HTTP_ADDRESS=0.0.0.0:4180
+      - OAUTH2_PROXY_REVERSE_PROXY=true
+      # Cookie config — encrypted session cookie, set on each allowed host.
+      - OAUTH2_PROXY_COOKIE_SECRET=$OAUTH2_PROXY_COOKIE_SECRET
+      - OAUTH2_PROXY_COOKIE_DOMAINS=voice.fernando-vargas.com,voice-20-114-187-45.sslip.io
+      - OAUTH2_PROXY_COOKIE_SECURE=true
+      - OAUTH2_PROXY_COOKIE_SAMESITE=lax
+      - OAUTH2_PROXY_COOKIE_REFRESH=1h
+      # Allow-list a single Entra object ID (the user's oid). All other
+      # authenticated identities will be rejected with 403 after login.
+      # email_domains=* is required by oauth2-proxy schema; the real gate
+      # is the OID validation below via auth-request-style header check.
+      - OAUTH2_PROXY_EMAIL_DOMAINS=*
+      # Lock by sub / oid via the allowed-groups feature targeting the oid
+      # claim. oauth2-proxy maps Azure 'oid' to its groups list when we set
+      # this env. Anyone whose token oid != OAUTH2_PROXY_ALLOWED_OID is denied.
+      - OAUTH2_PROXY_ALLOWED_GROUPS=$OAUTH2_PROXY_ALLOWED_OID
+      - OAUTH2_PROXY_OIDC_GROUPS_CLAIM=oid
+      # Scopes — openid + profile + email is enough; we only need id_token.
+      - OAUTH2_PROXY_SCOPE=openid profile email
+      # Skip the oauth2-proxy interstitial "sign in with" page; redirect
+      # straight to Entra on first hit.
+      - OAUTH2_PROXY_SKIP_PROVIDER_BUTTON=true
+      # Pass identity headers downstream so the orb / voice-bridge can log
+      # the authenticated user if useful (optional, non-load-bearing).
+      - OAUTH2_PROXY_PASS_USER_HEADERS=true
+      - OAUTH2_PROXY_SET_XAUTHREQUEST=true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://127.0.0.1:4180/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   # NOTE: twingate-connector is managed outside compose (manually deployed).
   # Do NOT add it here — killing/recreating it drops the SSH tunnel used for deploys.

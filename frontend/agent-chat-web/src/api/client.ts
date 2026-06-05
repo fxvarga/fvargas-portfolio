@@ -19,7 +19,7 @@ const API_BASE = '/api';
 
 export class ApiError extends Error {
   status: number;
-  
+
   constructor(status: number, message: string) {
     super(message);
     this.status = status;
@@ -68,7 +68,7 @@ export async function createRun(request: CreateRunRequest): Promise<CreateRunRes
   const response = await fetch(`${API_BASE}/runs`, {
     method: 'POST',
     headers: getHeaders(),
-    body: JSON.stringify({ 
+    body: JSON.stringify({
       message: request.initialMessage,
       assistantType: request.assistantType,
     }),
@@ -217,7 +217,7 @@ export async function listKnowledgeItems(params?: {
 
   const queryString = searchParams.toString();
   const url = `${API_BASE}/knowledge${queryString ? `?${queryString}` : ''}`;
-  
+
   const response = await fetch(url, {
     headers: getHeaders(),
   });
@@ -247,7 +247,7 @@ export async function listTools(category?: string): Promise<ToolListResponse> {
   if (category) params.append('category', category);
   const queryString = params.toString();
   const url = `${API_BASE}/tools${queryString ? `?${queryString}` : ''}`;
-  
+
   const response = await fetch(url, {
     headers: getHeaders(),
   });
