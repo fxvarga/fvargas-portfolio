@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
+import { isNativeApp } from '@/lib/storage-adapter';
 import { CORE_PRODUCT_SLUGS, type ProductSlug } from '@/types';
 
 const CACHE_KEY = 'tinytoes-entitlements';
@@ -33,7 +34,26 @@ export function useEntitlements(isAuthenticated: boolean) {
   });
 
   const refresh = useCallback(async () => {
+    if (isNativeApp() && window.nativeIAP) {
+      try {
+        const status = await window.nativeIAP.getStatus();
+        if (status.purchased) {
+          const products = [...CORE_PRODUCT_SLUGS];
+          localStorage.setItem(CACHE_KEY, JSON.stringify(products));
+          setState({ products, isLoading: false, error: null });
+          return;
+        }
+      } catch {
+        // Fall through to web/session entitlement handling below.
+      }
+    }
+
     if (!isAuthenticated) {
+      // Imported content does not grant ownership. Without an authenticated
+      // claim-code session or a verified native StoreKit entitlement, keep
+      // premium modules locked even if the imported backup contains premium
+      // data from another device/account.
+      localStorage.removeItem(CACHE_KEY);
       setState({ products: [], isLoading: false, error: null });
       return;
     }

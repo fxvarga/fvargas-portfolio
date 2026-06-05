@@ -14,7 +14,7 @@ export function StorePage() {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuth();
   const { products: entitlements } = useEntitlements(isAuthenticated);
-  const { products, isLoading: productsLoading } = useProducts();
+  const { products, isLoading: productsLoading, error: productsError } = useProducts();
   const [loadingSlug, setLoadingSlug] = useState<string | null>(null);
 
   const handleBuy = async (slug: string) => {
@@ -32,9 +32,10 @@ export function StorePage() {
   const bundle = products.find(p => p.isBundle);
   const totalIndividual = standaloneProducts.reduce((sum, p) => sum + p.priceUsd, 0);
   const savings = bundle ? totalIndividual - bundle.priceUsd : 0;
+  const hasCatalog = standaloneProducts.length > 0;
 
   const ownedCount = standaloneProducts.filter(p => entitlements.includes(p.slug)).length;
-  const ownsAll = ownedCount === standaloneProducts.length;
+  const ownsAll = hasCatalog && ownedCount === standaloneProducts.length;
 
   return (
     <PageShell bottomPad="pb-8">
@@ -54,11 +55,15 @@ export function StorePage() {
             <p className="text-sm font-semibold text-theme-text">
               {ownsAll
                 ? 'You own everything!'
+                : !hasCatalog
+                  ? 'Store catalog unavailable'
                 : `You own ${ownedCount} of ${standaloneProducts.length} modules`}
             </p>
             <p className="text-xs text-theme-muted">
               {ownsAll
                 ? 'All modules are unlocked. Enjoy!'
+                : !hasCatalog
+                  ? 'We could not load the product catalog. Imported content does not unlock premium modules.'
                 : 'Purchase more to unlock additional features.'}
             </p>
           </div>
@@ -70,6 +75,10 @@ export function StorePage() {
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
+          </div>
+        ) : productsError ? (
+          <div className="rounded-2xl p-4 text-sm bg-theme-panel text-theme-muted">
+            {productsError} Please check your connection and try again.
           </div>
         ) : (
           <>

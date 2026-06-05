@@ -3,6 +3,13 @@ import { isNativeApp } from '@/lib/storage-adapter';
 import { api } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import { Lock, ShoppingBag, RotateCcw, KeyRound, X, ChevronLeft } from 'lucide-react';
+import { CORE_PRODUCT_SLUGS } from '@/types';
+
+const ENTITLEMENTS_CACHE_KEY = 'tinytoes-entitlements';
+
+function grantLocalAppleEntitlement() {
+  localStorage.setItem(ENTITLEMENTS_CACHE_KEY, JSON.stringify(CORE_PRODUCT_SLUGS));
+}
 
 interface IOSPaywallProps {
   /** Called after a successful purchase or restore to refresh entitlements */
@@ -22,7 +29,7 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
   const [view, setView] = useState<'main' | 'code'>('main');
 
   // Code entry state
-  const { claim } = useAuth();
+  const { claim, isAuthenticated } = useAuth();
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState<string | null>(null);
@@ -55,8 +62,15 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
     try {
       const result = await window.nativeIAP.purchase();
       if (result.purchased && result.transactionId) {
-        // Verify with our server
-        await api.verifyApple(result.transactionId);
+        grantLocalAppleEntitlement();
+        if (isAuthenticated) {
+          try {
+            await api.verifyApple(result.transactionId);
+          } catch {
+            // Local StoreKit entitlement is enough to unlock native modules;
+            // server verification sync can be retried later via restore.
+          }
+        }
         onUnlocked();
       } else {
         setError('Purchase was not completed. If no App Store sheet appeared, check the product in App Store Connect.');
@@ -77,7 +91,14 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
     try {
       const result = await window.nativeIAP.restore();
       if (result.purchased && result.transactionId) {
-        await api.verifyApple(result.transactionId);
+        grantLocalAppleEntitlement();
+        if (isAuthenticated) {
+          try {
+            await api.verifyApple(result.transactionId);
+          } catch {
+            // Do not block native restore on backend sync failure.
+          }
+        }
         onUnlocked();
       } else {
         setError('No previous purchase found.');
