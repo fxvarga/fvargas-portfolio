@@ -1,23 +1,53 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, Baby, Check, Smile, Meh, Camera, Clapperboard, Heart, Shield, Smartphone } from 'lucide-react';
+import {
+  ArrowRight,
+  BookOpen,
+  Camera,
+  Check,
+  Clapperboard,
+  LockKeyhole,
+  Sparkles,
+  Star,
+  Trophy,
+  UtensilsCrossed,
+} from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import { api } from '@/lib/api';
-import { getProductIcon, getProductHighlights } from '@/lib/products';
 import { BrandMark } from '@/components/BrandMark';
 import type { Product } from '@/types';
 
-/* ── Nursery palette (used only on this page) ──────────── */
-// Cream:      #FFF8F0   (bg)
-// Warm white: #FFFFFF   (cards)
-// Blush:      #E8A0BF   (primary accent)
-// Blush light:#FDF2F8   (badge bg)
-// Sage:       #8FB996   (secondary accent)
-// Sage light: #F0F7F1   (secondary bg)
-// Terracotta: #C4816B   (warm highlight)
-// Text dark:  #3D2C2E   (headings)
-// Text muted: #8B7E7F   (body)
+const screenshots = {
+  onboarding: '/marketing/onboarding-empty.png',
+  dashboard: '/marketing/iphone-recap-dashboard.png',
+  foods: '/marketing/iphone-foods-list.png',
+  gallery: '/marketing/iphone-gallery-carrots.png',
+  milestones: '/marketing/iphone-milestones.png',
+  journal: '/marketing/iphone-journal.png',
+  book: '/marketing/iphone-memory-book.png',
+};
+
+const features = [
+  {
+    icon: UtensilsCrossed,
+    title: 'First foods & reactions',
+    copy: 'Photos, notes, dates, and those tiny “loved it” moments all in one place.',
+    image: screenshots.foods,
+  },
+  {
+    icon: Trophy,
+    title: 'Milestones without pressure',
+    copy: 'Capture what mattered, whenever it happened — not because an age chart said so.',
+    image: screenshots.milestones,
+  },
+  {
+    icon: BookOpen,
+    title: 'Monthly reflections',
+    copy: 'Turn scattered memories into a gentle timeline of personality, growth, and everyday magic.',
+    image: screenshots.journal,
+  },
+];
 
 export function LandingPage() {
   const navigate = useNavigate();
@@ -47,402 +77,267 @@ export function LandingPage() {
   const savings = bundle ? totalIndividual - bundle.priceUsd : 0;
 
   return (
-    <div className="min-h-screen" style={{ background: '#FFF8F0' }}>
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 backdrop-blur-md border-b" style={{ background: 'rgba(255,248,240,0.9)', borderColor: '#F3E8DE' }}>
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <div className="min-h-screen overflow-hidden bg-[#fffaf3] text-[#3D2C2E]">
+      <nav className="sticky top-0 z-50 border-b border-[#F5EDF1]/80 bg-[#fffaf3]/86 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
           <BrandMark size="md" />
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => navigate('/claim')}
-              className="text-sm font-medium px-4 py-2 rounded-xl transition-colors"
-              style={{ color: '#3D2C2E' }}
-              onMouseOver={e => (e.currentTarget.style.background = '#F3E8DE')}
-              onMouseOut={e => (e.currentTarget.style.background = 'transparent')}
+              className="rounded-full px-4 py-2 text-sm font-semibold text-[#8B7E7F] transition hover:bg-[#FDF0F5]"
             >
-              I have a code
+              Activate code
             </button>
-            {bundle && (
-              <button
-                onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
-                className="text-sm font-semibold px-5 py-2 rounded-full text-white transition-all hover:shadow-md active:scale-[0.97]"
-                style={{ background: '#E8A0BF' }}
-              >
-                View Products
-              </button>
-            )}
+            <button
+              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+              className="hidden rounded-full bg-[#8FB996] px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 sm:inline-flex"
+            >
+              Get TinyToes
+            </button>
           </div>
         </div>
       </nav>
 
-      {/* Hero */}
-      <section className="relative overflow-hidden">
-        {/* Soft radial glow */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full opacity-30 blur-3xl pointer-events-none" style={{ background: 'radial-gradient(circle, #E8A0BF 0%, #FFF8F0 70%)' }} />
-        <div className="absolute top-40 right-0 w-[300px] h-[300px] rounded-full opacity-20 blur-3xl pointer-events-none" style={{ background: '#8FB996' }} />
+      <section className="relative px-5 pb-16 pt-14 sm:pb-24 sm:pt-20">
+        <div className="absolute left-1/2 top-8 h-[32rem] w-[32rem] -translate-x-1/2 rounded-full bg-[#FDF0F5]/45 blur-3xl" />
+        <div className="absolute right-[-10rem] top-40 h-[26rem] w-[26rem] rounded-full bg-[#EDF5EF]/70 blur-3xl" />
 
-        <div className="max-w-5xl mx-auto px-4 pt-20 pb-24 text-center relative">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium mb-8" style={{ background: '#FDF2F8', color: '#C4816B' }}>
-            <Sparkles size={16} />
-            <span>A gentle place for precious memories</span>
+        <div className="relative mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#F5EDF1] bg-white/70 px-4 py-2 text-sm font-semibold text-[#C56F7B] shadow-sm">
+              <Sparkles size={16} />
+              A keepsake app for every stage of childhood
+            </div>
+            <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-[#3D2C2E] sm:text-7xl lg:text-8xl">
+              Save the little things before they become the big things.
+            </h1>
+            <p className="mt-7 max-w-xl text-lg leading-8 text-[#8B7E7F] sm:text-xl">
+              TinyToes turns meals, milestones, photos, journal notes, and printable memory books into one private family timeline — usable at any age, not boxed into one baby stage.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <button
+                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#8FB996] px-7 py-4 text-base font-black text-white shadow-xl shadow-[#8FB996]/20 transition hover:-translate-y-0.5"
+              >
+                Start your memory suite <ArrowRight size={18} />
+              </button>
+              <button
+                onClick={() => document.getElementById('tour')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center justify-center rounded-full border border-[#EDE8E3] bg-white/80 px-7 py-4 text-base font-bold text-[#3D2C2E] shadow-sm transition hover:-translate-y-0.5"
+              >
+                See the app
+              </button>
+            </div>
+            <div className="mt-8 grid max-w-xl grid-cols-3 gap-3 text-sm text-[#8B7E7F]">
+              {['Private by default', 'Works on iPhone + web', 'Print-ready keepsakes'].map(text => (
+                <div key={text} className="rounded-2xl border border-[#EDE8E3] bg-white/70 p-3 font-semibold">
+                  <Check size={16} className="mb-1 text-[#55A887]" /> {text}
+                </div>
+              ))}
+            </div>
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6" style={{ color: '#3D2C2E' }}>
-            Every Little Moment<br />
-            <span style={{ color: '#E8A0BF' }}>Deserves to Be</span><br />
-            Remembered
-          </h1>
+          <div className="relative mx-auto w-full max-w-[25rem]">
+            <PhoneFrame src={screenshots.dashboard} alt="TinyToes recap dashboard" className="rotate-[2deg]" />
+            <div className="absolute -bottom-7 -left-7 w-40 rotate-[-9deg] rounded-[2rem] border border-white bg-white p-2 shadow-2xl sm:w-48">
+              <img src={screenshots.gallery} alt="Carrots detail in TinyToes" className="rounded-[1.45rem]" />
+            </div>
+          </div>
+        </div>
+      </section>
 
-          <p className="text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed" style={{ color: '#8B7E7F' }}>
-            The tiny yawns, the messy first bites, the wobbly first steps — they pass so quickly. 
-            TinyToes helps you hold onto every tender moment of your baby's first year.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            <button
-              onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
-              className="inline-flex items-center justify-center font-bold text-lg px-10 py-4 rounded-full text-white shadow-lg transition-all active:scale-[0.97]"
-              style={{ background: 'linear-gradient(135deg, #E8A0BF, #C4816B)' }}
-              onMouseOver={e => (e.currentTarget.style.boxShadow = '0 8px 30px rgba(232,160,191,0.4)')}
-              onMouseOut={e => (e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.1)')}
-            >
-              Start Collecting Memories
-            </button>
-            <p className="text-sm" style={{ color: '#8B7E7F' }}>
-              One-time purchase. No subscriptions. Your data stays yours.
+      <section id="tour" className="bg-[#8FB996] px-5 py-20 text-white">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-12 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-[#FFF5E6]">Product tour</p>
+              <h2 className="max-w-2xl text-4xl font-black tracking-[-0.04em] sm:text-6xl">
+                Real memories, not fake app mockups.
+              </h2>
+            </div>
+            <p className="max-w-sm text-sm leading-6 text-[#FFF8F0]">
+              These screens are captured from an actual family backup, showing the app exactly as it feels with lived-in memories.
             </p>
           </div>
 
-          {/* Hero mock device */}
-          <div className="relative max-w-xs mx-auto mt-4">
-            <div className="rounded-3xl shadow-xl overflow-hidden border-4" style={{ background: '#FFFFFF', borderColor: '#F3E8DE' }}>
-              <div className="px-5 pt-6 pb-4">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: '#FDF2F8' }}>
-                    <svg width={24} height={24} viewBox="0 0 24 24" fill="none" style={{ color: '#E8A0BF' }}>
-                      <ellipse cx="12" cy="16" rx="5" ry="7" stroke="currentColor" strokeWidth="2" fill="none" />
-                      <circle cx="8" cy="7" r="1.8" fill="currentColor" />
-                      <circle cx="11" cy="5" r="1.8" fill="currentColor" />
-                      <circle cx="14.5" cy="5.5" r="1.6" fill="currentColor" />
-                      <circle cx="17" cy="7.5" r="1.4" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <div>
-                    <div className="font-bold text-sm" style={{ color: '#3D2C2E' }}>Emma's Journal</div>
-                    <div className="text-xs" style={{ color: '#8B7E7F' }}>6-9 months</div>
-                  </div>
+          <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <FeaturePanel image={screenshots.foods} title="Track every bite" copy="Reactions, dates, photos, and notes stay beautifully organized." />
+            <FeaturePanel image={screenshots.gallery} title="Open a full memory" copy="Tap into the story behind each photo with a clean gallery-style detail view." compact />
+          </div>
+
+          <div className="mt-5 grid gap-5 md:grid-cols-3">
+            {features.map(feature => (
+              <div key={feature.title} className="rounded-[2rem] bg-white/8 p-4 ring-1 ring-white/10">
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#FFF5E6]">
+                  <feature.icon size={18} /> {feature.title}
                 </div>
-                <div className="grid grid-cols-2 gap-2 mb-3">
-                  {[
-                    { name: 'Avocado', loved: true },
-                    { name: 'Banana', loved: true },
-                    { name: 'Carrots', loved: false },
-                    { name: 'Sweet Potato', loved: true },
-                  ].map(food => (
-                    <div key={food.name} className="rounded-xl p-3 text-center" style={{ background: '#FFF8F0' }}>
-                      <div className="flex justify-center mb-1">
-                        {food.loved
-                          ? <Smile size={24} style={{ color: '#E8A0BF' }} />
-                          : <Meh size={24} style={{ color: '#8B7E7F' }} />}
-                      </div>
-                      <div className="text-xs font-medium" style={{ color: '#3D2C2E' }}>{food.name}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex justify-between text-xs px-1" style={{ color: '#8B7E7F' }}>
-                  <span>4 foods tried</span>
-                  <span>3 loved!</span>
-                </div>
+                <p className="mb-4 text-sm leading-6 text-[#FFF8F0]">{feature.copy}</p>
+                <PhoneFrame src={feature.image} alt={feature.title} small />
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Trust badges */}
-      <section className="py-8 border-y" style={{ background: '#FFFFFF', borderColor: '#F3E8DE' }}>
-        <div className="max-w-3xl mx-auto px-4 flex flex-wrap items-center justify-center gap-8 sm:gap-12">
-          {[
-            { icon: Shield, text: 'Private & secure' },
-            { icon: Smartphone, text: 'Works on any device' },
-            { icon: Heart, text: 'Made with love' },
-          ].map(b => (
-            <div key={b.text} className="flex items-center gap-2">
-              <b.icon size={18} style={{ color: '#8FB996' }} />
-              <span className="text-sm font-medium" style={{ color: '#3D2C2E' }}>{b.text}</span>
+      <section className="px-5 py-20">
+        <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2">
+          <div>
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#C4816B]">From app to heirloom</p>
+            <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">
+              Build the book while life is happening.
+            </h2>
+            <p className="mt-5 max-w-lg text-lg leading-8 text-[#8B7E7F]">
+              Every photo, note, food adventure, monthly reflection, and milestone can become a printable memory book — no scrambling through camera rolls later.
+            </p>
+            <div className="mt-7 grid gap-3 sm:grid-cols-2">
+              {[
+                ['Memory books', 'Turn saved moments into a physical keepsake.'],
+                ['Year recap', 'See your family story across time.'],
+                ['Import/export', 'Your data stays portable.'],
+                ['Private archive', 'Built for family memories first.'],
+              ].map(([title, copy]) => (
+                <div key={title} className="rounded-3xl border border-[#EDE8E3] bg-white p-4 shadow-sm">
+                  <Star size={17} className="mb-2 fill-[#d59c6b] text-[#d59c6b]" />
+                  <h3 className="font-black">{title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[#8B7E7F]">{copy}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <PhoneFrame src={screenshots.book} alt="Memory book print screen" small />
+            <PhoneFrame src={screenshots.onboarding} alt="TinyToes onboarding" small className="mt-10" />
+          </div>
         </div>
       </section>
 
-      {/* Product Catalog */}
-      <section id="products" className="py-20" style={{ background: '#FFFFFF' }}>
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4" style={{ color: '#3D2C2E' }}>
-              Tools Made for Your Family
-            </h2>
-            <p className="text-lg max-w-xl mx-auto" style={{ color: '#8B7E7F' }}>
-              Choose just what you need, or save with the bundle. Every product is a one-time purchase — no subscriptions, ever.
+      <section id="pricing" className="bg-white px-5 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-10 text-center">
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#55A887]">Choose your suite</p>
+            <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">Capture more than photos.</h2>
+            <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-[#8B7E7F]">
+              Start with the whole memory suite or activate an existing code. iOS purchases use Apple In-App Purchase.
             </p>
           </div>
 
           {productsLoading ? (
-            <div className="flex justify-center py-12">
-              <svg className="animate-spin h-8 w-8" style={{ color: '#E8A0BF' }} viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-            </div>
+            <div className="py-12 text-center font-semibold text-[#8B7E7F]">Loading products…</div>
           ) : (
-            <>
-              {/* Bundle CTA */}
+            <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
               {bundle && (
-                <div className="mb-10 rounded-3xl p-6 sm:p-8 border-2 relative overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, #FDF2F8, #FFF8F0)', borderColor: '#E8A0BF' }}
-                >
-                  <div className="absolute top-0 right-0 px-5 py-1.5 rounded-bl-2xl text-xs font-bold text-white" style={{ background: '#C4816B' }}>
-                    BEST VALUE
+                <div className="relative overflow-hidden rounded-[2.25rem] bg-[#8FB996] p-7 text-white shadow-2xl">
+                  <div className="absolute right-5 top-5 rounded-full bg-[#f4cbb9] px-3 py-1 text-xs font-black text-[#3D2C2E]">
+                    Best value
                   </div>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        {(() => {
-                          const BundleIcon = getProductIcon(bundle.slug);
-                          return <BundleIcon size={32} style={{ color: '#E8A0BF' }} />;
-                        })()}
-                        <h3 className="text-xl sm:text-2xl font-bold" style={{ color: '#3D2C2E' }}>{bundle.name}</h3>
-                      </div>
-                      <p className="text-sm mb-3" style={{ color: '#8B7E7F' }}>{bundle.description}</p>
-                      <div className="flex flex-wrap gap-2">
-                        {(bundle.bundleIncludes?.split(',') || []).map(slug => {
-                          const p = standaloneProducts.find(sp => sp.slug === slug);
-                          const SlugIcon = getProductIcon(slug);
-                          return p ? (
-                            <span key={slug} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium" style={{ background: '#FDF2F8', color: '#E8A0BF' }}>
-                              <SlugIcon size={12} /> {p.name}
-                            </span>
-                          ) : null;
-                        })}
-                      </div>
+                  <Clapperboard size={34} className="mb-5 text-[#FFF5E6]" />
+                  <h3 className="text-3xl font-black">{bundle.name}</h3>
+                  <p className="mt-3 max-w-lg leading-7 text-[#FFF8F0]">{bundle.description}</p>
+                  <div className="mt-6 flex flex-wrap gap-2">
+                    {(bundle.bundleIncludes?.split(',') || []).map(slug => (
+                      <span key={slug} className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#FFF8F0]">
+                        {slug.replace('-', ' ')}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                      <div className="text-sm text-[#FFF5E6] line-through">${totalIndividual.toFixed(2)}</div>
+                      <div className="text-5xl font-black">${bundle.priceUsd.toFixed(2)}</div>
+                      <div className="text-sm font-bold text-[#FFF5E6]">Save ${savings.toFixed(2)}</div>
                     </div>
-                    <div className="text-center sm:text-right shrink-0">
-                      <div className="text-sm line-through mb-1" style={{ color: '#8B7E7F' }}>
-                        ${totalIndividual.toFixed(2)}
-                      </div>
-                      <div className="text-3xl font-extrabold mb-1" style={{ color: '#C4816B' }}>
-                        ${bundle.priceUsd.toFixed(2)}
-                      </div>
-                      <div className="text-xs font-semibold mb-3" style={{ color: '#8FB996' }}>
-                        Save ${savings.toFixed(2)}
-                      </div>
-                      <BuyButton product={bundle} loadingSlug={loadingSlug} onBuy={handleBuy} />
-                    </div>
+                    <BuyButton product={bundle} loadingSlug={loadingSlug} onBuy={handleBuy} dark />
                   </div>
                 </div>
               )}
 
-              {/* Individual Products Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid gap-4">
                 {standaloneProducts.map(product => (
-                  <ProductCard
-                    key={product.slug}
-                    product={product}
-                    loadingSlug={loadingSlug}
-                    onBuy={handleBuy}
-                  />
+                  <ProductRow key={product.slug} product={product} loadingSlug={loadingSlug} onBuy={handleBuy} />
                 ))}
-              </div>
-
-              {/* Free features callout */}
-              <div className="mt-10 rounded-3xl p-6 sm:p-8 text-center border" style={{ background: '#F0F7F1', borderColor: '#D4E8D7' }}>
-                <h3 className="text-lg font-bold mb-2" style={{ color: '#3D2C2E' }}>
-                  Included free with any purchase
-                </h3>
-                <p className="text-sm mb-4 max-w-md mx-auto" style={{ color: '#8B7E7F' }}>
-                  Because every parent deserves these, no matter which tools they choose.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-                  <div className="flex items-center gap-2">
-                    <Camera size={20} style={{ color: '#8FB996' }} />
-                    <div className="text-left">
-                      <div className="text-sm font-semibold" style={{ color: '#3D2C2E' }}>Memory Book</div>
-                      <div className="text-xs" style={{ color: '#8B7E7F' }}>A printable keepsake of every moment</div>
+                <button
+                  onClick={() => navigate('/claim')}
+                  className="rounded-3xl border border-dashed border-[#EDE8E3] bg-[#fffaf3] p-5 text-left transition hover:-translate-y-0.5"
+                >
+                  <div className="flex items-center gap-3">
+                    <LockKeyhole className="text-[#C4816B]" />
+                    <div>
+                      <h3 className="font-black">Already purchased?</h3>
+                      <p className="text-sm text-[#8B7E7F]">Activate your claim code to unlock modules.</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clapperboard size={20} style={{ color: '#8FB996' }} />
-                    <div className="text-left">
-                      <div className="text-sm font-semibold" style={{ color: '#3D2C2E' }}>Year Recap</div>
-                      <div className="text-xs" style={{ color: '#8B7E7F' }}>A beautiful summary of your year together</div>
-                    </div>
-                  </div>
-                </div>
+                </button>
               </div>
-            </>
+            </div>
           )}
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="py-20" style={{ background: '#FFF8F0' }}>
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4" style={{ color: '#3D2C2E' }}>
-              Simple as a lullaby
-            </h2>
-            <p className="text-lg max-w-xl mx-auto" style={{ color: '#8B7E7F' }}>
-              No app store. No complicated setup. Just a code and you're ready.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl mx-auto">
-            {[
-              { step: '1', title: 'Choose', desc: 'Pick the tools that feel right for your family. You\'ll get a personal claim code by email.' },
-              { step: '2', title: 'Activate', desc: 'Open TinyToes, enter your email and code. It only takes a moment — like your little one\'s nap.' },
-              { step: '3', title: 'Cherish', desc: 'Start capturing those fleeting firsts. Everything stays private on your device, always.' },
-            ].map(item => (
-              <div key={item.step} className="text-center">
-                <div className="w-14 h-14 rounded-full mx-auto mb-4 flex items-center justify-center text-lg font-bold text-white" style={{ background: 'linear-gradient(135deg, #E8A0BF, #C4816B)' }}>
-                  {item.step}
-                </div>
-                <h3 className="font-bold text-lg mb-2" style={{ color: '#3D2C2E' }}>{item.title}</h3>
-                <p className="text-sm leading-relaxed" style={{ color: '#8B7E7F' }}>{item.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-20" style={{ background: '#FFFFFF' }}>
-        <div className="max-w-5xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl sm:text-4xl font-extrabold mb-4" style={{ color: '#3D2C2E' }}>
-              From parents who get it
-            </h2>
-            <p className="text-lg max-w-xl mx-auto" style={{ color: '#8B7E7F' }}>
-              Real families, real memories.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-            {[
-              { quote: 'I wish I had this when my first was starting solids. Now I have every little moment captured for baby #2. It feels like a gift to my future self.', author: 'Sarah M.', detail: 'Mom of two' },
-              { quote: 'The memory book made me cry — in the best way. I printed it for the grandparents and they couldn\'t stop smiling. These moments are so worth saving.', author: 'Jessica R.', detail: 'First-time mom' },
-              { quote: 'So gentle and easy to use. I add entries in 30 seconds while she\'s in the high chair. It just fits into our life perfectly.', author: 'Priya K.', detail: 'Mom of one' },
-            ].map(t => (
-              <div key={t.author} className="p-6 rounded-3xl border" style={{ background: '#FFF8F0', borderColor: '#F3E8DE' }}>
-                <div className="mb-3">
-                  <Heart size={16} style={{ color: '#E8A0BF' }} fill="#E8A0BF" />
-                </div>
-                <p className="text-sm leading-relaxed mb-4" style={{ color: '#3D2C2E' }}>"{t.quote}"</p>
-                <div>
-                  <p className="font-semibold text-sm" style={{ color: '#3D2C2E' }}>{t.author}</p>
-                  <p className="text-xs" style={{ color: '#8B7E7F' }}>{t.detail}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Final CTA */}
-      <section className="py-24 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #FDF2F8 0%, #FFF8F0 100%)' }}>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full opacity-15 blur-3xl pointer-events-none" style={{ background: '#E8A0BF' }} />
-        <div className="max-w-2xl mx-auto px-4 text-center relative">
-          <div className="flex justify-center mb-6">
-            <Baby size={48} style={{ color: '#E8A0BF' }} />
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold mb-4" style={{ color: '#3D2C2E' }}>
-            They won't be this little forever
-          </h2>
-          <p className="text-lg mb-8 max-w-md mx-auto leading-relaxed" style={{ color: '#8B7E7F' }}>
-            Every tiny yawn, wobbly step, and messy giggle is a once-in-a-lifetime moment. 
-            Hold onto them gently, before they grow.
-          </p>
-          {bundle && (
-            <button
-              onClick={() => handleBuy(bundle.slug)}
-              disabled={loadingSlug !== null}
-              className="inline-flex items-center justify-center font-bold text-lg px-10 py-4 rounded-full text-white shadow-lg transition-all active:scale-[0.97] disabled:opacity-50"
-              style={{ background: 'linear-gradient(135deg, #E8A0BF, #C4816B)' }}
-              onMouseOver={e => (e.currentTarget.style.boxShadow = '0 8px 30px rgba(232,160,191,0.4)')}
-              onMouseOut={e => (e.currentTarget.style.boxShadow = '0 4px 14px rgba(0,0,0,0.1)')}
-            >
-              {loadingSlug === bundle.slug ? <Spinner /> : null}
-              Get the Bundle — ${bundle.priceUsd.toFixed(2)}
-            </button>
-          )}
-          <p className="text-sm mt-4" style={{ color: '#8B7E7F' }}>
-            One-time purchase &middot; Instant delivery &middot; Works on any device
-          </p>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-8 border-t" style={{ background: '#FFF8F0', borderColor: '#F3E8DE' }}>
-        <div className="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <footer className="border-t border-[#EDE8E3] px-5 py-8">
+        <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 sm:flex-row">
           <BrandMark size="sm" />
-          <div className="flex items-center gap-6 text-sm" style={{ color: '#8B7E7F' }}>
-            <button onClick={() => navigate('/claim')} className="hover:underline">Activate Code</button>
-            <span>&copy; {new Date().getFullYear()} TinyToesAndUs</span>
-          </div>
+          <p className="text-sm font-semibold text-[#8B7E7F]">© {new Date().getFullYear()} TinyToesAndUs. Built for the moments you never want to lose.</p>
         </div>
       </footer>
     </div>
   );
 }
 
-function ProductCard({ product, loadingSlug, onBuy }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void }) {
-  const Icon = getProductIcon(product.slug);
-  const highlights = getProductHighlights(product.slug);
-
+function PhoneFrame({ src, alt, small = false, className = '' }: { src: string; alt: string; small?: boolean; className?: string }) {
   return (
-    <div className="rounded-3xl p-6 flex flex-col transition-all hover:shadow-lg border" style={{ background: '#FFFFFF', borderColor: '#F3E8DE' }}>
-      <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ background: '#FDF2F8' }}>
-        <Icon size={24} style={{ color: '#E8A0BF' }} />
-      </div>
-      <h3 className="font-bold text-lg mb-1" style={{ color: '#3D2C2E' }}>{product.name}</h3>
-      <p className="text-sm mb-4 flex-1" style={{ color: '#8B7E7F' }}>{product.description}</p>
-      <ul className="mb-5 space-y-1.5">
-        {highlights.map(h => (
-          <li key={h} className="flex items-start gap-2 text-xs" style={{ color: '#3D2C2E' }}>
-            <span className="mt-0.5 shrink-0" style={{ color: '#8FB996' }}><Check size={12} /></span>
-            {h}
-          </li>
-        ))}
-      </ul>
-      <div className="flex items-center justify-between mt-auto">
-        <span className="text-xl font-extrabold" style={{ color: '#3D2C2E' }}>${product.priceUsd.toFixed(2)}</span>
-        <BuyButton product={product} loadingSlug={loadingSlug} onBuy={onBuy} />
+    <div className={`${small ? 'rounded-[2.2rem] p-2' : 'rounded-[2.8rem] p-3'} border border-[#e9d8c7] bg-[#FDF0F5] shadow-2xl ${className}`}>
+      <div className="overflow-hidden rounded-[2rem] bg-white">
+        <img src={src} alt={alt} className="block w-full" />
       </div>
     </div>
   );
 }
 
-function BuyButton({ product, loadingSlug, onBuy }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void }) {
-  const isDisabled = loadingSlug !== null || !product.isAvailable;
-  const isThisLoading = loadingSlug === product.slug;
+function FeaturePanel({ image, title, copy, compact = false }: { image: string; title: string; copy: string; compact?: boolean }) {
+  return (
+    <div className={`overflow-hidden rounded-[2.25rem] bg-white text-[#3D2C2E] shadow-2xl ${compact ? '' : 'lg:grid lg:grid-cols-[0.78fr_1fr]'}`}>
+      <div className="p-6 sm:p-8">
+        <Camera className="mb-5 text-[#C4816B]" size={30} />
+        <h3 className="text-3xl font-black tracking-[-0.04em]">{title}</h3>
+        <p className="mt-3 text-base leading-7 text-[#8B7E7F]">{copy}</p>
+      </div>
+      <div className="flex items-center justify-center bg-[#FFF8F0] p-5 sm:p-8">
+        <div className="w-full max-w-[17rem]">
+          <PhoneFrame src={image} alt={title} small />
+        </div>
+      </div>
+    </div>
+  );
+}
 
+function ProductRow({ product, loadingSlug, onBuy }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void }) {
+  return (
+    <div className="rounded-[1.75rem] border border-[#EDE8E3] bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h3 className="font-black">{product.name}</h3>
+          <p className="mt-1 text-sm leading-6 text-[#8B7E7F]">{product.description}</p>
+        </div>
+        <div className="text-right">
+          <div className="text-xl font-black">${product.priceUsd.toFixed(2)}</div>
+          <BuyButton product={product} loadingSlug={loadingSlug} onBuy={onBuy} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BuyButton({ product, loadingSlug, onBuy, dark = false }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void; dark?: boolean }) {
+  const isDisabled = loadingSlug !== null || !product.isAvailable;
   return (
     <button
       onClick={() => onBuy(product.slug)}
       disabled={isDisabled}
-      className="inline-flex items-center justify-center font-semibold text-sm px-5 py-2.5 rounded-full text-white transition-all hover:shadow-md active:scale-[0.97] disabled:opacity-50"
-      style={{ background: '#E8A0BF' }}
+      className={`mt-3 inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-black transition active:scale-[0.98] disabled:opacity-50 ${
+        dark ? 'bg-white text-[#8FB996]' : 'bg-[#8FB996] text-white'
+      }`}
     >
-      {isThisLoading ? <Spinner /> : null}
-      {product.isAvailable ? 'Buy Now' : 'Coming Soon'}
+      {loadingSlug === product.slug ? 'Loading…' : product.isAvailable ? 'Buy now' : 'Coming soon'}
     </button>
-  );
-}
-
-function Spinner() {
-  return (
-    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" viewBox="0 0 24 24" fill="none">
-      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-    </svg>
   );
 }

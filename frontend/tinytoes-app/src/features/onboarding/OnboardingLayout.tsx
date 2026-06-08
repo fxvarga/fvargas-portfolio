@@ -2,15 +2,14 @@ import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { useThemeContext } from '@/components/ThemeProvider';
-import type { AgeRange, ThemeName } from '@/types';
+import type { ThemeName } from '@/types';
 import { WelcomeStep } from './WelcomeStep';
 import { NameStep } from './NameStep';
-import { AgeStep } from './AgeStep';
 import { ThemeStep } from './ThemeStep';
 import { PhotoStep } from './PhotoStep';
 import { CompleteStep } from './CompleteStep';
 
-const TOTAL_STEPS = 6;
+const TOTAL_STEPS = 5;
 
 export function OnboardingLayout() {
   const navigate = useNavigate();
@@ -18,7 +17,6 @@ export function OnboardingLayout() {
   const { setTheme } = useThemeContext();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(profile.name || '');
-  const [ageRange, setAgeRange] = useState<AgeRange>(profile.ageRange || '6–9 months');
   const [themeName, setThemeName] = useState<ThemeName>(profile.theme || 'Neutral');
   const [photo, setPhoto] = useState<string | null>(profile.photo || null);
 
@@ -28,7 +26,7 @@ export function OnboardingLayout() {
   const handleComplete = async () => {
     await updateProfile({
       name,
-      ageRange,
+      ageRange: profile.ageRange || '6–9 months',
       theme: themeName,
       photo,
       onboardingComplete: true,
@@ -44,7 +42,6 @@ export function OnboardingLayout() {
   const steps: ReactNode[] = [
     <WelcomeStep key="welcome" onNext={next} />,
     <NameStep key="name" value={name} onChange={setName} onNext={next} onBack={back} />,
-    <AgeStep key="age" value={ageRange} onChange={setAgeRange} onNext={next} onBack={back} />,
     <ThemeStep key="theme" value={themeName} onChange={handleThemeChange} onNext={next} onBack={back} />,
     <PhotoStep key="photo" value={photo} onChange={setPhoto} onNext={next} onBack={back} />,
     <CompleteStep key="complete" name={name} onComplete={handleComplete} onBack={back} />,

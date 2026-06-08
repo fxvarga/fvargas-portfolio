@@ -18,8 +18,8 @@ import { PageHeader } from '@/components/PageHeader';
 import { exportData, importData } from '@/lib/exportImport';
 import { clearAllData } from '@/lib/db';
 import { themes } from '@/lib/themes';
-import type { ThemeName, AgeRange } from '@/types';
-import { AGE_RANGES, CORE_PRODUCT_SLUGS } from '@/types';
+import type { ThemeName } from '@/types';
+import { CORE_PRODUCT_SLUGS } from '@/types';
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -42,7 +42,6 @@ export function SettingsPage() {
 
   // Edit profile state
   const [editName, setEditName] = useState(profile.name);
-  const [editAge, setEditAge] = useState<AgeRange>(profile.ageRange);
   const [editPhoto, setEditPhoto] = useState<string | null>(profile.photo);
 
   const handleExport = async () => {
@@ -73,7 +72,7 @@ export function SettingsPage() {
   };
 
   const handleSaveProfile = async () => {
-    await updateProfile({ name: editName.trim(), ageRange: editAge, photo: editPhoto });
+    await updateProfile({ name: editName.trim(), photo: editPhoto });
     setShowEditProfile(false);
   };
 
@@ -114,7 +113,6 @@ export function SettingsPage() {
             </div>
             <Button variant="ghost" size="sm" onClick={() => {
               setEditName(profile.name);
-              setEditAge(profile.ageRange);
               setEditPhoto(profile.photo);
               setShowEditProfile(true);
             }}>
@@ -286,27 +284,6 @@ export function SettingsPage() {
             value={editName}
             onChange={e => setEditName(e.target.value)}
           />
-          <div>
-            <label className="block text-sm font-medium mb-2 text-theme-text">
-              Age Range
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {AGE_RANGES.map(age => (
-                <button
-                  key={age}
-                  onClick={() => setEditAge(age)}
-                  className="py-2.5 px-3 rounded-xl border-2 text-sm font-medium transition-all"
-                  style={{
-                    borderColor: editAge === age ? 'var(--color-primary)' : 'var(--color-accent)',
-                    backgroundColor: editAge === age ? 'var(--color-primary-light)' : 'transparent',
-                    color: editAge === age ? 'var(--color-primary)' : 'var(--color-muted)',
-                  }}
-                >
-                  {age}
-                </button>
-              ))}
-            </div>
-          </div>
           <Button fullWidth onClick={handleSaveProfile} disabled={!editName.trim()}>
             Save
           </Button>

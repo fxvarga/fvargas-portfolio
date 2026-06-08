@@ -167,7 +167,7 @@ export function StorePage() {
                 </div>
                 <div className="flex items-center gap-2 text-xs text-theme-muted">
                   <Clapperboard size={14} className="text-theme-primary shrink-0" />
-                  <span><span className="font-medium text-theme-text">Year Recap</span> — beautiful visual summary of the first year</span>
+                  <span><span className="font-medium text-theme-text">Year Recap</span> — beautiful visual summary of your saved memories</span>
                 </div>
               </div>
             </div>

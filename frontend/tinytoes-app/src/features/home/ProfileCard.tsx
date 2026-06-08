@@ -29,7 +29,7 @@ export function ProfileCard({ profile }: ProfileCardProps) {
             {profile.name}'s Journal
           </h2>
           <p className="text-sm text-theme-muted">
-            {profile.ageRange}
+            First bites, big feelings, tiny milestones
           </p>
         </div>
       </div>
