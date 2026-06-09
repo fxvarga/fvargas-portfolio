@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 
 namespace TinyToes.Api.Services;
@@ -10,9 +11,21 @@ public class ShareSecurityService
 
     private readonly byte[] _hashKey;
 
-    public ShareSecurityService(IOptions<ShareInviteOptions> options)
+    public ShareSecurityService(IOptions<ShareInviteOptions> options, IHostEnvironment hostEnvironment)
     {
-        _hashKey = Encoding.UTF8.GetBytes(options.Value.InviteHashKey);
+        var hashKey = options.Value.InviteHashKey;
+        if (string.IsNullOrWhiteSpace(hashKey))
+        {
+            throw new InvalidOperationException("ShareInvite:InviteHashKey must be configured.");
+        }
+
+        if (!hostEnvironment.IsDevelopment() &&
+            string.Equals(hashKey, "dev-only-replace-share-invite-hash-key", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("ShareInvite:InviteHashKey must be replaced outside Development.");
+        }
+
+        _hashKey = Encoding.UTF8.GetBytes(hashKey);
     }
 
     public string GenerateInviteCode()

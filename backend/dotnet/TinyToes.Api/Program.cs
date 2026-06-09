@@ -28,6 +28,7 @@ builder.Services.Configure<ShareInviteOptions>(builder.Configuration.GetSection(
 builder.Services.AddSingleton<ShareSecurityService>();
 builder.Services.AddScoped<ShareCleanupService>();
 builder.Services.AddScoped<ShareInviteService>();
+builder.Services.AddHostedService<ShareInviteExpirationService>();
 builder.Services.AddSingleton<AnalyticsService>();
 builder.Services.AddSingleton<GraphEmailService>();
 builder.Services.AddScoped<StripeWebhookService>();

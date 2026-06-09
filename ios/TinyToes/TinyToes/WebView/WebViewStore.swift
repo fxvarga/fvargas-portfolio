@@ -80,7 +80,11 @@ class WebViewStore: ObservableObject {
       }));
       """
 
-      webView.evaluateJavaScript(js)
+      webView.evaluateJavaScript(js) { _, error in
+        if let error {
+          print("[TinyToes] Failed to dispatch share link: \(error.localizedDescription)")
+        }
+      }
     }
   }
 

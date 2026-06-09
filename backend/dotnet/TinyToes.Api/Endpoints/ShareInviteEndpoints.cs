@@ -16,8 +16,6 @@ public static class ShareInviteEndpoints
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
-            await shareInviteService.ExpireInvitesAsync(cancellationToken);
-
             var token = context.Request.Cookies["tinytoes_session"];
             if (string.IsNullOrEmpty(token))
             {
@@ -71,8 +69,6 @@ public static class ShareInviteEndpoints
             ShareInviteService shareInviteService,
             CancellationToken cancellationToken) =>
         {
-            await shareInviteService.ExpireInvitesAsync(cancellationToken);
-
             if (string.IsNullOrWhiteSpace(request.Code))
             {
                 return Results.BadRequest(new { status = "invalid_or_expired" });
@@ -109,8 +105,6 @@ public static class ShareInviteEndpoints
             ShareInviteService shareInviteService,
             CancellationToken cancellationToken) =>
         {
-            await shareInviteService.ExpireInvitesAsync(cancellationToken);
-
             if (request.InviteId != Guid.Empty && !string.IsNullOrWhiteSpace(request.Email))
             {
                 await shareInviteService.RequestVerificationAsync(request.InviteId, request.Email, cancellationToken);
@@ -124,8 +118,6 @@ public static class ShareInviteEndpoints
             ShareInviteService shareInviteService,
             CancellationToken cancellationToken) =>
         {
-            await shareInviteService.ExpireInvitesAsync(cancellationToken);
-
             if (string.IsNullOrWhiteSpace(request.Token))
             {
                 return Results.BadRequest(new { error = "invalid_or_expired_token" });
@@ -152,8 +144,6 @@ public static class ShareInviteEndpoints
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
-            await shareInviteService.ExpireInvitesAsync(cancellationToken);
-
             var token = context.Request.Cookies["tinytoes_session"];
             if (string.IsNullOrEmpty(token))
             {
@@ -188,8 +178,6 @@ public static class ShareInviteEndpoints
             HttpContext context,
             CancellationToken cancellationToken) =>
         {
-            await shareInviteService.ExpireInvitesAsync(cancellationToken);
-
             var token = context.Request.Cookies["tinytoes_session"];
             if (string.IsNullOrEmpty(token))
             {

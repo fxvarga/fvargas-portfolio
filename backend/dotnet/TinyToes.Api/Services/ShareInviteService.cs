@@ -66,7 +66,11 @@ public class ShareInviteService
         var normalizedEmail = _security.NormalizeEmail(recipientEmail);
         var stateJsonString = manifestRequest.StateJson.GetRawText();
         var stateJsonBytes = Encoding.UTF8.GetByteCount(stateJsonString);
-        var totalAssetBytes = manifestRequest.Assets.Sum(a => Math.Max(a.ByteSize, 0));
+        if (manifestRequest.Assets.Any(a => a.ByteSize < 0))
+        {
+            return CreateShareInviteResult.Fail("invalid_asset_size");
+        }
+        var totalAssetBytes = manifestRequest.Assets.Sum(a => a.ByteSize);
         var totalBytes = stateJsonBytes + totalAssetBytes;
 
         if (totalBytes > _options.MaxExportBytes)
@@ -203,7 +207,7 @@ public class ShareInviteService
             return;
         }
 
-        if (!string.Equals(normalizedEmail, invite.RecipientEmailNormalized, StringComparison.Ordinal))
+        if (!string.Equals(normalizedEmail, invite.RecipientEmailNormalized, StringComparison.OrdinalIgnoreCase))
         {
             return;
         }
