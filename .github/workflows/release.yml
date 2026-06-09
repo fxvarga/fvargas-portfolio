@@ -36,9 +36,50 @@ env:
   IMAGE_PREFIX: fxvarga
 
 jobs:
+  resolve-observability:
+    name: Resolve TinyToes observability
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    outputs:
+      tinytoes_ai_connection: ${{ steps.appinsights.outputs.connection_string }}
+    steps:
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve Application Insights connection string
+        id: appinsights
+        env:
+          FALLBACK_CONNECTION_STRING: ${{ secrets.TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING }}
+        run: |
+          CONNECTION_STRING="$FALLBACK_CONNECTION_STRING"
+          if [ -z "$CONNECTION_STRING" ]; then
+            CONNECTION_STRING=$(az resource show \
+              --resource-group rg-fev-fevargas \
+              --name appi-tinytoes-fev-fevargas-prod-eastus2 \
+              --resource-type Microsoft.Insights/components \
+              --query properties.ConnectionString \
+              --output tsv 2>/dev/null || true)
+          fi
+
+          if [ -z "$CONNECTION_STRING" ]; then
+            echo "TinyToes Application Insights connection string was not found; telemetry will be disabled for this build." >&2
+          else
+            echo "TinyToes Application Insights connection string resolved."
+            echo "::add-mask::$CONNECTION_STRING"
+          fi
+
+          echo "connection_string=$CONNECTION_STRING" >> $GITHUB_OUTPUT
+
   build:
     name: Build ${{ matrix.service }}
     runs-on: ubuntu-latest
+    needs: resolve-observability
     strategy:
       fail-fast: false
       matrix:
@@ -127,12 +168,12 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           build-args: |
-            VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING }}
+            VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=${{ needs.resolve-observability.outputs.tinytoes_ai_connection }}
 
   deploy-azure:
     name: Deploy to Azure VM
     runs-on: ubuntu-latest
-    needs: build
+    needs: [resolve-observability, build]
     if: |
       github.event.inputs.deploy_target == 'azure' || github.event_name == 'push'
     permissions:
@@ -178,7 +219,7 @@ jobs:
           TINYTOES_APPLE_USE_SANDBOX: ${{ secrets.TINYTOES_APPLE_USE_SANDBOX || 'true' }}
           TINYTOES_LULU_CLIENT_KEY: ${{ secrets.TINYTOES_LULU_CLIENT_KEY }}
           TINYTOES_LULU_CLIENT_SECRET: ${{ secrets.TINYTOES_LULU_CLIENT_SECRET }}
-          TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING }}
+          TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ needs.resolve-observability.outputs.tinytoes_ai_connection }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_ALLOWED_USERS: ${{ secrets.TELEGRAM_ALLOWED_USERS }}
           GATEWAY_ALLOWED_USERS: ${{ secrets.GATEWAY_ALLOWED_USERS }}

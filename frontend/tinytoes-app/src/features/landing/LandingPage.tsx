@@ -89,10 +89,7 @@ export function LandingPage() {
     }
   };
 
-  const standaloneProducts = products.filter(p => !p.isBundle);
   const bundle = products.find(p => p.isBundle);
-  const totalIndividual = standaloneProducts.reduce((sum, p) => sum + p.priceUsd, 0);
-  const savings = bundle ? totalIndividual - bundle.priceUsd : 0;
 
   return (
     <div className="min-h-screen overflow-hidden bg-[#fffaf3] text-[#3D2C2E]">
@@ -159,7 +156,7 @@ export function LandingPage() {
               </button>
             </div>
             <div className="mt-8 grid max-w-xl grid-cols-3 gap-3 text-sm text-[#8B7E7F]">
-              {['Made for your family', 'Use on iPhone + web', 'Ready for keepsake books'].map(text => (
+              {['Made for your family', 'Use on iPhone + web', 'Built for everyday moments'].map(text => (
                 <div key={text} className="rounded-2xl border border-[#EDE8E3] bg-white/70 p-3 font-semibold">
                   <Check size={16} className="mb-1 text-[#55A887]" /> {text}
                 </div>
@@ -212,16 +209,16 @@ export function LandingPage() {
       <section className="px-5 py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2">
           <div>
-            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#C4816B]">From today to forever</p>
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#C4816B]">When you are ready</p>
             <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">
-              Build the keepsake while life is happening.
+              Turn saved memories into something to hold.
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-8 text-[#8B7E7F]">
-              Add the sweet details as they happen, then turn them into a memory book without digging through camera rolls months from now.
+              TinyToes keeps the first-year moments organized now, so a memory book can come together later without digging through camera rolls.
             </p>
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               {[
-                ['Memory books', 'Turn favorite moments into something you can hold.'],
+                ['Make a book later', 'Use the memories you already saved when the time feels right.'],
                 ['Year recap', 'Look back on how much changed, one memory at a time.'],
                 ['Bring memories with you', 'Keep your saved moments close if you switch devices.'],
                 ['Made for family', 'A quiet, private place for the stories that matter most.'],
@@ -244,47 +241,52 @@ export function LandingPage() {
       <section id="pricing" className="bg-white px-5 py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 text-center">
-            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#55A887]">Choose your keepsake</p>
-            <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">Capture more than photos.</h2>
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#55A887]">First Year Bundle</p>
+            <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">Everything for the memories you do not want to lose.</h2>
             <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-[#8B7E7F]">
-              Start with the full keepsake bundle, choose only what you need, or use a code you already have.
+              One simple bundle for first foods, milestones, photos, notes, and the little details that make the first year yours.
             </p>
           </div>
 
           {productsLoading ? (
             <div className="py-12 text-center font-semibold text-[#8B7E7F]">Loading products…</div>
           ) : (
-            <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="mx-auto grid max-w-4xl gap-5 lg:grid-cols-[1.15fr_0.85fr]">
               {bundle && (
                 <div className="relative overflow-hidden rounded-[2.25rem] bg-[#8FB996] p-7 text-white shadow-2xl">
                   <div className="absolute right-5 top-5 rounded-full bg-[#f4cbb9] px-3 py-1 text-xs font-black text-[#3D2C2E]">
-                    Best value
+                    First year
                   </div>
                   <Clapperboard size={34} className="mb-5 text-[#FFF5E6]" />
                   <h3 className="text-3xl font-black">{bundle.name}</h3>
-                  <p className="mt-3 max-w-lg leading-7 text-[#FFF8F0]">{bundle.description}</p>
-                  <div className="mt-6 flex flex-wrap gap-2">
-                    {(bundle.bundleIncludes?.split(',') || []).map(slug => (
-                      <span key={slug} className="rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-[#FFF8F0]">
-                        {slug.replace('-', ' ')}
-                      </span>
-                    ))}
-                  </div>
+                  <p className="mt-3 max-w-lg leading-7 text-[#FFF8F0]">A warm place to save the first tastes, first tries, favorite photos, milestones, and tiny stories from year one.</p>
                   <div className="mt-8 flex flex-wrap items-end justify-between gap-4">
                     <div>
-                      <div className="text-sm text-[#FFF5E6] line-through">${totalIndividual.toFixed(2)}</div>
                       <div className="text-5xl font-black">${bundle.priceUsd.toFixed(2)}</div>
-                      <div className="text-sm font-bold text-[#FFF5E6]">Save ${savings.toFixed(2)}</div>
+                      <div className="text-sm font-bold text-[#FFF5E6]">One-time purchase</div>
                     </div>
-                    <BuyButton product={bundle} loadingSlug={loadingSlug} onBuy={handleBuy} dark />
+                    <BuyButton product={bundle} loadingSlug={loadingSlug} onBuy={handleBuy} dark label="Get the bundle" />
                   </div>
                 </div>
               )}
 
-              <div className="grid gap-4">
-                {standaloneProducts.map(product => (
-                  <ProductRow key={product.slug} product={product} loadingSlug={loadingSlug} onBuy={handleBuy} />
-                ))}
+              <div className="grid gap-4 content-start">
+                <div className="rounded-[1.75rem] border border-[#EDE8E3] bg-[#fffaf3] p-5 shadow-sm">
+                  <h3 className="font-black">What you get</h3>
+                  <div className="mt-4 grid gap-3 text-sm leading-6 text-[#8B7E7F]">
+                    {[
+                      'A simple way to save first foods, milestones, photos, and notes.',
+                      'A gentle year recap that grows as you add memories.',
+                      'Private family memories you can revisit on iPhone and web.',
+                      'A smoother path to keepsake books when you are ready later.',
+                    ].map(item => (
+                      <div key={item} className="flex gap-2">
+                        <Check size={16} className="mt-1 shrink-0 text-[#55A887]" />
+                        <span>{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
                 <button
                   onClick={() => {
                     analytics.event('signup_started', { source: 'pricing', method: 'code' });
@@ -296,7 +298,7 @@ export function LandingPage() {
                     <LockKeyhole className="text-[#C4816B]" />
                     <div>
                       <h3 className="font-black">Already purchased?</h3>
-                      <p className="text-sm text-[#8B7E7F]">Use your code to open your keepsakes.</p>
+                      <p className="text-sm text-[#8B7E7F]">Use your code to open your First Year Bundle.</p>
                     </div>
                   </div>
                 </button>
@@ -343,24 +345,7 @@ function FeaturePanel({ image, title, copy, compact = false }: { image: string; 
   );
 }
 
-function ProductRow({ product, loadingSlug, onBuy }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void }) {
-  return (
-    <div className="rounded-[1.75rem] border border-[#EDE8E3] bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h3 className="font-black">{product.name}</h3>
-          <p className="mt-1 text-sm leading-6 text-[#8B7E7F]">{product.description}</p>
-        </div>
-        <div className="text-right">
-          <div className="text-xl font-black">${product.priceUsd.toFixed(2)}</div>
-          <BuyButton product={product} loadingSlug={loadingSlug} onBuy={onBuy} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function BuyButton({ product, loadingSlug, onBuy, dark = false }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void; dark?: boolean }) {
+function BuyButton({ product, loadingSlug, onBuy, dark = false, label = 'Buy now' }: { product: Product; loadingSlug: string | null; onBuy: (slug: string) => void; dark?: boolean; label?: string }) {
   const isDisabled = loadingSlug !== null || !product.isAvailable;
   return (
     <button
@@ -370,7 +355,7 @@ function BuyButton({ product, loadingSlug, onBuy, dark = false }: { product: Pro
         dark ? 'bg-white text-[#8FB996]' : 'bg-[#8FB996] text-white'
       }`}
     >
-      {loadingSlug === product.slug ? 'Loading…' : product.isAvailable ? 'Buy now' : 'Coming soon'}
+      {loadingSlug === product.slug ? 'Loading...' : product.isAvailable ? label : 'Coming soon'}
     </button>
   );
 }

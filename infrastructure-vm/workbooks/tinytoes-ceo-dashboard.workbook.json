@@ -17,7 +17,7 @@
         "title": "30-day CEO KPIs",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "tiles"
+        "visualization": "table"
       },
       "name": "ceo-kpis"
     },
@@ -25,7 +25,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "customEvents\n| where timestamp > ago(30d)\n| where name in ('landing_page_viewed','landing_cta_clicked','signup_started','signup_completed','memory_created','activation_completed','checkout_started','checkout_completed','iap_purchase_completed','gift_code_redeemed')\n| summarize Count=count() by Event=name\n| order by Count desc",
+        "query": "let events=datatable(Event:string)['landing_page_viewed','landing_cta_clicked','signup_started','signup_completed','memory_created','activation_completed','checkout_started','checkout_completed','iap_purchase_completed','gift_code_redeemed'];\nlet counts=customEvents\n| where timestamp > ago(30d)\n| where name in (events)\n| summarize Count=count() by Event=name;\nevents\n| join kind=leftouter counts on Event\n| project Event, Count=coalesce(Count, 0)\n| order by Count desc, Event asc",
         "size": 0,
         "title": "Launch funnel events - last 30 days",
         "queryType": 0,
@@ -69,7 +69,7 @@
         "title": "Reliability - last 24 hours",
         "queryType": 0,
         "resourceType": "microsoft.insights/components",
-        "visualization": "tiles"
+        "visualization": "table"
       },
       "name": "reliability"
     }
