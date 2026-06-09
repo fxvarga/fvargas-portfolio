@@ -128,6 +128,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
           build-args: |
             VITE_APPLICATIONINSIGHTS_CONNECTION_STRING=${{ secrets.TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING }}
+            VITE_BASE_PATH=/
 
   deploy-azure:
     name: Deploy to Azure VM
@@ -163,6 +164,7 @@ jobs:
           TINYTOES_STRIPE_WEBHOOK_SECRET: ${{ secrets.TINYTOES_STRIPE_WEBHOOK_SECRET }}
           TINYTOES_ADMIN_API_KEY: ${{ secrets.TINYTOES_ADMIN_API_KEY }}
           TINYTOES_MS_GRAPH_CLIENT_ID: ${{ secrets.TINYTOES_MS_GRAPH_CLIENT_ID }}
+          TINYTOES_MS_GRAPH_CLIENT_SECRET: ${{ secrets.TINYTOES_MS_GRAPH_CLIENT_SECRET || secrets.MS_GRAPH_CLIENT_SECRET }}
           TINYTOES_MS_GRAPH_TENANT_ID: ${{ secrets.TINYTOES_MS_GRAPH_TENANT_ID }}
           TINYTOES_MAIL_USER_UPN: ${{ secrets.TINYTOES_MAIL_USER_UPN }}
           TINYTOES_AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.TINYTOES_AZURE_STORAGE_CONNECTION_STRING }}
