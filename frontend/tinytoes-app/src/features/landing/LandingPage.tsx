@@ -109,7 +109,7 @@ export function LandingPage() {
               A gentle place for childhood memories
             </div>
             <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-[#3D2C2E] sm:text-7xl lg:text-8xl">
-              Save the little things before they become the big things.
+              Keep the first bites, funny faces, and little stories close.
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-[#8B7E7F] sm:text-xl">
               TinyToes helps you save the meals, milestones, photos, and little stories you swear you will remember - then turns them into keepsakes your family can revisit for years.
