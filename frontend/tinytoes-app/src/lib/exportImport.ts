@@ -225,6 +225,6 @@ async function restoreSnapshot(data: Required<AppData>): Promise<void> {
       await journalDb.add(entry);
     }
   } catch {
-    // best effort: caller already has contextual error
+    console.error('Failed to restore data snapshot after import failure.');
   }
 }

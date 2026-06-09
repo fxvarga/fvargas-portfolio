@@ -271,7 +271,7 @@ class CloudKitBridge: NSObject, WKScriptMessageHandler {
 
     let filename = (payload["filename"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "tinytoes-backup.json"
     let mimeType = (payload["mimeType"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "application/json"
-    let fileURL = try writeTempFile(data: data, filename: filename)
+    let fileURL = try writeTempFile(data: data)
 
     let record = CKRecord(recordType: recordType)
     record[assetField] = CKAsset(fileURL: fileURL)
@@ -298,7 +298,7 @@ class CloudKitBridge: NSObject, WKScriptMessageHandler {
     return try backupPayload(from: record)
   }
 
-  private func writeTempFile(data: Data, filename _: String) throws -> URL {
+  private func writeTempFile(data: Data) throws -> URL {
     let url = FileManager.default.temporaryDirectory
       .appendingPathComponent(UUID().uuidString)
       .appendingPathExtension("json")
