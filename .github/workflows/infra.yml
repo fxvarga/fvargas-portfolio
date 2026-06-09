@@ -26,6 +26,7 @@ permissions:
   id-token: write
   contents: read
   pull-requests: write
+  actions: write
 
 env:
   RESOURCE_GROUP: rg-fev-fevargas
