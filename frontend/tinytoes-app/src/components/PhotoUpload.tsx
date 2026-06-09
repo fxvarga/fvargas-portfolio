@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import { compressImage } from '@/lib/imageUtils';
+import { analytics } from '@/lib/analytics';
 
 interface PhotoUploadProps {
   value: string | null;
@@ -22,7 +23,9 @@ export function PhotoUpload({ value, onChange, circular = false, label }: PhotoU
     try {
       const compressed = await compressImage(file);
       onChange(compressed);
+      analytics.event('gallery_upload_created', { source: label || 'photo_upload', image_count: 1 });
     } catch (err) {
+      analytics.error(err, { area: 'photo_upload' });
       setError(err instanceof Error ? err.message : 'Failed to process image.');
     } finally {
       setIsCompressing(false);

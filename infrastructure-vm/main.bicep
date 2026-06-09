@@ -26,6 +26,9 @@ param dataDiskSizeGb int = 128
 @description('Backup retention in days.')
 param backupRetentionDays int = 30
 
+@description('Email address for TinyToes production alerts. Leave blank to create disabled action group.')
+param tinyToesAlertEmail string = ''
+
 var applicationNameWithEnvironment = '${applicationName}-${env}-${location}'
 
 // Load cloud-init as base64
@@ -116,6 +119,41 @@ module dcr 'modules/dataCollectionRule.bicep' = {
   }
 }
 
+module tinyToesAppInsights 'modules/applicationInsights.bicep' = {
+  name: '${deployment().name}-tinytoes-appi'
+  params: {
+    location: location
+    applicationName: applicationNameWithEnvironment
+    workspaceId: logAnalytics.outputs.workspaceId
+  }
+}
+
+module tinyToesActionGroup 'modules/monitorActionGroup.bicep' = {
+  name: '${deployment().name}-tinytoes-ag'
+  params: {
+    applicationName: applicationNameWithEnvironment
+    alertEmail: tinyToesAlertEmail
+  }
+}
+
+module tinyToesAlerts 'modules/tinyToesAlerts.bicep' = {
+  name: '${deployment().name}-tinytoes-alerts'
+  params: {
+    location: location
+    applicationName: applicationNameWithEnvironment
+    appInsightsId: tinyToesAppInsights.outputs.appInsightsId
+    actionGroupId: tinyToesActionGroup.outputs.actionGroupId
+  }
+}
+
+module tinyToesWorkbook 'modules/tinyToesWorkbook.bicep' = {
+  name: '${deployment().name}-tinytoes-workbook'
+  params: {
+    location: location
+    appInsightsId: tinyToesAppInsights.outputs.appInsightsId
+  }
+}
+
 // --- Backup ---
 
 module backup 'modules/recoveryServicesVault.bicep' = {
@@ -137,4 +175,7 @@ output vmPrivateIp string = nic.outputs.privateIpAddress
 output keyVaultName string = keyVault.outputs.keyVaultName
 output keyVaultUri string = keyVault.outputs.keyVaultUri
 output logAnalyticsWorkspaceName string = logAnalytics.outputs.workspaceName
+output tinyToesAppInsightsName string = tinyToesAppInsights.outputs.appInsightsName
+output tinyToesAppInsightsConnectionString string = tinyToesAppInsights.outputs.connectionString
+output tinyToesCeoWorkbookId string = tinyToesWorkbook.outputs.workbookId
 output sshCommand string = 'ssh ${adminUsername}@<VM_PRIVATE_IP> (via Twingate)'

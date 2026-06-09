@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { journalDb, scheduleAutoBackup } from '@/lib/db';
+import { analytics } from '@/lib/analytics';
+import { getJournalImages } from '@/types';
 import type { JournalEntry } from '@/types';
 
 export function useJournal() {
@@ -23,6 +25,14 @@ export function useJournal() {
   const addEntry = useCallback(async (entry: JournalEntry) => {
     await journalDb.add(entry);
     setEntries(prev => [entry, ...prev]);
+    const images = getJournalImages(entry);
+    analytics.event('journal_entry_created', {
+      has_photo: images.length > 0,
+      image_count: images.length,
+      highlight_count: entry.highlights.length,
+      text_length_bucket: entry.text.length > 500 ? 'long' : entry.text.length > 120 ? 'medium' : 'short',
+    });
+    analytics.memoryCreated('journal', images.length > 0);
     scheduleAutoBackup();
   }, []);
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { analytics } from '@/lib/analytics';
 import { Button } from '@/components/Button';
 import { Input } from '@/components/Input';
 import { Card } from '@/components/Card';
@@ -38,8 +39,11 @@ export function ClaimPage() {
     }
 
     setIsSubmitting(true);
+    analytics.event('signup_started', { source: 'claim_page', method: 'code', is_authenticated: isAuthenticated });
     try {
       await claim(emailToUse, code.trim().toUpperCase());
+      analytics.event('gift_code_redeemed', { is_authenticated: isAuthenticated });
+      analytics.event('signup_completed', { method: 'code', has_entitlements: true });
       if (isAuthenticated) {
         setSuccess('Product activated! Redirecting...');
         setCode('');

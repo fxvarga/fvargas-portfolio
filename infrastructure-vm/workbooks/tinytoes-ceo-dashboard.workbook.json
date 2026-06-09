@@ -1,0 +1,81 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# TinyToes CEO Dashboard\nLaunch metrics for acquisition, activation, purchases, revenue, and reliability."
+      },
+      "name": "intro"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let start=ago(30d);\nlet visitors=customEvents | where timestamp > start and name == 'landing_page_viewed' | summarize Visitors=dcount(tostring(customDimensions.session_id));\nlet signups=customEvents | where timestamp > start and name == 'signup_completed' | summarize Signups=count();\nlet activations=customEvents | where timestamp > start and name == 'activation_completed' | summarize Activations=count();\nlet purchases=customEvents | where timestamp > start and name in ('checkout_completed','iap_purchase_completed','memory_book_order_completed') | summarize Purchases=count(), Revenue=sum(todouble(customMeasurements.amount_usd));\nvisitors | extend k=1 | join kind=fullouter (signups | extend k=1) on k | join kind=fullouter (activations | extend k=1) on k | join kind=fullouter (purchases | extend k=1) on k | project Visitors=coalesce(Visitors,0), Signups=coalesce(Signups,0), Activations=coalesce(Activations,0), Purchases=coalesce(Purchases,0), RevenueUsd=coalesce(Revenue,0.0), SignupRate=iff(Visitors == 0, 0.0, round(100.0 * Signups / Visitors, 2)), ActivationRate=iff(Signups == 0, 0.0, round(100.0 * Activations / Signups, 2)), PurchaseRate=iff(Visitors == 0, 0.0, round(100.0 * Purchases / Visitors, 2))",
+        "size": 4,
+        "title": "30-day CEO KPIs",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles"
+      },
+      "name": "ceo-kpis"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(30d)\n| where name in ('landing_page_viewed','landing_cta_clicked','signup_started','signup_completed','memory_created','activation_completed','checkout_started','checkout_completed','iap_purchase_completed','gift_code_redeemed')\n| summarize Count=count() by Event=name\n| order by Count desc",
+        "size": 0,
+        "title": "Launch funnel events - last 30 days",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "barchart"
+      },
+      "name": "funnel"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(30d)\n| where name in ('memory_created','food_entry_created','milestone_created','journal_entry_created','memory_book_started')\n| summarize Count=count() by bin(timestamp, 1d), Event=name\n| order by timestamp asc",
+        "size": 0,
+        "title": "Memory creation trend",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "name": "memory-trend"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "customEvents\n| where timestamp > ago(30d)\n| where name in ('checkout_completed','iap_purchase_completed','memory_book_order_completed')\n| summarize Purchases=count(), RevenueUsd=sum(todouble(customMeasurements.amount_usd)) by bin(timestamp, 1d), Event=name\n| order by timestamp asc",
+        "size": 0,
+        "title": "Purchases and revenue",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "timechart"
+      },
+      "name": "revenue"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let requestFailures=requests | where timestamp > ago(24h) and success == false | summarize Count=count() | extend Source='API failed requests';\nlet exceptions=exceptions | where timestamp > ago(24h) | summarize Count=count() | extend Source='Exceptions';\nlet paymentErrors=customEvents | where timestamp > ago(24h) and name in ('payment_error','gift_code_redemption_failed') | summarize Count=count() | extend Source='Payment/code errors';\nrequestFailures | union exceptions | union paymentErrors | project Source, Count",
+        "size": 0,
+        "title": "Reliability - last 24 hours",
+        "queryType": 0,
+        "resourceType": "microsoft.insights/components",
+        "visualization": "tiles"
+      },
+      "name": "reliability"
+    }
+  ],
+  "isLocked": false,
+  "fallbackResourceIds": [
+    "Azure Monitor"
+  ]
+}

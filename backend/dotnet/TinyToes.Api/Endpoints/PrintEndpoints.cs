@@ -4,7 +4,6 @@ using Stripe.Checkout;
 using TinyToes.Api.Services;
 using TinyToes.Infrastructure;
 using TinyToes.Infrastructure.Entities;
-using TinyToes.Infrastructure.Entities;
 
 namespace TinyToes.Api.Endpoints;
 
@@ -157,7 +156,8 @@ public static class PrintEndpoints
             PrintCheckoutRequest request,
             IConfiguration config,
             TinyToesDbContext db,
-            LuluApiClient luluClient) =>
+            LuluApiClient luluClient,
+            AnalyticsService analytics) =>
         {
             var secretKey = config["STRIPE_SECRET_KEY"] ?? config["Stripe:SecretKey"];
             if (string.IsNullOrEmpty(secretKey))
@@ -268,6 +268,15 @@ public static class PrintEndpoints
 
             var service = new SessionService();
             var session = service.Create(options);
+
+            analytics.Track("memory_book_checkout_started", new Dictionary<string, string>
+            {
+                ["sku_slug"] = product.Slug,
+                ["shipping_level"] = request.ShippingLevel ?? "MAIL"
+            }, new Dictionary<string, double>
+            {
+                ["page_count"] = request.PageCount
+            });
 
             return Results.Ok(new { url = session.Url });
         });

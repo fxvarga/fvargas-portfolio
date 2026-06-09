@@ -7,6 +7,7 @@ import { useEntries } from '@/hooks/useEntries';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useInstallPrompt } from '@/hooks/useInstallPrompt';
 import { useThemeContext } from '@/components/ThemeProvider';
+import { analytics } from '@/lib/analytics';
 import { Card } from '@/components/Card';
 import { Button } from '@/components/Button';
 import { Modal } from '@/components/Modal';
@@ -46,8 +47,13 @@ export function SettingsPage() {
 
   const handleExport = async () => {
     setIsExporting(true);
+    analytics.event('backup_export_started', { memory_count: stats.total });
     try {
       await exportData();
+      analytics.event('backup_export_completed', { memory_count: stats.total });
+    } catch (err) {
+      analytics.error(err, { area: 'backup_export' });
+      throw err;
     } finally {
       setIsExporting(false);
     }
@@ -57,6 +63,7 @@ export function SettingsPage() {
     const file = e.target.files?.[0];
     if (!file) return;
     setImportStatus(null);
+    analytics.event('backup_import_started', { source: 'settings' });
 
     try {
       const result = await importData(file);
@@ -64,8 +71,10 @@ export function SettingsPage() {
       setTheme(result.profile.theme);
       await loadEntries();
       setImportStatus(`Imported ${result.entryCount} entries successfully.`);
+      analytics.event('backup_import_completed', { entries_count: result.entryCount, has_entitlements_imported: false });
     } catch (err) {
       setImportStatus(err instanceof Error ? err.message : 'Import failed.');
+      analytics.event('backup_import_failed', { reason_bucket: err instanceof Error ? err.name : 'unknown' });
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';

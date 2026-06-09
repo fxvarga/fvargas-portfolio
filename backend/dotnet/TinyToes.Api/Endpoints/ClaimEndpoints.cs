@@ -8,7 +8,7 @@ public static class ClaimEndpoints
     {
         var group = app.MapGroup("/api");
 
-        group.MapPost("/claim", async (ClaimRequest request, ClaimService claimService, HttpContext context) =>
+        group.MapPost("/claim", async (ClaimRequest request, ClaimService claimService, AnalyticsService analytics, HttpContext context) =>
         {
             if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Code))
                 return Results.BadRequest(new { error = "Email and claim code are required." });
@@ -16,7 +16,13 @@ public static class ClaimEndpoints
             var result = await claimService.ClaimAsync(request.Email, request.Code);
 
             if (!result.IsSuccess)
+            {
+                analytics.Track("gift_code_redemption_failed", new Dictionary<string, string>
+                {
+                    ["reason_bucket"] = "invalid_or_unavailable"
+                });
                 return Results.BadRequest(new { error = result.Error });
+            }
 
             context.Response.Cookies.Append("tinytoes_session", result.Token!, new CookieOptions
             {
@@ -25,6 +31,11 @@ public static class ClaimEndpoints
                 SameSite = SameSiteMode.Strict,
                 Expires = result.ExpiresAt,
                 Path = "/api"
+            });
+
+            analytics.Track("gift_code_redeemed", new Dictionary<string, string>
+            {
+                ["source"] = "api"
             });
 
             return Results.Ok(new { email = result.Email });

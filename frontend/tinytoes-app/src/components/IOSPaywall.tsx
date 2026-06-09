@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { isNativeApp } from '@/lib/storage-adapter';
 import { api } from '@/lib/api';
+import { analytics } from '@/lib/analytics';
 import { useAuth } from '@/hooks/useAuth';
 import { Lock, ShoppingBag, RotateCcw, KeyRound, X, ChevronLeft } from 'lucide-react';
 import { CORE_PRODUCT_SLUGS } from '@/types';
@@ -58,6 +59,7 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
 
     setIsLoading(true);
     setError(null);
+    analytics.event('iap_purchase_started', { product_id: 'com.tinytoes.app.firstyearbundle', source: 'ios_paywall' });
 
     try {
       const result = await window.nativeIAP.purchase();
@@ -71,11 +73,13 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
             // server verification sync can be retried later via restore.
           }
         }
+        analytics.event('iap_purchase_completed', { product_id: 'com.tinytoes.app.firstyearbundle', products_granted: CORE_PRODUCT_SLUGS.length });
         onUnlocked();
       } else {
         setError('Purchase was not completed. If no App Store sheet appeared, check the product in App Store Connect.');
       }
     } catch (err) {
+      analytics.error(err, { area: 'iap_purchase' });
       setError(err instanceof Error ? err.message : 'Purchase failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -87,6 +91,7 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
 
     setIsLoading(true);
     setError(null);
+    analytics.event('iap_restore_started', { source: 'ios_paywall' });
 
     try {
       const result = await window.nativeIAP.restore();
@@ -99,11 +104,13 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
             // Do not block native restore on backend sync failure.
           }
         }
+        analytics.event('iap_restore_completed', { products_restored: CORE_PRODUCT_SLUGS.length });
         onUnlocked();
       } else {
         setError('No previous purchase found.');
       }
     } catch (err) {
+      analytics.error(err, { area: 'iap_restore' });
       setError(err instanceof Error ? err.message : 'Restore failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -136,6 +143,7 @@ export function IOSPaywall({ onUnlocked, onClose, trialRemaining, trialLimit }: 
     setCodeSubmitting(true);
     try {
       await claim(email.trim(), code.trim().toUpperCase());
+      analytics.event('gift_code_redeemed', { is_authenticated: isAuthenticated, source: 'ios_paywall' });
       setCodeSuccess('Product activated!');
       setTimeout(() => onUnlocked(), 1000);
     } catch {

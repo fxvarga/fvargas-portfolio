@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Stripe;
 using Stripe.Checkout;
+using TinyToes.Api.Services;
 using TinyToes.Infrastructure;
 
 namespace TinyToes.Api.Endpoints;
@@ -9,7 +10,7 @@ public static class CheckoutEndpoints
 {
     public static void MapCheckoutEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/checkout", async (CheckoutRequest request, IConfiguration config, TinyToesDbContext db) =>
+        app.MapPost("/api/checkout", async (CheckoutRequest request, IConfiguration config, TinyToesDbContext db, AnalyticsService analytics) =>
         {
             var secretKey = config["STRIPE_SECRET_KEY"] ?? config["Stripe:SecretKey"];
             var frontendOrigin = config["Cors:AllowedOrigins"]
@@ -56,6 +57,16 @@ public static class CheckoutEndpoints
 
             var service = new SessionService();
             var session = service.Create(options);
+
+            analytics.Track("checkout_started", new Dictionary<string, string>
+            {
+                ["product_slug"] = productSlug,
+                ["is_bundle"] = product.IsBundle.ToString(),
+                ["source"] = "api"
+            }, new Dictionary<string, double>
+            {
+                ["price_usd"] = (double)product.PriceUsd
+            });
 
             return Results.Ok(new { url = session.Url });
         });

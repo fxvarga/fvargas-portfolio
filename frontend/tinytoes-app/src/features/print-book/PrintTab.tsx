@@ -5,6 +5,7 @@ import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { api } from '@/lib/api';
+import { analytics } from '@/lib/analytics';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Card';
 import { Modal } from '@/components/Modal';
@@ -433,6 +434,8 @@ function CheckoutModal({ project, products, onClose }: {
           countryCode: 'US',
         },
       });
+      analytics.event('memory_book_pdf_generated', { page_count: pageCount });
+      analytics.event('memory_book_checkout_started', { sku_slug: product.slug, page_count: pageCount });
 
       // 6. Save order to localStorage before redirect
       const orderId = `order-${Date.now()}`;
@@ -451,6 +454,7 @@ function CheckoutModal({ project, products, onClose }: {
       // 7. Redirect to Stripe
       window.location.href = url;
     } catch (e: any) {
+      analytics.error(e, { area: 'memory_book_checkout', sku_slug: product.slug, page_count: pageCount });
       setError(e.message || 'Something went wrong. Please try again.');
       setStep('shipping');
     }

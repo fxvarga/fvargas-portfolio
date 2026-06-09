@@ -489,6 +489,7 @@ services:
       - LULU_CLIENT_KEY=${TINYTOES_LULU_CLIENT_KEY}
       - LULU_CLIENT_SECRET=${TINYTOES_LULU_CLIENT_SECRET}
       - LULU_API_URL=https://api.sandbox.lulu.com
+      - APPLICATIONINSIGHTS_CONNECTION_STRING=${TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING}
     depends_on:
       tinytoes-db:
         condition: service_healthy

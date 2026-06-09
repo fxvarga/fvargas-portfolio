@@ -16,9 +16,15 @@ var connectionString = builder.Configuration.GetConnectionString("TinyToes")
 builder.Services.AddDbContext<TinyToesDbContext>(options =>
     options.UseNpgsql(connectionString));
 
+builder.Services.AddApplicationInsightsTelemetry(options =>
+{
+    options.ConnectionString = builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"];
+});
+
 // Services
 builder.Services.AddScoped<ClaimService>();
 builder.Services.AddScoped<AppleVerificationService>();
+builder.Services.AddSingleton<AnalyticsService>();
 builder.Services.AddSingleton<GraphEmailService>();
 builder.Services.AddScoped<StripeWebhookService>();
 builder.Services.AddSingleton<BlobStorageService>();

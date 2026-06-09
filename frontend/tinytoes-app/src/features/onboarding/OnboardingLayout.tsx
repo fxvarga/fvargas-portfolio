@@ -1,7 +1,8 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProfile } from '@/hooks/useProfile';
 import { useThemeContext } from '@/components/ThemeProvider';
+import { analytics } from '@/lib/analytics';
 import type { ThemeName } from '@/types';
 import { WelcomeStep } from './WelcomeStep';
 import { NameStep } from './NameStep';
@@ -20,6 +21,10 @@ export function OnboardingLayout() {
   const [themeName, setThemeName] = useState<ThemeName>(profile.theme || 'Neutral');
   const [photo, setPhoto] = useState<string | null>(profile.photo || null);
 
+  useEffect(() => {
+    analytics.event('onboarding_started', { entry_source: 'route' });
+  }, []);
+
   const next = () => setStep(s => Math.min(s + 1, TOTAL_STEPS - 1));
   const back = () => setStep(s => Math.max(s - 1, 0));
 
@@ -31,6 +36,7 @@ export function OnboardingLayout() {
       photo,
       onboardingComplete: true,
     });
+    analytics.event('onboarding_completed', { theme: themeName, has_profile_photo: !!photo });
     navigate('/year-recap', { replace: true });
   };
 

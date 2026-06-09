@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { entriesDb } from '@/lib/db';
+import { analytics } from '@/lib/analytics';
 import type { FoodEntry, FilterType } from '@/types';
 
 export function useEntries() {
@@ -24,6 +25,12 @@ export function useEntries() {
   const addEntry = useCallback(async (entry: FoodEntry) => {
     await entriesDb.add(entry);
     setEntries(prev => [entry, ...prev]);
+    analytics.event('food_entry_created', {
+      has_photo: !!entry.image,
+      reaction: entry.reaction,
+      has_notes: entry.notes.trim().length > 0,
+    });
+    analytics.memoryCreated('food', !!entry.image);
   }, []);
 
   const updateEntry = useCallback(async (entry: FoodEntry) => {

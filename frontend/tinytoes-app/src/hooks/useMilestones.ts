@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { milestonesDb, scheduleAutoBackup } from '@/lib/db';
+import { analytics } from '@/lib/analytics';
 import type { Milestone, MilestoneCategory } from '@/types';
 
 export function useMilestones() {
@@ -24,6 +25,12 @@ export function useMilestones() {
   const addMilestone = useCallback(async (milestone: Milestone) => {
     await milestonesDb.add(milestone);
     setMilestones(prev => [milestone, ...prev]);
+    analytics.event('milestone_created', {
+      category: milestone.category,
+      has_photo: !!milestone.image,
+      has_notes: milestone.notes.trim().length > 0,
+    });
+    analytics.memoryCreated('milestone', !!milestone.image);
     scheduleAutoBackup();
   }, []);
 

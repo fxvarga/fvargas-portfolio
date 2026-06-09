@@ -8,7 +8,7 @@ public static class StripeEndpoints
 {
     public static void MapStripeEndpoints(this WebApplication app)
     {
-        app.MapPost("/api/webhooks/stripe", async (HttpContext context, StripeWebhookService webhookService, IConfiguration config, ILogger<StripeWebhookService> logger) =>
+        app.MapPost("/api/webhooks/stripe", async (HttpContext context, StripeWebhookService webhookService, IConfiguration config, ILogger<StripeWebhookService> logger, AnalyticsService analytics) =>
         {
             var json = await new StreamReader(context.Request.Body).ReadToEndAsync();
             var webhookSecret = config["STRIPE_WEBHOOK_SECRET"];
@@ -51,6 +51,14 @@ public static class StripeEndpoints
                         {
                             // Physical print book order — create Lulu print job
                             await webhookService.HandlePhysicalCheckoutCompletedAsync(session);
+                            analytics.Track("memory_book_order_completed", new Dictionary<string, string>
+                            {
+                                ["product_slug"] = session.Metadata?.GetValueOrDefault("product_slug") ?? "unknown",
+                                ["page_count"] = session.Metadata?.GetValueOrDefault("page_count") ?? "unknown"
+                            }, new Dictionary<string, double>
+                            {
+                                ["amount_usd"] = (session.AmountTotal ?? 0) / 100.0
+                            });
                             logger.LogInformation("Physical order processed for {Email}", session.CustomerDetails.Email);
                             return Results.Ok(new { received = true, type = "physical" });
                         }
@@ -63,6 +71,15 @@ public static class StripeEndpoints
                             session.CustomerDetails.Name,
                             session.CustomerId,
                             productSlug);
+
+                        analytics.Track("checkout_completed", new Dictionary<string, string>
+                        {
+                            ["product_slug"] = productSlug,
+                            ["is_bundle"] = (productSlug.Contains("bundle", StringComparison.OrdinalIgnoreCase)).ToString()
+                        }, new Dictionary<string, double>
+                        {
+                            ["amount_usd"] = (session.AmountTotal ?? 0) / 100.0
+                        });
 
                         logger.LogInformation("Claim code generated: {Code} for {Email}, product={Product}",
                             code, session.CustomerDetails.Email, productSlug);

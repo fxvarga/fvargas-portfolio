@@ -13,6 +13,7 @@ public static class AppleEndpoints
             AppleVerifyRequest request,
             AppleVerificationService appleService,
             ClaimService claimService,
+            AnalyticsService analytics,
             HttpContext context) =>
         {
             if (string.IsNullOrWhiteSpace(request.TransactionId))
@@ -30,10 +31,25 @@ public static class AppleEndpoints
             var result = await appleService.VerifyAndGrantAsync(request.TransactionId, session.BuyerId);
 
             if (!result.IsSuccess)
+            {
+                analytics.Track("payment_error", new Dictionary<string, string>
+                {
+                    ["provider"] = "apple",
+                    ["stage"] = "verify",
+                    ["reason_bucket"] = "verification_failed"
+                });
                 return Results.BadRequest(new { error = result.Error });
+            }
 
             // Return updated entitlements
             var products = await claimService.GetEntitlementsAsync(session.BuyerId);
+            analytics.Track("iap_purchase_completed", new Dictionary<string, string>
+            {
+                ["provider"] = "apple"
+            }, new Dictionary<string, double>
+            {
+                ["products_granted"] = products.Count
+            });
             return Results.Ok(new { products });
         });
     }

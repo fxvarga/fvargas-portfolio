@@ -5,6 +5,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import { useProducts } from '@/hooks/useProducts';
 import { api } from '@/lib/api';
+import { analytics } from '@/lib/analytics';
 import { getProductIcon, getProductHighlights } from '@/lib/products';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
@@ -21,8 +22,16 @@ export function StorePage() {
     setLoadingSlug(slug);
     try {
       const { url } = await api.checkout(slug);
+      const product = products.find(p => p.slug === slug);
+      analytics.event('checkout_started', {
+        product_slug: slug,
+        price_usd: product?.priceUsd,
+        is_bundle: product?.isBundle,
+        source_page: 'store',
+      });
       window.location.href = url;
     } catch (err) {
+      analytics.error(err, { area: 'store_checkout', product_slug: slug });
       alert(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoadingSlug(null);
     }

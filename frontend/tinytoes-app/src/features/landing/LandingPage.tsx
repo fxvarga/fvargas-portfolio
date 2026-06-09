@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useProducts } from '@/hooks/useProducts';
 import { api } from '@/lib/api';
+import { analytics } from '@/lib/analytics';
 import { BrandMark } from '@/components/BrandMark';
 import type { Product } from '@/types';
 
@@ -55,6 +56,15 @@ export function LandingPage() {
   const { products, isLoading: productsLoading } = useProducts();
   const [loadingSlug, setLoadingSlug] = useState<string | null>(null);
 
+  useEffect(() => {
+    analytics.event('landing_page_viewed', {
+      path: window.location.pathname,
+      referrer: document.referrer || 'direct',
+      utm_source: new URLSearchParams(window.location.search).get('utm_source'),
+      utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign'),
+    });
+  }, []);
+
   if (isAuthenticated) {
     navigate('/year-recap', { replace: true });
     return null;
@@ -64,8 +74,16 @@ export function LandingPage() {
     setLoadingSlug(slug);
     try {
       const { url } = await api.checkout(slug);
+      const product = products.find(p => p.slug === slug);
+      analytics.event('checkout_started', {
+        product_slug: slug,
+        price_usd: product?.priceUsd,
+        is_bundle: product?.isBundle,
+        source_page: 'landing',
+      });
       window.location.href = url;
     } catch (err) {
+      analytics.error(err, { area: 'landing_checkout', product_slug: slug });
       alert(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
       setLoadingSlug(null);
     }
@@ -83,13 +101,19 @@ export function LandingPage() {
           <BrandMark size="md" />
           <div className="flex items-center gap-2">
             <button
-              onClick={() => navigate('/claim')}
+              onClick={() => {
+                analytics.event('signup_started', { source: 'landing_nav', method: 'code' });
+                navigate('/claim');
+              }}
               className="rounded-full px-4 py-2 text-sm font-semibold text-[#8B7E7F] transition hover:bg-[#FDF0F5]"
             >
               Activate code
             </button>
             <button
-              onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={() => {
+                analytics.event('landing_cta_clicked', { cta_name: 'get_tinytoes_nav', section: 'nav', destination: 'pricing' });
+                document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+              }}
               className="hidden rounded-full bg-[#8FB996] px-5 py-2 text-sm font-bold text-white shadow-sm transition hover:-translate-y-0.5 sm:inline-flex"
             >
               Get TinyToes
@@ -116,13 +140,19 @@ export function LandingPage() {
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <button
-                onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => {
+                  analytics.event('landing_cta_clicked', { cta_name: 'start_saving_memories', section: 'hero', destination: 'pricing' });
+                  document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#8FB996] px-7 py-4 text-base font-black text-white shadow-xl shadow-[#8FB996]/20 transition hover:-translate-y-0.5"
               >
                 Start saving memories <ArrowRight size={18} />
               </button>
               <button
-                onClick={() => document.getElementById('tour')?.scrollIntoView({ behavior: 'smooth' })}
+                onClick={() => {
+                  analytics.event('landing_cta_clicked', { cta_name: 'see_the_app', section: 'hero', destination: 'tour' });
+                  document.getElementById('tour')?.scrollIntoView({ behavior: 'smooth' });
+                }}
                 className="inline-flex items-center justify-center rounded-full border border-[#EDE8E3] bg-white/80 px-7 py-4 text-base font-bold text-[#3D2C2E] shadow-sm transition hover:-translate-y-0.5"
               >
                 See the app
@@ -256,7 +286,10 @@ export function LandingPage() {
                   <ProductRow key={product.slug} product={product} loadingSlug={loadingSlug} onBuy={handleBuy} />
                 ))}
                 <button
-                  onClick={() => navigate('/claim')}
+                  onClick={() => {
+                    analytics.event('signup_started', { source: 'pricing', method: 'code' });
+                    navigate('/claim');
+                  }}
                   className="rounded-3xl border border-dashed border-[#EDE8E3] bg-[#fffaf3] p-5 text-left transition hover:-translate-y-0.5"
                 >
                   <div className="flex items-center gap-3">

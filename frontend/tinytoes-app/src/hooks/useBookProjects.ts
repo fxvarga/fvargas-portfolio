@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { bookProjectsDb } from '@/lib/db';
 import { generateId } from '@/lib/imageUtils';
+import { analytics } from '@/lib/analytics';
 import type { BookProject, CoverConfig, BookPage, PrintProductSlug } from '@/types';
 import { createDefaultPages } from '@/features/print-book/PageTemplates';
 
@@ -29,6 +30,7 @@ export function useBookProjects() {
       updatedAt: Date.now(),
     };
     await bookProjectsDb.add(project);
+    analytics.event('memory_book_started', { source: 'memory_book', sku_slug: skuSlug ?? 'none' });
     await reload();
     return project;
   }, [reload]);
