@@ -137,6 +137,7 @@ jobs:
           TINYTOES_AI_CONNECTION=$(echo $OUTPUT | jq -r '.tinyToesAppInsightsConnectionString.value')
           echo "::add-mask::$TINYTOES_AI_CONNECTION"
           echo "vm_ip=$(echo $OUTPUT | jq -r '.vmPublicIp.value')" >> $GITHUB_OUTPUT
+          echo "vm_private_ip=$(echo $OUTPUT | jq -r '.vmPrivateIp.value')" >> $GITHUB_OUTPUT
           echo "kv_name=$(echo $OUTPUT | jq -r '.keyVaultName.value')" >> $GITHUB_OUTPUT
           echo "vm_name=$(echo $OUTPUT | jq -r '.vmName.value')" >> $GITHUB_OUTPUT
           echo "tinytoes_ai_connection=$TINYTOES_AI_CONNECTION" >> $GITHUB_OUTPUT
@@ -165,56 +166,6 @@ jobs:
           echo -n "$TINYTOES_AI_CONNECTION" | gh secret set TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING --repo ${{ github.repository }}
           echo "Synced TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING to GitHub secrets." >> $GITHUB_STEP_SUMMARY
 
-      - name: Wait for VM SSH
-        run: |
-          VM_IP="${{ steps.deploy.outputs.vm_ip }}"
-          echo "Waiting for SSH on $VM_IP..."
-          for i in $(seq 1 60); do
-            if nc -z -w 5 "$VM_IP" 22 2>/dev/null; then
-              echo "SSH available after $((i * 10)) seconds"
-              break
-            fi
-            sleep 10
-          done
-
-      - name: Render docker-compose.yml from template
-        env:
-          JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
-          CMS_ADMIN_PASSWORD: ${{ secrets.CMS_ADMIN_PASSWORD }}
-          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
-          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
-          PLAUSIBLE_SECRET_KEY_BASE: ${{ secrets.PLAUSIBLE_SECRET_KEY_BASE }}
-          GRAFANA_ADMIN_PASSWORD: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-          N8N_DB_PASSWORD: ${{ secrets.N8N_DB_PASSWORD }}
-          N8N_ENCRYPTION_KEY: ${{ secrets.N8N_ENCRYPTION_KEY }}
-          MS_GRAPH_CLIENT_SECRET: ${{ secrets.MS_GRAPH_CLIENT_SECRET }}
-          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
-          TWILIO_API_KEY_SID: ${{ secrets.TWILIO_API_KEY_SID }}
-          TWILIO_API_KEY_SECRET: ${{ secrets.TWILIO_API_KEY_SECRET }}
-        run: |
-          envsubst < deploy/docker-compose.yml.template > deploy/docker-compose.yml
-
-      - name: Deploy compose files to VM
-        env:
-          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
-        run: |
-          VM_IP="${{ steps.deploy.outputs.vm_ip }}"
-
-          mkdir -p ~/.ssh
-          echo "$VM_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh-keyscan -H "$VM_IP" >> ~/.ssh/known_hosts 2>/dev/null
-
-          # Copy deploy folder contents (rendered compose + configs)
-          scp -r deploy/* azureuser@"$VM_IP":/opt/portfolio/
-
-          # Remove template from VM (only real compose needed)
-          ssh azureuser@"$VM_IP" "rm -f /opt/portfolio/docker-compose.yml.template"
-
-          # Pull images and start services
-          ssh azureuser@"$VM_IP" "cd /opt/portfolio && docker compose pull && docker compose up -d"
-
       - name: Print deployment summary
         run: |
           echo "## Deployment Complete" >> $GITHUB_STEP_SUMMARY
@@ -222,10 +173,11 @@ jobs:
           echo "| Resource | Value |" >> $GITHUB_STEP_SUMMARY
           echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
           echo "| VM IP | ${{ steps.deploy.outputs.vm_ip }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| VM Private IP | ${{ steps.deploy.outputs.vm_private_ip }} |" >> $GITHUB_STEP_SUMMARY
           echo "| VM Name | ${{ steps.deploy.outputs.vm_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Key Vault | ${{ steps.deploy.outputs.kv_name }} |" >> $GITHUB_STEP_SUMMARY
           echo "| TinyToes App Insights | created |" >> $GITHUB_STEP_SUMMARY
-          echo "| SSH | \`ssh azureuser@${{ steps.deploy.outputs.vm_ip }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deploy | Release workflow handles compose deployment over Twingate. |" >> $GITHUB_STEP_SUMMARY
 
       - name: Trigger Release pipeline
         run: |
