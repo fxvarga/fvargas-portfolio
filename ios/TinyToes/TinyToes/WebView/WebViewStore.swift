@@ -68,6 +68,20 @@ class WebViewStore: ObservableObject {
       let remoteURL = URL(string: "https://tinytoes.fernando-vargas.com")!
       webView.load(URLRequest(url: remoteURL))
     }
+
+    func handleIncomingShareURL(_ url: URL) {
+      let escaped = url.absoluteString
+        .replacingOccurrences(of: "\\", with: "\\\\")
+        .replacingOccurrences(of: "'", with: "\\'")
+
+      let js = """
+      window.dispatchEvent(new CustomEvent('tinytoes-share-link', {
+        detail: { url: '\(escaped)' }
+      }));
+      """
+
+      webView.evaluateJavaScript(js)
+    }
   }
 
   // MARK: - Bridge JavaScript

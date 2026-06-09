@@ -17,6 +17,9 @@ public class TinyToesDbContext : DbContext
     public DbSet<LuluPrintJob> LuluPrintJobs => Set<LuluPrintJob>();
     public DbSet<PdfUpload> PdfUploads => Set<PdfUpload>();
     public DbSet<OrderStatusToken> OrderStatusTokens => Set<OrderStatusToken>();
+    public DbSet<ShareInvite> ShareInvites => Set<ShareInvite>();
+    public DbSet<ExportManifest> ExportManifests => Set<ExportManifest>();
+    public DbSet<ExportManifestAsset> ExportManifestAssets => Set<ExportManifestAsset>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -142,6 +145,49 @@ public class TinyToesDbContext : DbContext
             entity.HasOne(e => e.Order)
                 .WithOne(o => o.StatusToken)
                 .HasForeignKey<OrderStatusToken>(e => e.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ExportManifest>(entity =>
+        {
+            entity.HasKey(e => e.ExportId);
+            entity.Property(e => e.StateJson).IsRequired();
+            entity.Property(e => e.TotalAssetBytes).HasDefaultValue(0L);
+        });
+
+        modelBuilder.Entity<ExportManifestAsset>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.AssetId).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Kind).IsRequired().HasMaxLength(32);
+            entity.Property(e => e.CloudKitZoneName).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.CloudKitRecordName).IsRequired().HasMaxLength(256);
+            entity.Property(e => e.CloudKitFieldName).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.FileName).HasMaxLength(256);
+            entity.Property(e => e.ContentType).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Sha256).IsRequired().HasMaxLength(128);
+            entity.HasIndex(e => new { e.ExportId, e.AssetId }).IsUnique();
+            entity.HasOne(e => e.ExportManifest)
+                .WithMany(m => m.Assets)
+                .HasForeignKey(e => e.ExportId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ShareInvite>(entity =>
+        {
+            entity.HasKey(e => e.InviteId);
+            entity.Property(e => e.RecipientEmailNormalized).IsRequired().HasMaxLength(256);
+            entity.Property(e => e.CodeHash).IsRequired().HasMaxLength(128);
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(64);
+            entity.Property(e => e.VerificationTokenHash).HasMaxLength(128);
+            entity.Property(e => e.ImportTokenHash).HasMaxLength(128);
+            entity.Property(e => e.LastError).HasMaxLength(1024);
+            entity.HasIndex(e => e.CodeHash).IsUnique();
+            entity.HasIndex(e => new { e.RecipientEmailNormalized, e.Status });
+            entity.HasIndex(e => e.ExpiresAt);
+            entity.HasOne(e => e.ExportManifest)
+                .WithMany()
+                .HasForeignKey(e => e.ExportId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

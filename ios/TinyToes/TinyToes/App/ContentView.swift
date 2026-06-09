@@ -9,5 +9,8 @@ struct ContentView: View {
       .onAppear {
         webViewStore.loadApp()
       }
+      .onOpenURL { url in
+        webViewStore.handleIncomingShareURL(url)
+      }
   }
 }

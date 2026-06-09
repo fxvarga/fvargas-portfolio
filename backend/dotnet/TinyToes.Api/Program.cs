@@ -24,6 +24,10 @@ builder.Services.AddApplicationInsightsTelemetry(options =>
 // Services
 builder.Services.AddScoped<ClaimService>();
 builder.Services.AddScoped<AppleVerificationService>();
+builder.Services.Configure<ShareInviteOptions>(builder.Configuration.GetSection(ShareInviteOptions.SectionName));
+builder.Services.AddSingleton<ShareSecurityService>();
+builder.Services.AddScoped<ShareCleanupService>();
+builder.Services.AddScoped<ShareInviteService>();
 builder.Services.AddSingleton<AnalyticsService>();
 builder.Services.AddSingleton<GraphEmailService>();
 builder.Services.AddScoped<StripeWebhookService>();
@@ -57,6 +61,18 @@ builder.Services.AddRateLimiter(options =>
         opt.Window = TimeSpan.FromMinutes(1);
         opt.QueueLimit = 0;
     });
+    options.AddFixedWindowLimiter("share-lookup", opt =>
+    {
+        opt.PermitLimit = 10;
+        opt.Window = TimeSpan.FromMinutes(1);
+        opt.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("share-verification", opt =>
+    {
+        opt.PermitLimit = 5;
+        opt.Window = TimeSpan.FromMinutes(5);
+        opt.QueueLimit = 0;
+    });
     options.RejectionStatusCode = 429;
 });
 
@@ -75,6 +91,7 @@ app.UseRateLimiter();
 
 // Endpoints
 app.MapClaimEndpoints();
+app.MapShareInviteEndpoints();
 app.MapAppleEndpoints();
 app.MapCheckoutEndpoints();
 app.MapStripeEndpoints();
