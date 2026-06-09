@@ -1,4 +1,5 @@
 import Foundation
+import CloudKit
 import WebKit
 
 /// Central store managing the WKWebView instance and its configuration.
@@ -8,6 +9,7 @@ class WebViewStore: ObservableObject {
 
   private let storageBridge = StorageBridge()
   private let exportBridge = ExportBridge()
+  private let cloudKitBridge = CloudKitBridge()
   private let imageStore = NativeImageStore()
   private let schemeHandler: LocalSchemeHandler
   private let storeKitManager = StoreKitManager()
@@ -32,6 +34,7 @@ class WebViewStore: ObservableObject {
     let userContent = config.userContentController
     userContent.add(storageBridge, name: StorageBridge.handlerName)
     userContent.add(exportBridge, name: ExportBridge.handlerName)
+    userContent.add(cloudKitBridge, name: CloudKitBridge.handlerName)
     userContent.add(ImageBridge(imageStore: imageStore), name: ImageBridge.handlerName)
 
     let iap = IAPBridge(storeKitManager: storeKitManager)
@@ -172,6 +175,15 @@ class WebViewStore: ObservableObject {
         callNative('export', 'shareFile', { filename, base64Data, mimeType }),
     };
 
+    window.nativeCloud = {
+      uploadBackup: (base64Data, filename, mimeType) =>
+        callNative('cloudKit', 'uploadBackup', { base64Data, filename, mimeType }),
+      downloadLatestBackup: () =>
+        callNative('cloudKit', 'downloadLatestBackup', {}),
+      downloadBackup: (recordName) =>
+        callNative('cloudKit', 'downloadBackup', { recordName }),
+    };
+
     window.nativeImages = {
       save: (dataUrl) => callNative('images', 'save', { dataUrl }),
       read: (url) => callNative('images', 'read', { url }),
@@ -186,4 +198,201 @@ class WebViewStore: ObservableObject {
     };
   })();
   """
+}
+
+/// Handles JS ↔ CloudKit backup transfer messages.
+class CloudKitBridge: NSObject, WKScriptMessageHandler {
+  static let handlerName = "cloudKit"
+
+  private let container = CKContainer.default()
+  private let recordType = "TinyToesBackup"
+  private let assetField = "payload"
+  private let createdAtField = "createdAt"
+  private let filenameField = "filename"
+  private let mimeTypeField = "mimeType"
+
+  func userContentController(
+    _ userContentController: WKUserContentController,
+    didReceive message: WKScriptMessage
+  ) {
+    guard let body = message.body as? [String: Any],
+          let id = body["id"] as? String,
+          let action = body["action"] as? String,
+          let payload = body["payload"] as? [String: Any] else {
+      return
+    }
+
+    let webView = message.webView
+
+    Task {
+      do {
+        let result = try await handleAction(action, payload: payload)
+        if let result {
+          let data = try JSONSerialization.data(withJSONObject: result, options: [.fragmentsAllowed])
+          let b64 = data.base64EncodedString()
+          await MainActor.run {
+            webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', null, '\(b64)')")
+          }
+        } else {
+          await MainActor.run {
+            webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', null, null)")
+          }
+        }
+      } catch {
+        let escaped = error.localizedDescription.replacingOccurrences(of: "'", with: "\\'")
+        await MainActor.run {
+          webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', '\(escaped)', null)")
+        }
+      }
+    }
+  }
+
+  private func handleAction(_ action: String, payload: [String: Any]) async throws -> Any? {
+    switch action {
+    case "uploadBackup":
+      return try await uploadBackup(payload: payload)
+    case "downloadLatestBackup":
+      return try await downloadLatestBackup()
+    case "downloadBackup":
+      guard let recordName = payload["recordName"] as? String, !recordName.isEmpty else {
+        throw CloudKitBridgeError.invalidPayload
+      }
+      return try await downloadBackup(recordName: recordName)
+    default:
+      throw CloudKitBridgeError.unknownAction(action)
+    }
+  }
+
+  private func uploadBackup(payload: [String: Any]) async throws -> [String: Any] {
+    guard let base64Data = payload["base64Data"] as? String,
+          let data = Data(base64Encoded: base64Data) else {
+      throw CloudKitBridgeError.invalidPayload
+    }
+
+    let filename = (payload["filename"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "tinytoes-backup.json"
+    let mimeType = (payload["mimeType"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "application/json"
+    let fileURL = try writeTempFile(data: data, filename: filename)
+
+    let record = CKRecord(recordType: recordType)
+    record[assetField] = CKAsset(fileURL: fileURL)
+    record[createdAtField] = Date() as NSDate
+    record[filenameField] = filename as NSString
+    record[mimeTypeField] = mimeType as NSString
+
+    let saved = try await save(record: record)
+    return [
+      "recordName": saved.recordID.recordName,
+      "filename": filename,
+      "mimeType": mimeType,
+      "uploadedAt": Int(Date().timeIntervalSince1970 * 1000)
+    ]
+  }
+
+  private func downloadLatestBackup() async throws -> [String: Any]? {
+    guard let record = try await fetchLatestBackupRecord() else { return nil }
+    return try backupPayload(from: record)
+  }
+
+  private func downloadBackup(recordName: String) async throws -> [String: Any] {
+    let record = try await fetchRecord(recordName: recordName)
+    return try backupPayload(from: record)
+  }
+
+  private func writeTempFile(data: Data, filename _: String) throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+      .appendingPathComponent(UUID().uuidString)
+      .appendingPathExtension("json")
+    try data.write(to: url, options: .atomic)
+    return url
+  }
+
+  private func backupPayload(from record: CKRecord) throws -> [String: Any] {
+    guard let asset = record[assetField] as? CKAsset,
+          let fileURL = asset.fileURL else {
+      throw CloudKitBridgeError.missingAsset
+    }
+
+    let data = try Data(contentsOf: fileURL)
+    let filename = (record[filenameField] as? String) ?? "tinytoes-backup.json"
+    let mimeType = (record[mimeTypeField] as? String) ?? "application/json"
+    let createdAt = (record[createdAtField] as? Date) ?? Date()
+
+    return [
+      "recordName": record.recordID.recordName,
+      "filename": filename,
+      "mimeType": mimeType,
+      "base64Data": data.base64EncodedString(),
+      "uploadedAt": Int(createdAt.timeIntervalSince1970 * 1000)
+    ]
+  }
+
+  private func privateDb() -> CKDatabase {
+    container.privateCloudDatabase
+  }
+
+  private func save(record: CKRecord) async throws -> CKRecord {
+    try await withCheckedThrowingContinuation { continuation in
+      privateDb().save(record) { savedRecord, error in
+        if let error {
+          continuation.resume(throwing: error)
+          return
+        }
+        guard let savedRecord else {
+          continuation.resume(throwing: CloudKitBridgeError.unknownFailure)
+          return
+        }
+        continuation.resume(returning: savedRecord)
+      }
+    }
+  }
+
+  private func fetchRecord(recordName: String) async throws -> CKRecord {
+    let recordID = CKRecord.ID(recordName: recordName)
+    return try await withCheckedThrowingContinuation { continuation in
+      privateDb().fetch(withRecordID: recordID) { record, error in
+        if let error {
+          continuation.resume(throwing: error)
+          return
+        }
+        guard let record else {
+          continuation.resume(throwing: CloudKitBridgeError.notFound)
+          return
+        }
+        continuation.resume(returning: record)
+      }
+    }
+  }
+
+  private func fetchLatestBackupRecord() async throws -> CKRecord? {
+    let query = CKQuery(recordType: recordType, predicate: NSPredicate(value: true))
+    query.sortDescriptors = [NSSortDescriptor(key: createdAtField, ascending: false)]
+
+    return try await withCheckedThrowingContinuation { continuation in
+      privateDb().perform(query, inZoneWith: nil) { records, error in
+        if let error {
+          continuation.resume(throwing: error)
+          return
+        }
+        continuation.resume(returning: records?.first)
+      }
+    }
+  }
+}
+
+enum CloudKitBridgeError: LocalizedError {
+  case invalidPayload
+  case unknownAction(String)
+  case missingAsset
+  case notFound
+  case unknownFailure
+
+  var errorDescription: String? {
+    switch self {
+    case .invalidPayload: return "Invalid CloudKit payload."
+    case .unknownAction(let action): return "Unknown CloudKit action: \(action)"
+    case .missingAsset: return "CloudKit backup asset is missing."
+    case .notFound: return "CloudKit backup not found."
+    case .unknownFailure: return "CloudKit operation failed."
+    }
+  }
 }

@@ -18,6 +18,28 @@ declare global {
     nativeExport?: {
       shareFile(filename: string, base64Data: string, mimeType: string): Promise<boolean>;
     };
+    nativeCloud?: {
+      uploadBackup(base64Data: string, filename: string, mimeType: string): Promise<{
+        recordName: string;
+        filename: string;
+        mimeType: string;
+        uploadedAt: number;
+      }>;
+      downloadLatestBackup(): Promise<{
+        recordName: string;
+        filename: string;
+        mimeType: string;
+        base64Data: string;
+        uploadedAt: number;
+      } | null>;
+      downloadBackup(recordName: string): Promise<{
+        recordName: string;
+        filename: string;
+        mimeType: string;
+        base64Data: string;
+        uploadedAt: number;
+      }>;
+    };
     nativeImages?: {
       save(dataUrl: string): Promise<string>;
       read(url: string): Promise<string>;
@@ -69,6 +91,52 @@ export async function clearStoredImages(): Promise<void> {
   }
 }
 
+export interface CloudBackupMeta {
+  recordName: string;
+  filename: string;
+  mimeType: string;
+  uploadedAt: number;
+}
+
+export async function uploadBackupToCloud(
+  filename: string,
+  data: string | Uint8Array | Blob,
+  mimeType: string
+): Promise<CloudBackupMeta> {
+  if (!(isNativeApp() && window.nativeCloud)) {
+    throw new Error('Cloud backup upload is only available in the iOS app.');
+  }
+
+  let base64: string;
+  if (typeof data === 'string') {
+    base64 = btoa(unescape(encodeURIComponent(data)));
+  } else if (data instanceof Blob) {
+    const buffer = await data.arrayBuffer();
+    base64 = arrayBufferToBase64(buffer);
+  } else {
+    base64 = arrayBufferToBase64(data.buffer);
+  }
+
+  return window.nativeCloud.uploadBackup(base64, filename, mimeType);
+}
+
+export async function downloadLatestBackupFromCloud(): Promise<{ content: string; meta: CloudBackupMeta } | null> {
+  if (!(isNativeApp() && window.nativeCloud)) {
+    throw new Error('Cloud backup download is only available in the iOS app.');
+  }
+  const result = await window.nativeCloud.downloadLatestBackup();
+  if (!result) return null;
+  return {
+    content: base64ToUtf8(result.base64Data),
+    meta: {
+      recordName: result.recordName,
+      filename: result.filename,
+      mimeType: result.mimeType,
+      uploadedAt: result.uploadedAt,
+    },
+  };
+}
+
 /**
  * Share/download a file. In the native wrapper, presents the iOS share sheet.
  * In a browser, falls back to the standard blob download approach.
@@ -111,4 +179,8 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
+}
+
+function base64ToUtf8(value: string): string {
+  return decodeURIComponent(escape(atob(value)));
 }
