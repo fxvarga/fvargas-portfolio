@@ -31,20 +31,20 @@ const screenshots = {
 const features = [
   {
     icon: UtensilsCrossed,
-    title: 'First foods & reactions',
-    copy: 'Photos, notes, dates, and those tiny “loved it” moments all in one place.',
+    title: 'Tiny tastes and big reactions',
+    copy: 'Remember the first bites, funny faces, favorites, and the foods they reached for again.',
     image: screenshots.foods,
   },
   {
     icon: Trophy,
-    title: 'Milestones without pressure',
-    copy: 'Capture what mattered, whenever it happened — not because an age chart said so.',
+    title: 'Milestones in their own time',
+    copy: 'Save the moments that made you pause, cheer, cry, or call someone right away.',
     image: screenshots.milestones,
   },
   {
     icon: BookOpen,
-    title: 'Monthly reflections',
-    copy: 'Turn scattered memories into a gentle timeline of personality, growth, and everyday magic.',
+    title: 'Little notes you will want later',
+    copy: 'Keep the sweet details close, from new words and routines to the everyday magic between photos.',
     image: screenshots.journal,
   },
 ];
@@ -106,20 +106,20 @@ export function LandingPage() {
           <div>
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#F5EDF1] bg-white/70 px-4 py-2 text-sm font-semibold text-[#C56F7B] shadow-sm">
               <Sparkles size={16} />
-              A keepsake app for every stage of childhood
+              A gentle place for childhood memories
             </div>
             <h1 className="max-w-3xl text-5xl font-black leading-[0.95] tracking-[-0.055em] text-[#3D2C2E] sm:text-7xl lg:text-8xl">
               Save the little things before they become the big things.
             </h1>
             <p className="mt-7 max-w-xl text-lg leading-8 text-[#8B7E7F] sm:text-xl">
-              TinyToes turns meals, milestones, photos, journal notes, and printable memory books into one private family timeline — usable at any age, not boxed into one baby stage.
+              TinyToes helps you save the meals, milestones, photos, and little stories you swear you will remember - then turns them into keepsakes your family can revisit for years.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' })}
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-[#8FB996] px-7 py-4 text-base font-black text-white shadow-xl shadow-[#8FB996]/20 transition hover:-translate-y-0.5"
               >
-                Start your memory suite <ArrowRight size={18} />
+                Start saving memories <ArrowRight size={18} />
               </button>
               <button
                 onClick={() => document.getElementById('tour')?.scrollIntoView({ behavior: 'smooth' })}
@@ -129,7 +129,7 @@ export function LandingPage() {
               </button>
             </div>
             <div className="mt-8 grid max-w-xl grid-cols-3 gap-3 text-sm text-[#8B7E7F]">
-              {['Private by default', 'Works on iPhone + web', 'Print-ready keepsakes'].map(text => (
+              {['Made for your family', 'Use on iPhone + web', 'Ready for keepsake books'].map(text => (
                 <div key={text} className="rounded-2xl border border-[#EDE8E3] bg-white/70 p-3 font-semibold">
                   <Check size={16} className="mb-1 text-[#55A887]" /> {text}
                 </div>
@@ -150,19 +150,19 @@ export function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <div className="mb-12 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
             <div>
-              <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-[#FFF5E6]">Product tour</p>
+              <p className="mb-3 text-sm font-bold uppercase tracking-[0.3em] text-[#FFF5E6]">Inside TinyToes</p>
               <h2 className="max-w-2xl text-4xl font-black tracking-[-0.04em] sm:text-6xl">
-                Real memories, not fake app mockups.
+                A home for the moments already filling your days.
               </h2>
             </div>
             <p className="max-w-sm text-sm leading-6 text-[#FFF8F0]">
-              These screens are captured from an actual family backup, showing the app exactly as it feels with lived-in memories.
+              See how first foods, favorite photos, milestones, and journal notes come together when the app is filled with real family life.
             </p>
           </div>
 
           <div className="grid gap-5 lg:grid-cols-[1.1fr_0.9fr]">
-            <FeaturePanel image={screenshots.foods} title="Track every bite" copy="Reactions, dates, photos, and notes stay beautifully organized." />
-            <FeaturePanel image={screenshots.gallery} title="Open a full memory" copy="Tap into the story behind each photo with a clean gallery-style detail view." compact />
+            <FeaturePanel image={screenshots.foods} title="Remember every little taste" copy="Save what they tried, how it went, and the photo that brings the moment back." />
+            <FeaturePanel image={screenshots.gallery} title="Give each photo a story" copy="Keep the details with the picture, so the memory feels alive when you come back to it." compact />
           </div>
 
           <div className="mt-5 grid gap-5 md:grid-cols-3">
@@ -182,19 +182,19 @@ export function LandingPage() {
       <section className="px-5 py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-10 lg:grid-cols-2">
           <div>
-            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#C4816B]">From app to heirloom</p>
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#C4816B]">From today to forever</p>
             <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">
-              Build the book while life is happening.
+              Build the keepsake while life is happening.
             </h2>
             <p className="mt-5 max-w-lg text-lg leading-8 text-[#8B7E7F]">
-              Every photo, note, food adventure, monthly reflection, and milestone can become a printable memory book — no scrambling through camera rolls later.
+              Add the sweet details as they happen, then turn them into a memory book without digging through camera rolls months from now.
             </p>
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
               {[
-                ['Memory books', 'Turn saved moments into a physical keepsake.'],
-                ['Year recap', 'See your family story across time.'],
-                ['Import/export', 'Your data stays portable.'],
-                ['Private archive', 'Built for family memories first.'],
+                ['Memory books', 'Turn favorite moments into something you can hold.'],
+                ['Year recap', 'Look back on how much changed, one memory at a time.'],
+                ['Bring memories with you', 'Keep your saved moments close if you switch devices.'],
+                ['Made for family', 'A quiet, private place for the stories that matter most.'],
               ].map(([title, copy]) => (
                 <div key={title} className="rounded-3xl border border-[#EDE8E3] bg-white p-4 shadow-sm">
                   <Star size={17} className="mb-2 fill-[#d59c6b] text-[#d59c6b]" />
@@ -214,10 +214,10 @@ export function LandingPage() {
       <section id="pricing" className="bg-white px-5 py-20">
         <div className="mx-auto max-w-6xl">
           <div className="mb-10 text-center">
-            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#55A887]">Choose your suite</p>
+            <p className="mb-3 text-sm font-black uppercase tracking-[0.28em] text-[#55A887]">Choose your keepsake</p>
             <h2 className="text-4xl font-black tracking-[-0.04em] sm:text-6xl">Capture more than photos.</h2>
             <p className="mx-auto mt-4 max-w-xl text-lg leading-8 text-[#8B7E7F]">
-              Start with the whole memory suite or activate an existing code. iOS purchases use Apple In-App Purchase.
+              Start with the full keepsake bundle, choose only what you need, or use a code you already have.
             </p>
           </div>
 
@@ -263,7 +263,7 @@ export function LandingPage() {
                     <LockKeyhole className="text-[#C4816B]" />
                     <div>
                       <h3 className="font-black">Already purchased?</h3>
-                      <p className="text-sm text-[#8B7E7F]">Activate your claim code to unlock modules.</p>
+                      <p className="text-sm text-[#8B7E7F]">Use your code to open your keepsakes.</p>
                     </div>
                   </div>
                 </button>
