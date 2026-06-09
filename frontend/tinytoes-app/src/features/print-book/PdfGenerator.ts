@@ -7,6 +7,7 @@ import fontkit from '@pdf-lib/fontkit';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createElement } from 'react';
 import type { BookProject, BookPage, CoverConfig, ImageOffset, DecorationKind } from '@/types';
+import { resolveImageForExport } from '@/lib/storage-adapter';
 import { TRIM_SIZES, BLEED, MARGIN, COVER_THEMES, NURSERY, templateScale } from './bookConstants';
 import { Decoration, Blob as BlobDeco, type BlobShape } from './Decorations';
 
@@ -78,8 +79,10 @@ function isJpeg(dataUrl: string): boolean {
 }
 
 async function embedImage(doc: PDFDocument, dataUrl: string): Promise<PDFImage> {
-  const bytes = dataUrlToBytes(dataUrl);
-  return isJpeg(dataUrl) ? doc.embedJpg(bytes) : doc.embedPng(bytes);
+  const resolved = await resolveImageForExport(dataUrl);
+  if (!resolved) throw new Error('Missing image data.');
+  const bytes = dataUrlToBytes(resolved);
+  return isJpeg(resolved) ? doc.embedJpg(bytes) : doc.embedPng(bytes);
 }
 
 /** Letterbox-fit (object-fit: contain) — image scaled to fit inside box. */

@@ -1,7 +1,7 @@
-import type { AppData, BabyProfile, FoodEntry, Reaction } from '@/types';
+import type { AppData, BabyProfile, FoodEntry, JournalEntry, Milestone, Reaction } from '@/types';
 import { EMOJI_TO_REACTION } from '@/types';
 import { profileDb, entriesDb, milestonesDb, journalDb } from './db';
-import { shareOrDownloadFile } from './storage-adapter';
+import { clearStoredImages, resolveImageForExport, shareOrDownloadFile, storeImageReference } from './storage-adapter';
 
 /** Normalize a reaction value — handles both legacy emoji and new string keys */
 function normalizeReaction(value: string): Reaction {
@@ -21,21 +21,54 @@ export async function exportData(): Promise<void> {
   const journal = await journalDb.getAll();
 
   const data: AppData = {
-    profile: profile || {
+    profile: profile ? {
+      ...profile,
+      photo: await resolveImageForExport(profile.photo),
+    } : {
       name: '',
       ageRange: '6–9 months',
       theme: 'Neutral',
       photo: null,
       onboardingComplete: false,
     },
-    entries,
-    milestones,
-    journal,
+    entries: await Promise.all(entries.map(async entry => ({
+      ...entry,
+      image: await resolveImageForExport(entry.image),
+    }))),
+    milestones: await Promise.all(milestones.map(async milestone => ({
+      ...milestone,
+      image: await resolveImageForExport(milestone.image),
+    }))),
+    journal: await Promise.all(journal.map(async entry => ({
+      ...entry,
+      image: await resolveImageForExport(entry.image),
+      images: entry.images ? await Promise.all(entry.images.map(async image => await resolveImageForExport(image) ?? image)) : entry.images,
+    }))),
   };
 
   const json = JSON.stringify(data, null, 2);
   const filename = `tinytoes-backup-${new Date().toISOString().split('T')[0]}.json`;
   await shareOrDownloadFile(filename, json, 'application/json');
+}
+
+async function storeProfileImages(profile: BabyProfile): Promise<BabyProfile> {
+  return { ...profile, photo: await storeImageReference(profile.photo) };
+}
+
+async function storeFoodImages(entry: FoodEntry): Promise<FoodEntry> {
+  return { ...entry, image: await storeImageReference(entry.image) };
+}
+
+async function storeMilestoneImages(milestone: Milestone): Promise<Milestone> {
+  return { ...milestone, image: await storeImageReference(milestone.image) };
+}
+
+async function storeJournalImages(entry: JournalEntry): Promise<JournalEntry> {
+  return {
+    ...entry,
+    image: await storeImageReference(entry.image),
+    images: entry.images ? await Promise.all(entry.images.map(async image => await storeImageReference(image) ?? image)) : entry.images,
+  };
 }
 
 export async function importData(file: File): Promise<{ profile: BabyProfile; entryCount: number }> {
@@ -65,28 +98,30 @@ export async function importData(file: File): Promise<{ profile: BabyProfile; en
   }
 
   // Clear existing data and import
+  await clearStoredImages();
   await profileDb.clear();
   await entriesDb.clear();
   await milestonesDb.clear();
   await journalDb.clear();
 
-  await profileDb.set(data.profile);
+  const profile = await storeProfileImages(data.profile);
+  await profileDb.set(profile);
 
   for (const entry of data.entries) {
-    await entriesDb.add(entry);
+    await entriesDb.add(await storeFoodImages(entry));
   }
 
   // Import milestones if present
   if (Array.isArray(data.milestones)) {
     for (const milestone of data.milestones) {
-      await milestonesDb.add(milestone);
+      await milestonesDb.add(await storeMilestoneImages(milestone));
     }
   }
 
   // Import journal entries if present
   if (Array.isArray(data.journal)) {
     for (const entry of data.journal) {
-      await journalDb.add(entry);
+      await journalDb.add(await storeJournalImages(entry));
     }
   }
 
@@ -94,5 +129,5 @@ export async function importData(file: File): Promise<{ profile: BabyProfile; en
     + (data.milestones?.length || 0)
     + (data.journal?.length || 0);
 
-  return { profile: data.profile, entryCount: totalCount };
+  return { profile, entryCount: totalCount };
 }

@@ -18,6 +18,12 @@ declare global {
     nativeExport?: {
       shareFile(filename: string, base64Data: string, mimeType: string): Promise<boolean>;
     };
+    nativeImages?: {
+      save(dataUrl: string): Promise<string>;
+      read(url: string): Promise<string>;
+      delete(url: string): Promise<boolean>;
+      clear(): Promise<boolean>;
+    };
     nativeIAP?: {
       purchase(): Promise<{ transactionId: string; purchased: boolean }>;
       restore(): Promise<{ transactionId: string; purchased: boolean }>;
@@ -35,6 +41,32 @@ declare global {
 /** Returns true when running inside the native iOS wrapper. */
 export function isNativeApp(): boolean {
   return typeof window !== 'undefined' && window.__TINYTOES_NATIVE === true;
+}
+
+export function isNativeImageReference(value: string | null | undefined): value is string {
+  return typeof value === 'string' && value.startsWith('app://localhost/__tinytoes_images/');
+}
+
+export async function resolveImageForExport(value: string | null | undefined): Promise<string | null> {
+  if (!value) return null;
+  if (isNativeImageReference(value) && isNativeApp() && window.nativeImages) {
+    return window.nativeImages.read(value);
+  }
+  return value;
+}
+
+export async function storeImageReference(value: string | null | undefined): Promise<string | null> {
+  if (!value) return null;
+  if (value.startsWith('data:image/') && isNativeApp() && window.nativeImages) {
+    return window.nativeImages.save(value);
+  }
+  return value;
+}
+
+export async function clearStoredImages(): Promise<void> {
+  if (isNativeApp() && window.nativeImages) {
+    await window.nativeImages.clear();
+  }
 }
 
 /**

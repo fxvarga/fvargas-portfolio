@@ -10,8 +10,10 @@ class LocalSchemeHandler: NSObject, WKURLSchemeHandler {
   static let baseURL = URL(string: "\(scheme)://\(host)/")!
 
   private let wwwRoot: URL?
+  private let imageStore: NativeImageStore
 
-  override init() {
+  init(imageStore: NativeImageStore = NativeImageStore()) {
+    self.imageStore = imageStore
     self.wwwRoot = Bundle.main.url(forResource: "www", withExtension: nil)
     super.init()
     if let root = wwwRoot {
@@ -30,6 +32,16 @@ class LocalSchemeHandler: NSObject, WKURLSchemeHandler {
 
     // Map app://localhost/path → www/path
     var path = requestURL.path
+
+    if let imageURL = imageStore.fileUrl(forPath: path) {
+      if FileManager.default.fileExists(atPath: imageURL.path) {
+        serveFile(urlSchemeTask, fileURL: imageURL)
+        return
+      }
+      failWith404(urlSchemeTask, path: path)
+      return
+    }
+
     if path.isEmpty || path == "/" {
       path = "/index.html"
     }

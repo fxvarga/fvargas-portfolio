@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
-import { compressImage } from '@/lib/imageUtils';
+import { compressImage, fileToDataUrl } from '@/lib/imageUtils';
 import { analytics } from '@/lib/analytics';
+import { isNativeApp } from '@/lib/storage-adapter';
 
 interface PhotoUploadProps {
   value: string | null;
@@ -21,8 +22,13 @@ export function PhotoUpload({ value, onChange, circular = false, label }: PhotoU
     setIsCompressing(true);
 
     try {
-      const compressed = await compressImage(file);
-      onChange(compressed);
+      const dataUrl = isNativeApp() && window.nativeImages
+        ? await fileToDataUrl(file)
+        : await compressImage(file);
+      const storedValue = isNativeApp() && window.nativeImages
+        ? await window.nativeImages.save(dataUrl)
+        : dataUrl;
+      onChange(storedValue);
       analytics.event('gallery_upload_created', { source: label || 'photo_upload', image_count: 1 });
     } catch (err) {
       analytics.error(err, { area: 'photo_upload' });

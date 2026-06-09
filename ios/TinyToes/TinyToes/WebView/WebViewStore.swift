@@ -8,11 +8,13 @@ class WebViewStore: ObservableObject {
 
   private let storageBridge = StorageBridge()
   private let exportBridge = ExportBridge()
-  private let schemeHandler = LocalSchemeHandler()
+  private let imageStore = NativeImageStore()
+  private let schemeHandler: LocalSchemeHandler
   private let storeKitManager = StoreKitManager()
   private var iapBridge: IAPBridge?
 
   init() {
+    self.schemeHandler = LocalSchemeHandler(imageStore: imageStore)
     let config = WKWebViewConfiguration()
     config.preferences.javaScriptCanOpenWindowsAutomatically = false
 
@@ -30,6 +32,7 @@ class WebViewStore: ObservableObject {
     let userContent = config.userContentController
     userContent.add(storageBridge, name: StorageBridge.handlerName)
     userContent.add(exportBridge, name: ExportBridge.handlerName)
+    userContent.add(ImageBridge(imageStore: imageStore), name: ImageBridge.handlerName)
 
     let iap = IAPBridge(storeKitManager: storeKitManager)
     userContent.add(iap, name: IAPBridge.handlerName)
@@ -149,6 +152,13 @@ class WebViewStore: ObservableObject {
     window.nativeExport = {
       shareFile: (filename, base64Data, mimeType) =>
         callNative('export', 'shareFile', { filename, base64Data, mimeType }),
+    };
+
+    window.nativeImages = {
+      save: (dataUrl) => callNative('images', 'save', { dataUrl }),
+      read: (url) => callNative('images', 'read', { url }),
+      delete: (url) => callNative('images', 'delete', { url }),
+      clear: () => callNative('images', 'clear', {}),
     };
 
     window.nativeIAP = {

@@ -1,7 +1,7 @@
 import { openDB, type IDBPDatabase } from 'idb';
 import type { BabyProfile, FoodEntry, Milestone, JournalEntry, AppData, BookProject } from '@/types';
 import { EMOJI_TO_REACTION } from '@/types';
-import { isNativeApp } from './storage-adapter';
+import { clearStoredImages, isNativeApp, storeImageReference } from './storage-adapter';
 
 // =============================================================================
 // Native storage helpers — route through Swift bridge when in iOS wrapper
@@ -28,6 +28,43 @@ async function nativeGetAll<T>(store: string, sortKey?: string, reverse = true):
 
 async function nativePut<T>(store: string, key: string, value: T): Promise<void> {
   await ns().put(store, key, value);
+}
+
+async function withStoredProfileImages(profile: BabyProfile): Promise<BabyProfile> {
+  return { ...profile, photo: await storeImageReference(profile.photo) };
+}
+
+async function withStoredFoodImages(entry: FoodEntry): Promise<FoodEntry> {
+  return { ...entry, image: await storeImageReference(entry.image) };
+}
+
+async function withStoredMilestoneImages(milestone: Milestone): Promise<Milestone> {
+  return { ...milestone, image: await storeImageReference(milestone.image) };
+}
+
+async function withStoredJournalImages(entry: JournalEntry): Promise<JournalEntry> {
+  return {
+    ...entry,
+    image: await storeImageReference(entry.image),
+    images: entry.images ? await Promise.all(entry.images.map(async image => await storeImageReference(image) ?? image)) : entry.images,
+  };
+}
+
+async function withStoredBookProjectImages(project: BookProject): Promise<BookProject> {
+  return {
+    ...project,
+    cover: {
+      ...project.cover,
+      photo: await storeImageReference(project.cover.photo),
+    },
+    pages: await Promise.all(project.pages.map(async page => ({
+      ...page,
+      items: await Promise.all(page.items.map(async item => ({
+        ...item,
+        image: await storeImageReference(item.image),
+      }))),
+    }))),
+  };
 }
 
 async function nativeDelete(store: string, key: string): Promise<void> {
@@ -121,7 +158,7 @@ export const profileDb = {
   },
 
   async set(profile: BabyProfile): Promise<void> {
-    if (isNativeApp()) { await nativePut('profile', 'current', profile); return; }
+    if (isNativeApp()) { await nativePut('profile', 'current', await withStoredProfileImages(profile)); return; }
     const db = await getDb();
     await db.put('profile', profile, 'current');
   },
@@ -152,13 +189,13 @@ export const entriesDb = {
   },
 
   async add(entry: FoodEntry): Promise<void> {
-    if (isNativeApp()) { await nativePut('entries', entry.id, entry); return; }
+    if (isNativeApp()) { await nativePut('entries', entry.id, await withStoredFoodImages(entry)); return; }
     const db = await getDb();
     await db.add('entries', entry);
   },
 
   async update(entry: FoodEntry): Promise<void> {
-    if (isNativeApp()) { await nativePut('entries', entry.id, entry); return; }
+    if (isNativeApp()) { await nativePut('entries', entry.id, await withStoredFoodImages(entry)); return; }
     const db = await getDb();
     await db.put('entries', entry);
   },
@@ -181,6 +218,7 @@ export async function clearAllData(): Promise<void> {
   await entriesDb.clear();
   await milestonesDb.clear();
   await journalDb.clear();
+  await clearStoredImages();
 }
 
 // =============================================================================
@@ -202,13 +240,13 @@ export const milestonesDb = {
   },
 
   async add(milestone: Milestone): Promise<void> {
-    if (isNativeApp()) { await nativePut('milestones', milestone.id, milestone); return; }
+    if (isNativeApp()) { await nativePut('milestones', milestone.id, await withStoredMilestoneImages(milestone)); return; }
     const db = await getDb();
     await db.add('milestones', milestone);
   },
 
   async update(milestone: Milestone): Promise<void> {
-    if (isNativeApp()) { await nativePut('milestones', milestone.id, milestone); return; }
+    if (isNativeApp()) { await nativePut('milestones', milestone.id, await withStoredMilestoneImages(milestone)); return; }
     const db = await getDb();
     await db.put('milestones', milestone);
   },
@@ -255,13 +293,13 @@ export const journalDb = {
   },
 
   async add(entry: JournalEntry): Promise<void> {
-    if (isNativeApp()) { await nativePut('journal', entry.id, entry); return; }
+    if (isNativeApp()) { await nativePut('journal', entry.id, await withStoredJournalImages(entry)); return; }
     const db = await getDb();
     await db.add('journal', entry);
   },
 
   async update(entry: JournalEntry): Promise<void> {
-    if (isNativeApp()) { await nativePut('journal', entry.id, entry); return; }
+    if (isNativeApp()) { await nativePut('journal', entry.id, await withStoredJournalImages(entry)); return; }
     const db = await getDb();
     await db.put('journal', entry);
   },
@@ -298,14 +336,14 @@ export const bookProjectsDb = {
   },
 
   async add(project: BookProject): Promise<void> {
-    if (isNativeApp()) { await nativePut('bookProjects', project.id, project); return; }
+    if (isNativeApp()) { await nativePut('bookProjects', project.id, await withStoredBookProjectImages(project)); return; }
     const db = await getDb();
     await db.add('bookProjects', project);
   },
 
   async update(project: BookProject): Promise<void> {
     const updated = { ...project, updatedAt: Date.now() };
-    if (isNativeApp()) { await nativePut('bookProjects', updated.id, updated); return; }
+    if (isNativeApp()) { await nativePut('bookProjects', updated.id, await withStoredBookProjectImages(updated)); return; }
     const db = await getDb();
     await db.put('bookProjects', updated);
   },

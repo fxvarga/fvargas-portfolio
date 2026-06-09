@@ -11,13 +11,22 @@ public static class StripeEndpoints
         app.MapPost("/api/webhooks/stripe", async (HttpContext context, StripeWebhookService webhookService, IConfiguration config, ILogger<StripeWebhookService> logger, AnalyticsService analytics) =>
         {
             var json = await new StreamReader(context.Request.Body).ReadToEndAsync();
+            var secretKey = config["STRIPE_SECRET_KEY"] ?? config["Stripe:SecretKey"];
             var webhookSecret = config["STRIPE_WEBHOOK_SECRET"];
+
+            if (string.IsNullOrEmpty(secretKey))
+            {
+                logger.LogError("STRIPE_SECRET_KEY is not configured");
+                return Results.StatusCode(500);
+            }
 
             if (string.IsNullOrEmpty(webhookSecret))
             {
                 logger.LogError("STRIPE_WEBHOOK_SECRET is not configured");
                 return Results.StatusCode(500);
             }
+
+            StripeConfiguration.ApiKey = secretKey;
 
             try
             {

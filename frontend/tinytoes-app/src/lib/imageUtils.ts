@@ -3,6 +3,15 @@ const MAX_HEIGHT = 2400;
 const JPEG_QUALITY = 0.85;
 const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB warning threshold
 
+export function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target?.result as string);
+    reader.onerror = () => reject(new Error('Failed to read file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 export async function compressImage(file: File): Promise<string> {
   if (file.size > MAX_SIZE_BYTES * 2) {
     throw new Error('Image is too large. Please choose an image under 10MB.');
