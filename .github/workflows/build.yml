@@ -40,6 +40,9 @@ jobs:
 
       - name: Build PWA
         working-directory: ./frontend/tinytoes-app
+        env:
+          VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING }}
+          VITE_APP_VERSION: ios-${{ github.run_number }}
         run: npx tsc -b && npx vite build
 
       - name: Sync web assets to iOS bundle
@@ -99,6 +102,9 @@ jobs:
       - name: Build PWA
         if: env.HAS_SECRETS == 'true'
         working-directory: ./frontend/tinytoes-app
+        env:
+          VITE_APPLICATIONINSIGHTS_CONNECTION_STRING: ${{ secrets.TINYTOES_APPLICATIONINSIGHTS_CONNECTION_STRING }}
+          VITE_APP_VERSION: ios-${{ github.run_number }}
         run: npx tsc -b && npx vite build
 
       - name: Sync web assets to iOS bundle

@@ -8,13 +8,16 @@ class WebViewStore: ObservableObject {
 
   private let storageBridge = StorageBridge()
   private let exportBridge = ExportBridge()
-  private let cloudSharingBridge = CloudSharingBridge()
-  private let imageStore = NativeImageStore()
+  private let imageStore: NativeImageStore
+  private let cloudSharingBridge: CloudSharingBridge
   private let schemeHandler: LocalSchemeHandler
   private let storeKitManager = StoreKitManager()
   private var iapBridge: IAPBridge?
 
   init() {
+    let imageStore = NativeImageStore()
+    self.imageStore = imageStore
+    self.cloudSharingBridge = CloudSharingBridge(imageStore: imageStore)
     self.schemeHandler = LocalSchemeHandler(imageStore: imageStore)
     let config = WKWebViewConfiguration()
     config.preferences.javaScriptCanOpenWindowsAutomatically = false
@@ -87,12 +90,53 @@ class WebViewStore: ObservableObject {
 
     // Early error capture — catches script load failures
     window.__TT_ERRORS = [];
+    window.__TT_NATIVE_TELEMETRY = window.__TT_NATIVE_TELEMETRY || [];
+    function trackNativeBridgeEvent(kind, name, properties) {
+      const item = { kind: kind || 'event', name: name, properties: properties || {} };
+      if (window.__tinytoesAnalyticsTrack) {
+        window.__tinytoesAnalyticsTrack(item.kind, item.name, item.properties);
+      } else {
+        window.__TT_NATIVE_TELEMETRY.push(item);
+      }
+    }
+    function summarizeNativePayload(handler, action, payload) {
+      const summary = { handler: handler, action: action };
+      try {
+        if (payload && typeof payload.manifestJson === 'string') summary.manifest_bytes = payload.manifestJson.length;
+        if (payload && Array.isArray(payload.assets)) {
+          summary.asset_count = payload.assets.length;
+          summary.image_ref_count = payload.assets.filter(asset => !!asset.imageRef).length;
+          summary.data_url_count = payload.assets.filter(asset => !!asset.dataUrl).length;
+          summary.total_data_url_bytes = payload.assets.reduce((total, asset) => total + (asset.dataUrl ? asset.dataUrl.length : 0), 0);
+        }
+      } catch (e) {
+        summary.summary_error = String(e);
+      }
+      return summary;
+    }
+    window.__tinytoesNativeTelemetry = function(b64) {
+      try {
+        const item = JSON.parse(atob(b64));
+        trackNativeBridgeEvent(item.kind || 'event', item.name, item.properties || {});
+      } catch (e) {
+        window.__TT_ERRORS.push('NATIVE_TELEMETRY: ' + String(e));
+      }
+    };
     window.onerror = function(msg, source, line, col, error) {
       window.__TT_ERRORS.push('ERR: ' + msg + ' @ ' + source + ':' + line);
+      trackNativeBridgeEvent('error', 'native_webview_window_error', {
+        message: String(msg),
+        source: String(source || 'unknown'),
+        line: line || 0,
+        column: col || 0
+      });
       return false;
     };
     window.addEventListener('unhandledrejection', function(e) {
       window.__TT_ERRORS.push('PROMISE: ' + String(e.reason));
+      trackNativeBridgeEvent('error', 'native_webview_unhandled_rejection', {
+        reason: String(e.reason || 'unknown')
+      });
     });
 
     // Pending promise callbacks keyed by request ID
@@ -103,11 +147,19 @@ class WebViewStore: ObservableObject {
       return new Promise((resolve, reject) => {
         const id = String(_nextId++);
         _pending[id] = { resolve, reject };
-        window.webkit.messageHandlers[handler].postMessage({
-          id: id,
-          action: action,
-          payload: payload || {}
-        });
+        const summary = summarizeNativePayload(handler, action, payload || {});
+        trackNativeBridgeEvent('event', 'native_bridge_call_posting', summary);
+        try {
+          window.webkit.messageHandlers[handler].postMessage({
+            id: id,
+            action: action,
+            payload: payload || {}
+          });
+        } catch (e) {
+          delete _pending[id];
+          trackNativeBridgeEvent('error', 'native_bridge_call_post_failed', { ...summary, error: String(e) });
+          reject(e);
+        }
       });
     }
 

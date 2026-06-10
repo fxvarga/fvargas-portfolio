@@ -44,7 +44,8 @@ declare global {
 
 export interface CloudShareAssetInput {
   assetId: string;
-  dataUrl: string;
+  dataUrl?: string;
+  imageRef?: string;
   fileName: string;
   contentType: string;
 }

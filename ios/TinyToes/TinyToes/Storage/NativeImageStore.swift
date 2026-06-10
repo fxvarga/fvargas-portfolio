@@ -50,7 +50,7 @@ class NativeImageStore {
     return fileURL
   }
 
-  private func fileUrl(forAppUrl urlString: String) throws -> URL {
+  func fileUrl(forAppUrl urlString: String) throws -> URL {
     guard let url = URL(string: urlString), let fileURL = fileUrl(forPath: url.path) else {
       throw NativeImageStoreError.invalidReference
     }

@@ -6,6 +6,7 @@ import WebKit
 class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingControllerDelegate {
   static let handlerName = "cloudSharing"
 
+  private let imageStore: NativeImageStore
   private let container = CKContainer.default()
   private let zoneName = "TinyToesSharing"
   private let packageRecordType = "TinyToesSharePackage"
@@ -17,6 +18,12 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
   private let fileNameField = "fileName"
   private let contentTypeField = "contentType"
   private let packageRefField = "packageRef"
+  private weak var activeWebView: WKWebView?
+
+  init(imageStore: NativeImageStore = NativeImageStore()) {
+    self.imageStore = imageStore
+    super.init()
+  }
 
   func userContentController(
     _ userContentController: WKUserContentController,
@@ -30,16 +37,30 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     }
 
     let webView = message.webView
+    emitTelemetry(webView: webView, name: "native_bridge_message_received", properties: [
+      "handler": Self.handlerName,
+      "action": action,
+      "payload_bytes": approximatePayloadSize(payload)
+    ])
 
     Task {
       do {
         let result = try await handleAction(action, payload: payload, webView: webView)
+        emitTelemetry(webView: webView, name: "native_bridge_action_completed", properties: [
+          "handler": Self.handlerName,
+          "action": action
+        ])
         let data = try JSONSerialization.data(withJSONObject: result as Any, options: [.fragmentsAllowed])
         let b64 = data.base64EncodedString()
         await MainActor.run {
           webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', null, '\(b64)')")
         }
       } catch {
+        emitTelemetry(webView: webView, kind: "error", name: "native_bridge_action_failed", properties: [
+          "handler": Self.handlerName,
+          "action": action,
+          "error": error.localizedDescription
+        ])
         let escaped = error.localizedDescription.replacingOccurrences(of: "'", with: "\\'")
         await MainActor.run {
           webView?.evaluateJavaScript("window.__nativeCallbackB64('\(id)', '\(escaped)', null)")
@@ -53,7 +74,7 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     case "createSharePackage":
       return try await createSharePackage(payload: payload, webView: webView)
     case "importLatestSharedPackage":
-      return try await importLatestSharedPackage() as Any
+      return try await importLatestSharedPackage(webView: webView) as Any
     default:
       throw CloudSharingBridgeError.unknownAction(action)
     }
@@ -65,7 +86,16 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
       throw CloudSharingBridgeError.invalidPayload
     }
 
+    emitTelemetry(webView: webView, name: "cloud_share_native_create_started", properties: [
+      "asset_count": assets.count,
+      "image_ref_count": assets.filter { ($0["imageRef"] as? String)?.isEmpty == false }.count,
+      "data_url_count": assets.filter { ($0["dataUrl"] as? String)?.isEmpty == false }.count,
+      "manifest_bytes": manifestJson.count,
+      "payload_bytes": approximatePayloadSize(payload)
+    ])
+
     let zoneID = try await ensureShareZone()
+    emitTelemetry(webView: webView, name: "cloud_share_native_zone_ready", properties: ["zone": zoneID.zoneName])
     let root = CKRecord(recordType: packageRecordType, recordID: CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID))
     root[manifestField] = manifestJson as NSString
     root[createdAtField] = Date() as NSDate
@@ -76,9 +106,20 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
 
     let rootRef = CKRecord.Reference(recordID: root.recordID, action: .deleteSelf)
     let assetRecords = try assets.map { try buildAssetRecord(from: $0, packageRef: rootRef, zoneID: zoneID) }
+    emitTelemetry(webView: webView, name: "cloud_share_native_asset_records_built", properties: [
+      "asset_count": assetRecords.count,
+      "record_count": assetRecords.count + 2
+    ])
 
     try await save(records: [root, share] + assetRecords)
+    emitTelemetry(webView: webView, name: "cloud_share_native_records_saved", properties: [
+      "asset_count": assetRecords.count,
+      "record_name": root.recordID.recordName
+    ])
     try await presentShareController(share: share, webView: webView)
+    emitTelemetry(webView: webView, name: "cloud_share_native_sheet_presented", properties: [
+      "record_name": root.recordID.recordName
+    ])
 
     return [
       "status": "presented",
@@ -86,9 +127,18 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     ]
   }
 
-  private func importLatestSharedPackage() async throws -> [String: Any]? {
-    guard let root = try await fetchLatestSharedRoot() else { return nil }
+  private func importLatestSharedPackage(webView: WKWebView?) async throws -> [String: Any]? {
+    emitTelemetry(webView: webView, name: "cloud_share_native_import_started")
+    guard let root = try await fetchLatestSharedRoot() else {
+      emitTelemetry(webView: webView, name: "cloud_share_native_import_empty")
+      return nil
+    }
     let assetRecords = try await fetchAssets(for: root.recordID)
+
+    emitTelemetry(webView: webView, name: "cloud_share_native_import_assets_fetched", properties: [
+      "asset_count": assetRecords.count,
+      "record_name": root.recordID.recordName
+    ])
 
     return [
       "recordName": root.recordID.recordName,
@@ -98,15 +148,14 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
   }
 
   private func buildAssetRecord(from payload: [String: Any], packageRef: CKRecord.Reference, zoneID: CKRecordZone.ID) throws -> CKRecord {
-    guard let assetId = payload["assetId"] as? String,
-          let dataUrl = payload["dataUrl"] as? String,
-          let data = dataFromDataUrl(dataUrl) else {
+    guard let assetId = payload["assetId"] as? String else {
       throw CloudSharingBridgeError.invalidPayload
     }
 
     let fileName = (payload["fileName"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "\(assetId).jpg"
     let contentType = (payload["contentType"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? "image/jpeg"
-    let fileURL = try writeTempFile(data: data, fileName: fileName)
+    let fileURL = try assetFileURL(from: payload, fileName: fileName)
+    print("[TinyToes] CloudKit asset \(assetId): \(fileName), source=\(payload["imageRef"] == nil ? "dataUrl" : "imageRef"), exists=\(FileManager.default.fileExists(atPath: fileURL.path))")
 
     let record = CKRecord(recordType: assetRecordType, recordID: CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID))
     record[assetIdField] = assetId as NSString
@@ -116,6 +165,23 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     record[packageRefField] = packageRef
     record.parent = packageRef
     return record
+  }
+
+  private func assetFileURL(from payload: [String: Any], fileName: String) throws -> URL {
+    if let imageRef = payload["imageRef"] as? String, !imageRef.isEmpty {
+      let fileURL = try imageStore.fileUrl(forAppUrl: imageRef)
+      guard FileManager.default.fileExists(atPath: fileURL.path) else {
+        throw CloudSharingBridgeError.missingAsset
+      }
+      return fileURL
+    }
+
+    if let dataUrl = payload["dataUrl"] as? String, let data = dataFromDataUrl(dataUrl) {
+      print("[TinyToes] CloudKit dataUrl fallback asset: \(fileName), bytes=\(data.count)")
+      return try writeTempFile(data: data, fileName: fileName)
+    }
+
+    throw CloudSharingBridgeError.invalidPayload
   }
 
   private func assetPayload(from record: CKRecord) throws -> [String: Any] {
@@ -238,6 +304,7 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     let controller = UICloudSharingController(share: share, container: container)
     controller.delegate = self
     controller.availablePermissions = [.allowReadOnly]
+    activeWebView = webView
     presenter.present(controller, animated: true)
   }
 
@@ -256,8 +323,72 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     return url
   }
 
+  private func emitTelemetry(
+    webView: WKWebView?,
+    kind: String = "event",
+    name: String,
+    properties: [String: Any] = [:]
+  ) {
+    print("[TinyToes] \(name): \(properties)")
+    guard let webView else { return }
+
+    let payload: [String: Any] = [
+      "kind": kind,
+      "name": name,
+      "properties": sanitizedTelemetryProperties(properties)
+    ]
+
+    guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []) else { return }
+    let b64 = data.base64EncodedString()
+    Task { @MainActor in
+      webView.evaluateJavaScript("window.__tinytoesNativeTelemetry && window.__tinytoesNativeTelemetry('\(b64)')")
+    }
+  }
+
+  private func sanitizedTelemetryProperties(_ properties: [String: Any]) -> [String: Any] {
+    var result: [String: Any] = [:]
+    for (key, value) in properties {
+      if let value = value as? String {
+        result[key] = value
+      } else if let value = value as? Int {
+        result[key] = value
+      } else if let value = value as? Bool {
+        result[key] = value
+      } else if let value = value as? Double {
+        result[key] = value
+      } else {
+        result[key] = String(describing: value)
+      }
+    }
+    return result
+  }
+
+  private func approximatePayloadSize(_ value: Any) -> Int {
+    if let value = value as? String {
+      return value.utf8.count
+    }
+    if let value = value as? [Any] {
+      return value.reduce(2) { total, item in total + approximatePayloadSize(item) + 1 }
+    }
+    if let value = value as? [String: Any] {
+      return value.reduce(2) { total, entry in total + entry.key.utf8.count + approximatePayloadSize(entry.value) + 4 }
+    }
+    return String(describing: value).utf8.count
+  }
+
   func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
     print("[TinyToes] Cloud sharing failed: \(error.localizedDescription)")
+    emitTelemetry(webView: activeWebView, kind: "error", name: "cloud_share_native_controller_save_failed", properties: [
+      "error": error.localizedDescription
+    ])
+  }
+
+  func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
+    emitTelemetry(webView: activeWebView, name: "cloud_share_native_controller_saved")
+  }
+
+  func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {
+    emitTelemetry(webView: activeWebView, name: "cloud_share_native_controller_stopped")
   }
 
   func itemTitle(for csc: UICloudSharingController) -> String? {

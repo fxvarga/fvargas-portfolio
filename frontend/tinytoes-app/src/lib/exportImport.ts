@@ -1,10 +1,13 @@
 import type { AppData, BabyProfile, FoodEntry, JournalEntry, Milestone, Reaction } from '@/types';
 import { EMOJI_TO_REACTION } from '@/types';
+import { analytics } from './analytics';
 import { profileDb, entriesDb, milestonesDb, journalDb } from './db';
 import {
   clearStoredImages,
   createNativeCloudSharePackage,
   importLatestNativeCloudSharePackage,
+  isNativeApp,
+  isNativeImageReference,
   resolveImageForExport,
   shareOrDownloadFile,
   storeImageReference,
@@ -32,15 +35,48 @@ export async function exportData(): Promise<void> {
 }
 
 export async function shareAppStateWithCloudKit(): Promise<void> {
+  const startedAt = performance.now();
   const { manifest, assets } = await buildCloudSharePackage();
-  await createNativeCloudSharePackage(JSON.stringify(manifest), assets);
+  const manifestJson = JSON.stringify(manifest);
+  const stats = cloudShareAssetStats(assets);
+  analytics.event('cloud_share_package_built', {
+    asset_count: assets.length,
+    image_ref_count: stats.imageRefCount,
+    data_url_count: stats.dataUrlCount,
+    total_data_url_bytes: stats.totalDataUrlBytes,
+    max_data_url_bytes: stats.maxDataUrlBytes,
+    manifest_bytes: manifestJson.length,
+    duration_ms: Math.round(performance.now() - startedAt),
+  });
+
+  analytics.event('cloud_share_native_call_started', {
+    asset_count: assets.length,
+    image_ref_count: stats.imageRefCount,
+    data_url_count: stats.dataUrlCount,
+  });
+
+  await createNativeCloudSharePackage(manifestJson, assets);
+  analytics.event('cloud_share_native_call_completed', {
+    asset_count: assets.length,
+    duration_ms: Math.round(performance.now() - startedAt),
+  });
 }
 
 export async function importLatestCloudShare(): Promise<{ profile: BabyProfile; entryCount: number }> {
+  const startedAt = performance.now();
+  analytics.event('cloud_share_native_import_call_started');
   const sharePackage = await importLatestNativeCloudSharePackage();
   if (!sharePackage) {
+    analytics.event('cloud_share_native_import_empty', { duration_ms: Math.round(performance.now() - startedAt) });
     throw new Error('No shared TinyToes memories were found in iCloud.');
   }
+
+  analytics.event('cloud_share_native_import_received', {
+    asset_count: sharePackage.assets.length,
+    manifest_bytes: sharePackage.manifestJson.length,
+    total_data_url_bytes: sharePackage.assets.reduce((total, asset) => total + asset.dataUrl.length, 0),
+    duration_ms: Math.round(performance.now() - startedAt),
+  });
 
   const manifest = JSON.parse(sharePackage.manifestJson) as AppData;
   const restored = restoreCloudAssetReferences(manifest, sharePackage.assets);
@@ -75,14 +111,64 @@ async function buildPortableExportData(): Promise<AppData> {
 }
 
 async function buildCloudSharePackage(): Promise<{ manifest: AppData; assets: CloudShareAssetInput[] }> {
-  const data = await buildPortableExportData();
+  const startedAt = performance.now();
+  const profile = await profileDb.get();
+  const entries = await entriesDb.getAll();
+  const milestones = await milestonesDb.getAll();
+  const journal = await journalDb.getAll();
+  analytics.event('cloud_share_inventory_loaded', {
+    has_profile: !!profile,
+    food_count: entries.length,
+    milestone_count: milestones.length,
+    journal_count: journal.length,
+    journal_image_slots: journal.reduce((total, entry) => total + (entry.image ? 1 : 0) + (entry.images?.length ?? 0), 0),
+  });
+  const data: AppData = {
+    profile: profile ?? defaultProfile(),
+    entries,
+    milestones,
+    journal,
+  };
   const assets: CloudShareAssetInput[] = [];
   let counter = 0;
 
   const replaceImage = async (value: string | null, prefix: string): Promise<string | null> => {
-    const dataUrl = await resolveImageForExport(value);
-    if (!dataUrl) return null;
+    if (!value) return null;
     const assetId = `${prefix}-${counter++}`;
+    if (isNativeImageReference(value)) {
+      const ext = extensionForImageReference(value);
+      assets.push({
+        assetId,
+        imageRef: value,
+        fileName: `${assetId}.${ext}`,
+        contentType: contentTypeForExtension(ext),
+      });
+      return `cloudkit-asset:${assetId}`;
+    }
+
+    const dataUrl = await resolveImageForExport(value);
+    if (!dataUrl?.startsWith('data:image/')) {
+      analytics.event('cloud_share_image_skipped', { reason: 'unsupported_reference', prefix });
+      return value;
+    }
+    if (isNativeApp()) {
+      const imageRef = await storeImageReference(dataUrl);
+      if (isNativeImageReference(imageRef)) {
+        const ext = extensionForImageReference(imageRef);
+        assets.push({
+          assetId,
+          imageRef,
+          fileName: `${assetId}.${ext}`,
+          contentType: contentTypeForExtension(ext),
+        });
+        return `cloudkit-asset:${assetId}`;
+      }
+    }
+    analytics.event('cloud_share_data_url_fallback', {
+      prefix,
+      data_url_bytes: dataUrl.length,
+      content_type: contentTypeForDataUrl(dataUrl),
+    });
     assets.push({
       assetId,
       dataUrl,
@@ -92,7 +178,7 @@ async function buildCloudSharePackage(): Promise<{ manifest: AppData; assets: Cl
     return `cloudkit-asset:${assetId}`;
   };
 
-  return {
+  const result = {
     manifest: {
       profile: {
         ...data.profile,
@@ -114,6 +200,14 @@ async function buildCloudSharePackage(): Promise<{ manifest: AppData; assets: Cl
     },
     assets,
   };
+  const stats = cloudShareAssetStats(assets);
+  analytics.event('cloud_share_package_ready', {
+    asset_count: assets.length,
+    image_ref_count: stats.imageRefCount,
+    data_url_count: stats.dataUrlCount,
+    duration_ms: Math.round(performance.now() - startedAt),
+  });
+  return result;
 }
 
 async function storeProfileImages(profile: BabyProfile): Promise<BabyProfile> {
@@ -254,4 +348,35 @@ function extensionForDataUrl(dataUrl: string): string {
   if (contentType.includes('webp')) return 'webp';
   if (contentType.includes('gif')) return 'gif';
   return 'jpg';
+}
+
+function extensionForImageReference(value: string): string {
+  const path = new URL(value).pathname;
+  const ext = path.split('.').pop()?.toLowerCase();
+  if (ext === 'png' || ext === 'webp' || ext === 'gif') return ext;
+  return 'jpg';
+}
+
+function contentTypeForExtension(ext: string): string {
+  if (ext === 'png') return 'image/png';
+  if (ext === 'webp') return 'image/webp';
+  if (ext === 'gif') return 'image/gif';
+  return 'image/jpeg';
+}
+
+function cloudShareAssetStats(assets: CloudShareAssetInput[]) {
+  return assets.reduce((stats, asset) => {
+    if (asset.imageRef) stats.imageRefCount += 1;
+    if (asset.dataUrl) {
+      stats.dataUrlCount += 1;
+      stats.totalDataUrlBytes += asset.dataUrl.length;
+      stats.maxDataUrlBytes = Math.max(stats.maxDataUrlBytes, asset.dataUrl.length);
+    }
+    return stats;
+  }, {
+    imageRefCount: 0,
+    dataUrlCount: 0,
+    totalDataUrlBytes: 0,
+    maxDataUrlBytes: 0,
+  });
 }

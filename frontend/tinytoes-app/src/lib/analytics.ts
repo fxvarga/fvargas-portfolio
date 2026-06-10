@@ -2,6 +2,13 @@ import { ApplicationInsights } from '@microsoft/applicationinsights-web';
 
 type AnalyticsProperties = Record<string, string | number | boolean | null | undefined>;
 
+declare global {
+  interface Window {
+    __TT_NATIVE_TELEMETRY?: Array<{ kind: 'event' | 'error'; name: string; properties?: AnalyticsProperties }>;
+    __tinytoesAnalyticsTrack?: (kind: 'event' | 'error', name: string, properties?: AnalyticsProperties) => void;
+  }
+}
+
 const SESSION_KEY = 'tinytoes-analytics-session-id';
 const ACTIVATION_KEY = 'tinytoes-activation-tracked';
 const MEMORY_COUNT_KEY = 'tinytoes-analytics-memory-count';
@@ -37,6 +44,10 @@ function safeProperties(properties: AnalyticsProperties = {}) {
   return result;
 }
 
+function flushTelemetry() {
+  appInsights?.flush();
+}
+
 export const analytics = {
   init() {
     const connectionString = import.meta.env.VITE_APPLICATIONINSIGHTS_CONNECTION_STRING;
@@ -53,19 +64,54 @@ export const analytics = {
     });
     appInsights.loadAppInsights();
     appInsights.context.application.ver = import.meta.env.VITE_APP_VERSION || 'unknown';
+    window.__tinytoesAnalyticsTrack = (kind, name, properties) => {
+      if (kind === 'error') {
+        analytics.error(new Error(name), properties);
+      } else {
+        analytics.event(name, properties);
+      }
+    };
+
+    for (const item of window.__TT_NATIVE_TELEMETRY ?? []) {
+      window.__tinytoesAnalyticsTrack(item.kind, item.name, item.properties);
+    }
+    window.__TT_NATIVE_TELEMETRY = [];
+
+    window.addEventListener('tinytoes:native-telemetry', (event) => {
+      const detail = (event as CustomEvent).detail as { kind?: 'event' | 'error'; name?: string; properties?: AnalyticsProperties };
+      if (detail?.kind && detail.name) {
+        window.__tinytoesAnalyticsTrack?.(detail.kind, detail.name, detail.properties);
+      }
+    });
+
+    window.addEventListener('error', (event) => {
+      analytics.error(event.error ?? event.message, {
+        area: 'window_error',
+        source: event.filename,
+        line: event.lineno,
+        column: event.colno,
+      });
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      analytics.error(event.reason, { area: 'unhandled_rejection' });
+    });
   },
 
   pageView(name: string, properties?: AnalyticsProperties) {
     appInsights?.trackPageView({ name, properties: safeProperties(properties) });
+    flushTelemetry();
   },
 
   event(name: string, properties?: AnalyticsProperties) {
     appInsights?.trackEvent({ name }, safeProperties(properties));
+    flushTelemetry();
   },
 
   error(error: unknown, properties?: AnalyticsProperties) {
     const exception = error instanceof Error ? error : new Error(String(error));
     appInsights?.trackException({ exception, properties: safeProperties(properties) });
+    flushTelemetry();
   },
 
   activation(memoryCount: number, hasFoodPhoto: boolean) {
