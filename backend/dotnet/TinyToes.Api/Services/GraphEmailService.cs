@@ -62,6 +62,25 @@ public class GraphEmailService
         await SendEmailAsync(toEmail, toEmail, subject, htmlBody);
     }
 
+    public async Task SendShareInviteEmailAsync(
+        string recipientEmail,
+        string inviteCode,
+        string inviteLink,
+        string appStoreLink,
+        DateTime expiresAt)
+    {
+        var subject = "You've received a TinyToes app state invite";
+        var htmlBody = BuildShareInviteEmail(inviteCode, inviteLink, appStoreLink, expiresAt);
+        await SendEmailAsync(recipientEmail, recipientEmail, subject, htmlBody);
+    }
+
+    public async Task SendShareVerificationEmailAsync(string recipientEmail, string verifyLink, DateTime expiresAt)
+    {
+        var subject = "Verify your TinyToes share import";
+        var htmlBody = BuildShareVerificationEmail(verifyLink, expiresAt);
+        await SendEmailAsync(recipientEmail, recipientEmail, subject, htmlBody);
+    }
+
     private async Task SendEmailAsync(string toEmail, string toName, string subject, string htmlBody)
     {
         var token = await GetAccessTokenAsync();
@@ -207,6 +226,36 @@ public class GraphEmailService
               </td>
             </tr>
           </table>
+        </body>
+        </html>
+        """;
+    }
+
+    private static string BuildShareInviteEmail(string inviteCode, string inviteLink, string appStoreLink, DateTime expiresAt)
+    {
+        return $$"""
+        <html>
+        <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+          <h2>TinyToes App State Invite</h2>
+          <p>Someone shared their TinyToes app state with you.</p>
+          <p><strong>Invite code:</strong> {{inviteCode}}</p>
+          <p><a href="{{inviteLink}}">Open invite in app</a></p>
+          <p><a href="{{appStoreLink}}">Install TinyToes from App Store</a></p>
+          <p>This invite expires at {{expiresAt:yyyy-MM-dd HH:mm 'UTC'}} and can be used once.</p>
+        </body>
+        </html>
+        """;
+    }
+
+    private static string BuildShareVerificationEmail(string verifyLink, DateTime expiresAt)
+    {
+        return $$"""
+        <html>
+        <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+          <h2>Verify your email for TinyToes import</h2>
+          <p>Tap the link below to verify this share invite:</p>
+          <p><a href="{{verifyLink}}">Verify email and continue import</a></p>
+          <p>The verification link expires at {{expiresAt:yyyy-MM-dd HH:mm 'UTC'}}.</p>
         </body>
         </html>
         """;

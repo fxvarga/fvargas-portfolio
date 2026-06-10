@@ -16,11 +16,12 @@ import { PhotoUpload } from '@/components/PhotoUpload';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
-import { exportData, importData } from '@/lib/exportImport';
+import { exportData, exportDataToCloudKit, importData, importLatestCloudBackup } from '@/lib/exportImport';
 import { clearAllData } from '@/lib/db';
 import { themes } from '@/lib/themes';
 import type { ThemeName } from '@/types';
 import { CORE_PRODUCT_SLUGS } from '@/types';
+import { isNativeApp } from '@/lib/storage-adapter';
 
 export function SettingsPage() {
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ export function SettingsPage() {
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCloudSyncing, setIsCloudSyncing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Edit profile state
@@ -78,6 +80,41 @@ export function SettingsPage() {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCloudUpload = async () => {
+    setImportStatus(null);
+    setIsCloudSyncing(true);
+    analytics.event('backup_cloud_upload_started', { source: 'settings' });
+    try {
+      const uploaded = await exportDataToCloudKit();
+      setImportStatus(`Uploaded backup to iCloud (${new Date(uploaded.uploadedAt).toLocaleString()}).`);
+      analytics.event('backup_cloud_upload_completed', { source: 'settings' });
+    } catch (err) {
+      setImportStatus(err instanceof Error ? err.message : 'Cloud upload failed.');
+      analytics.event('backup_cloud_upload_failed', { reason_bucket: err instanceof Error ? err.name : 'unknown' });
+    } finally {
+      setIsCloudSyncing(false);
+    }
+  };
+
+  const handleCloudDownloadImport = async () => {
+    setImportStatus(null);
+    setIsCloudSyncing(true);
+    analytics.event('backup_cloud_import_started', { source: 'settings' });
+    try {
+      const result = await importLatestCloudBackup();
+      await updateProfile(result.profile);
+      setTheme(result.profile.theme);
+      await loadEntries();
+      setImportStatus(`Imported ${result.entryCount} items from iCloud backup.`);
+      analytics.event('backup_cloud_import_completed', { entries_count: result.entryCount, source: 'settings' });
+    } catch (err) {
+      setImportStatus(err instanceof Error ? err.message : 'Cloud import failed.');
+      analytics.event('backup_cloud_import_failed', { reason_bucket: err instanceof Error ? err.name : 'unknown' });
+    } finally {
+      setIsCloudSyncing(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -200,6 +237,16 @@ export function SettingsPage() {
             <Button variant="secondary" fullWidth onClick={() => fileInputRef.current?.click()}>
               Import Backup
             </Button>
+            {isNativeApp() && (
+              <>
+                <Button variant="secondary" fullWidth onClick={handleCloudUpload} loading={isCloudSyncing}>
+                  Upload Backup to iCloud
+                </Button>
+                <Button variant="secondary" fullWidth onClick={handleCloudDownloadImport} loading={isCloudSyncing}>
+                  Download + Import Latest iCloud Backup
+                </Button>
+              </>
+            )}
             <input
               ref={fileInputRef}
               type="file"
