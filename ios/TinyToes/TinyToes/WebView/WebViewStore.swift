@@ -8,6 +8,7 @@ class WebViewStore: ObservableObject {
 
   private let storageBridge = StorageBridge()
   private let exportBridge = ExportBridge()
+  private let cloudSharingBridge = CloudSharingBridge()
   private let imageStore = NativeImageStore()
   private let schemeHandler: LocalSchemeHandler
   private let storeKitManager = StoreKitManager()
@@ -32,6 +33,7 @@ class WebViewStore: ObservableObject {
     let userContent = config.userContentController
     userContent.add(storageBridge, name: StorageBridge.handlerName)
     userContent.add(exportBridge, name: ExportBridge.handlerName)
+    userContent.add(cloudSharingBridge, name: CloudSharingBridge.handlerName)
     userContent.add(ImageBridge(imageStore: imageStore), name: ImageBridge.handlerName)
 
     let iap = IAPBridge(storeKitManager: storeKitManager)
@@ -159,6 +161,13 @@ class WebViewStore: ObservableObject {
       read: (url) => callNative('images', 'read', { url }),
       delete: (url) => callNative('images', 'delete', { url }),
       clear: () => callNative('images', 'clear', {}),
+    };
+
+    window.nativeCloudSharing = {
+      createSharePackage: (manifestJson, assets) =>
+        callNative('cloudSharing', 'createSharePackage', { manifestJson, assets }),
+      importLatestSharedPackage: () =>
+        callNative('cloudSharing', 'importLatestSharedPackage', {}),
     };
 
     window.nativeIAP = {

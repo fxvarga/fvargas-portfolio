@@ -24,6 +24,10 @@ declare global {
       delete(url: string): Promise<boolean>;
       clear(): Promise<boolean>;
     };
+    nativeCloudSharing?: {
+      createSharePackage(manifestJson: string, assets: CloudShareAssetInput[]): Promise<CloudShareResult>;
+      importLatestSharedPackage(): Promise<CloudSharePackage | null>;
+    };
     nativeIAP?: {
       purchase(): Promise<{ transactionId: string; purchased: boolean }>;
       restore(): Promise<{ transactionId: string; purchased: boolean }>;
@@ -36,6 +40,31 @@ declare global {
       }>;
     };
   }
+}
+
+export interface CloudShareAssetInput {
+  assetId: string;
+  dataUrl: string;
+  fileName: string;
+  contentType: string;
+}
+
+export interface CloudShareResult {
+  status: 'presented';
+  recordName: string;
+}
+
+export interface CloudShareAssetPayload {
+  assetId: string;
+  dataUrl: string;
+  contentType: string;
+  fileName: string;
+}
+
+export interface CloudSharePackage {
+  recordName: string;
+  manifestJson: string;
+  assets: CloudShareAssetPayload[];
 }
 
 /** Returns true when running inside the native iOS wrapper. */
@@ -67,6 +96,23 @@ export async function clearStoredImages(): Promise<void> {
   if (isNativeApp() && window.nativeImages) {
     await window.nativeImages.clear();
   }
+}
+
+export async function createNativeCloudSharePackage(
+  manifestJson: string,
+  assets: CloudShareAssetInput[],
+): Promise<CloudShareResult> {
+  if (!isNativeApp() || !window.nativeCloudSharing) {
+    throw new Error('Cloud sharing is only available in the TinyToes iPhone app.');
+  }
+  return window.nativeCloudSharing.createSharePackage(manifestJson, assets);
+}
+
+export async function importLatestNativeCloudSharePackage(): Promise<CloudSharePackage | null> {
+  if (!isNativeApp() || !window.nativeCloudSharing) {
+    throw new Error('Cloud sharing is only available in the TinyToes iPhone app.');
+  }
+  return window.nativeCloudSharing.importLatestSharedPackage();
 }
 
 /**

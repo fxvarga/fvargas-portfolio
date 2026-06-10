@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Baby, Smartphone, ShoppingBag, ChevronRight, Smile, Meh, Frown } from 'lucide-react';
+import { Baby, Smartphone, ShoppingBag, ChevronRight, Smile, Meh, Frown, Share2, CloudDownload } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useEntries } from '@/hooks/useEntries';
@@ -16,8 +16,9 @@ import { PhotoUpload } from '@/components/PhotoUpload';
 import { InstallPrompt } from '@/components/InstallPrompt';
 import { PageShell } from '@/components/PageShell';
 import { PageHeader } from '@/components/PageHeader';
-import { exportData, importData } from '@/lib/exportImport';
+import { exportData, importData, importLatestCloudShare, shareAppStateWithCloudKit } from '@/lib/exportImport';
 import { clearAllData } from '@/lib/db';
+import { isNativeApp } from '@/lib/storage-adapter';
 import { themes } from '@/lib/themes';
 import type { ThemeName } from '@/types';
 import { CORE_PRODUCT_SLUGS } from '@/types';
@@ -36,10 +37,15 @@ export function SettingsPage() {
 
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [showCloudImportConfirm, setShowCloudImportConfirm] = useState(false);
   const [showInstallPrompt, setShowInstallPrompt] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isCloudSharing, setIsCloudSharing] = useState(false);
+  const [isCloudImporting, setIsCloudImporting] = useState(false);
+  const [cloudShareStatus, setCloudShareStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const isNative = isNativeApp();
 
   // Edit profile state
   const [editName, setEditName] = useState(profile.name);
@@ -78,6 +84,44 @@ export function SettingsPage() {
     }
 
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCloudShare = async () => {
+    setCloudShareStatus(null);
+    setIsCloudSharing(true);
+    analytics.event('cloud_share_started', { source: 'settings' });
+    try {
+      await shareAppStateWithCloudKit();
+      setCloudShareStatus('Share sheet opened. Choose the family member you want to invite.');
+      analytics.event('cloud_share_presented', { source: 'settings' });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to open iCloud sharing.';
+      setCloudShareStatus(message);
+      analytics.error(err, { area: 'cloud_share' });
+    } finally {
+      setIsCloudSharing(false);
+    }
+  };
+
+  const handleCloudImport = async () => {
+    setCloudShareStatus(null);
+    setIsCloudImporting(true);
+    analytics.event('cloud_share_import_started', { source: 'settings' });
+    try {
+      const result = await importLatestCloudShare();
+      await updateProfile(result.profile);
+      setTheme(result.profile.theme);
+      await loadEntries();
+      setCloudShareStatus(`Imported ${result.entryCount} shared memories from iCloud.`);
+      analytics.event('cloud_share_import_completed', { entries_count: result.entryCount });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unable to import shared memories.';
+      setCloudShareStatus(message);
+      analytics.error(err, { area: 'cloud_share_import' });
+    } finally {
+      setIsCloudImporting(false);
+      setShowCloudImportConfirm(false);
+    }
   };
 
   const handleSaveProfile = async () => {
@@ -200,6 +244,16 @@ export function SettingsPage() {
             <Button variant="secondary" fullWidth onClick={() => fileInputRef.current?.click()}>
               Import Backup
             </Button>
+            {isNative && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Button variant="secondary" fullWidth onClick={handleCloudShare} loading={isCloudSharing}>
+                  <span className="inline-flex items-center gap-2"><Share2 size={16} /> Share with Family</span>
+                </Button>
+                <Button variant="secondary" fullWidth onClick={() => setShowCloudImportConfirm(true)} loading={isCloudImporting}>
+                  <span className="inline-flex items-center gap-2"><CloudDownload size={16} /> Import Shared Memories</span>
+                </Button>
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -212,6 +266,11 @@ export function SettingsPage() {
                 color: importStatus.includes('success') ? 'var(--color-primary)' : '#ef4444',
               }}>
                 {importStatus}
+              </p>
+            )}
+            {cloudShareStatus && (
+              <p className="text-sm text-center text-theme-muted">
+                {cloudShareStatus}
               </p>
             )}
           </div>
@@ -324,6 +383,30 @@ export function SettingsPage() {
               style={{ backgroundColor: '#ef4444' }}
             >
               Reset Everything
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Cloud Share Import Confirmation */}
+      <Modal
+        isOpen={showCloudImportConfirm}
+        onClose={() => setShowCloudImportConfirm(false)}
+        title="Import Shared Memories?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-theme-muted">
+            This will replace the TinyToes memories currently saved on this device with the shared iCloud memories.
+          </p>
+          <p className="text-sm font-medium text-theme-text">
+            Export a backup first if you want to keep a copy of what is here now.
+          </p>
+          <div className="flex gap-3">
+            <Button variant="ghost" fullWidth onClick={() => setShowCloudImportConfirm(false)}>
+              Cancel
+            </Button>
+            <Button fullWidth onClick={handleCloudImport} loading={isCloudImporting}>
+              Import Shared Memories
             </Button>
           </div>
         </div>

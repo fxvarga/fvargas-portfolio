@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		A1000001 /* TinyToesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001 /* TinyToesApp.swift */; };
+		A1000012 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000014 /* AppDelegate.swift */; };
 		A1000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* ContentView.swift */; };
 		A1000003 /* WebViewStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003 /* WebViewStore.swift */; };
 		A1000004 /* WebViewRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004 /* WebViewRepresentable.swift */; };
@@ -21,12 +22,14 @@
 		A100000E /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = A200000F /* Products.storekit */; };
 		A100000F /* ImageBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000010 /* ImageBridge.swift */; };
 		A1000010 /* NativeImageStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000011 /* NativeImageStore.swift */; };
+		A1000011 /* CloudSharingBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000012 /* CloudSharingBridge.swift */; };
 		A1000009 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A2000009 /* Assets.xcassets */; };
 		A100000A /* www in Resources */ = {isa = PBXBuildFile; fileRef = A200000A /* www */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		A2000001 /* TinyToesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinyToesApp.swift; sourceTree = "<group>"; };
+		A2000014 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A2000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A2000003 /* WebViewStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewStore.swift; sourceTree = "<group>"; };
 		A2000004 /* WebViewRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebViewRepresentable.swift; sourceTree = "<group>"; };
@@ -43,6 +46,8 @@
 		A200000F /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 		A2000010 /* ImageBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageBridge.swift; sourceTree = "<group>"; };
 		A2000011 /* NativeImageStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeImageStore.swift; sourceTree = "<group>"; };
+		A2000012 /* CloudSharingBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudSharingBridge.swift; sourceTree = "<group>"; };
+		A2000013 /* TinyToes.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = TinyToes.entitlements; sourceTree = "<group>"; };
 		A3000001 /* TinyToes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TinyToes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -74,6 +79,7 @@
 				A500000B /* StoreKit */,
 				A5000009 /* Bundle */,
 				A2000009 /* Assets.xcassets */,
+				A2000013 /* TinyToes.entitlements */,
 				A200000B /* Info.plist */,
 			);
 			path = TinyToes;
@@ -83,6 +89,7 @@
 			isa = PBXGroup;
 			children = (
 				A2000001 /* TinyToesApp.swift */,
+				A2000014 /* AppDelegate.swift */,
 				A2000002 /* ContentView.swift */,
 			);
 			path = App;
@@ -104,6 +111,7 @@
 			children = (
 				A2000005 /* StorageBridge.swift */,
 				A2000006 /* ExportBridge.swift */,
+				A2000012 /* CloudSharingBridge.swift */,
 				A2000010 /* ImageBridge.swift */,
 				A200000E /* IAPBridge.swift */,
 			);
@@ -217,6 +225,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A1000001 /* TinyToesApp.swift in Sources */,
+				A1000012 /* AppDelegate.swift in Sources */,
 				A1000002 /* ContentView.swift in Sources */,
 				A1000003 /* WebViewStore.swift in Sources */,
 				A1000004 /* WebViewRepresentable.swift in Sources */,
@@ -229,6 +238,7 @@
 				A100000D /* IAPBridge.swift in Sources */,
 				A100000F /* ImageBridge.swift in Sources */,
 				A1000010 /* NativeImageStore.swift in Sources */,
+				A1000011 /* CloudSharingBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -295,6 +305,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_ENTITLEMENTS = TinyToes/TinyToes.entitlements;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
@@ -323,6 +334,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_ENTITLEMENTS = TinyToes/TinyToes.entitlements;
 				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = "";
