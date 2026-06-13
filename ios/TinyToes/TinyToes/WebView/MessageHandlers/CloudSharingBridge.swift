@@ -165,7 +165,9 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     record[contentTypeField] = contentType as NSString
     record[fileField] = CKAsset(fileURL: fileURL)
     record[packageRefField] = packageRef
-    record.parent = packageRef
+    // CloudKit requires the share-hierarchy parent reference to use the .none action.
+    // (The custom packageRef field above keeps .deleteSelf for cascade delete.)
+    record.parent = CKRecord.Reference(recordID: packageRef.recordID, action: .none)
     return record
   }
 
