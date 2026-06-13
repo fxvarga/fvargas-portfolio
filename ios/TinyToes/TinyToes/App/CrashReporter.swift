@@ -17,6 +17,11 @@ final class CrashReporter {
   private var breadcrumbs: [String] = []
   private let maxBreadcrumbs = 40
 
+  /// Set once an uncaught `NSException` report has been persisted, so the subsequent
+  /// SIGABRT (raised by the runtime when it aborts) does not overwrite the richer
+  /// exception report with a generic signal report.
+  fileprivate var didCaptureException = false
+
   private lazy var directory: URL = {
     let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
       ?? FileManager.default.temporaryDirectory
@@ -51,6 +56,9 @@ final class CrashReporter {
         signalName: nil,
         callStack: exception.callStackSymbols
       )
+      // Mark that we already captured the rich exception so the impending SIGABRT
+      // signal handler doesn't clobber it.
+      CrashReporter.shared.didCaptureException = true
     }
   }
 
@@ -58,13 +66,16 @@ final class CrashReporter {
     let fatalSignals: [Int32] = [SIGABRT, SIGILL, SIGSEGV, SIGFPE, SIGBUS, SIGTRAP]
     for fatalSignal in fatalSignals {
       _ = signal(fatalSignal) { signalNumber in
-        CrashReporter.shared.record(
-          type: "signal",
-          name: CrashReporter.signalName(signalNumber),
-          reason: "Fatal signal \(signalNumber)",
-          signalName: CrashReporter.signalName(signalNumber),
-          callStack: Thread.callStackSymbols
-        )
+        // If an uncaught NSException was just recorded, keep that richer report.
+        if !CrashReporter.shared.didCaptureException {
+          CrashReporter.shared.record(
+            type: "signal",
+            name: CrashReporter.signalName(signalNumber),
+            reason: "Fatal signal \(signalNumber)",
+            signalName: CrashReporter.signalName(signalNumber),
+            callStack: Thread.callStackSymbols
+          )
+        }
         // Restore the default handler and re-raise so the OS still produces its own crash report.
         _ = signal(signalNumber, SIG_DFL)
         raise(signalNumber)
