@@ -4,6 +4,16 @@ import UIKit
 class AppDelegate: NSObject, UIApplicationDelegate {
   func application(
     _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+  ) -> Bool {
+    // Install native crash capture as early as possible so we record NSExceptions
+    // and fatal signals that the JS/App Insights web SDK cannot observe.
+    CrashReporter.shared.install()
+    return true
+  }
+
+  func application(
+    _ application: UIApplication,
     userDidAcceptCloudKitShareWith cloudKitShareMetadata: CKShare.Metadata
   ) {
     let operation = CKAcceptSharesOperation(shareMetadatas: [cloudKitShareMetadata])

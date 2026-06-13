@@ -37,6 +37,7 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     }
 
     let webView = message.webView
+    CrashReporter.shared.leaveBreadcrumb("cloudSharing: received action=\(action)")
     emitTelemetry(webView: webView, name: "native_bridge_message_received", properties: [
       "handler": Self.handlerName,
       "action": action,
@@ -112,6 +113,7 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     ])
 
     try await save(records: [root, share] + assetRecords)
+    CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetRecords.count) assets), presenting share controller")
     emitTelemetry(webView: webView, name: "cloud_share_native_records_saved", properties: [
       "asset_count": assetRecords.count,
       "record_name": root.recordID.recordName
@@ -308,6 +310,7 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     // option (e.g. [.allowReadOnly]) makes UICloudSharingController throw and crash on present.
     controller.availablePermissions = [.allowPrivate, .allowReadOnly]
     activeWebView = webView
+    CrashReporter.shared.leaveBreadcrumb("cloudShare: presenting UICloudSharingController (permissions=allowPrivate,allowReadOnly)")
     presenter.present(controller, animated: true)
   }
 

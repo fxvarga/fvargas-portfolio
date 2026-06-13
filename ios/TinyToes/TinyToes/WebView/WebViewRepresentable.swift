@@ -33,6 +33,42 @@ struct WebViewRepresentable: UIViewRepresentable {
       }
     }
 
+    /// Consumes a persisted native crash report (from a previous run) and forwards it
+    /// to the WebView telemetry bridge as a `native_crash_captured` error event.
+    private func reportPendingCrashIfNeeded(_ webView: WKWebView) {
+      guard let report = CrashReporter.shared.consumePendingReport() else { return }
+
+      var properties: [String: Any] = [
+        "crash_type": report["type"] as? String ?? "unknown",
+        "crash_name": report["name"] as? String ?? "unknown",
+        "crash_reason": report["reason"] as? String ?? "",
+        "app_version": report["appVersion"] as? String ?? "unknown",
+        "build_number": report["buildNumber"] as? String ?? "unknown",
+        "crashed_at": report["timestamp"] as? String ?? ""
+      ]
+      if let signalName = report["signalName"] as? String {
+        properties["crash_signal"] = signalName
+      }
+      if let breadcrumbs = report["breadcrumbs"] as? [String] {
+        properties["breadcrumbs"] = breadcrumbs.joined(separator: " | ")
+      }
+      if let callStack = report["callStack"] as? [String] {
+        properties["call_stack"] = callStack.prefix(20).joined(separator: "\n")
+      }
+
+      log("RECOVERED NATIVE CRASH: \(properties["crash_name"] ?? "") — \(properties["crash_reason"] ?? "")")
+
+      let payload: [String: Any] = [
+        "kind": "error",
+        "name": "native_crash_captured",
+        "properties": properties
+      ]
+      guard let data = try? JSONSerialization.data(withJSONObject: payload, options: []) else { return }
+      let b64 = data.base64EncodedString()
+      webView.evaluateJavaScript("window.__tinytoesNativeTelemetry && window.__tinytoesNativeTelemetry('\(b64)')")
+    }
+
+
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
       log("NAV START: \(webView.url?.absoluteString ?? "nil")")
     }
@@ -43,6 +79,9 @@ struct WebViewRepresentable: UIViewRepresentable {
 
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
       log("NAV FINISH: \(webView.url?.absoluteString ?? "nil")")
+
+      // Forward any crash captured on the previous run into the telemetry pipeline.
+      reportPendingCrashIfNeeded(webView)
 
       // Inject JS to capture errors and report page state
       let debugJS = """
