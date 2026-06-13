@@ -303,7 +303,10 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
 
     let controller = UICloudSharingController(share: share, container: container)
     controller.delegate = self
-    controller.availablePermissions = [.allowReadOnly]
+    // availablePermissions must include at least one privacy option (.allowPrivate/.allowPublic)
+    // AND at least one action option (.allowReadOnly/.allowReadWrite). Specifying only an action
+    // option (e.g. [.allowReadOnly]) makes UICloudSharingController throw and crash on present.
+    controller.availablePermissions = [.allowPrivate, .allowReadOnly]
     activeWebView = webView
     presenter.present(controller, animated: true)
   }
