@@ -347,10 +347,15 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
           ])
           completion(savedShare, self.container, nil)
         } catch {
-          self.emitTelemetry(webView: webView, kind: "error", name: "cloud_share_native_save_failed", properties: [
-            "error": error.localizedDescription
-          ])
-          completion(nil, nil, error)
+          let isQuota = (error as? CKError)?.code == .quotaExceeded
+          let surfacedError: Error = isQuota ? CloudSharingBridgeError.quotaExceeded : error
+          self.emitTelemetry(
+            webView: webView,
+            kind: "error",
+            name: isQuota ? "cloud_share_native_quota_exceeded" : "cloud_share_native_save_failed",
+            properties: ["error": error.localizedDescription]
+          )
+          completion(nil, nil, surfacedError)
         }
       }
     }
@@ -455,6 +460,7 @@ enum CloudSharingBridgeError: LocalizedError {
   case invalidPayload
   case missingAsset
   case noPresenter
+  case quotaExceeded
   case unknownAction(String)
 
   var errorDescription: String? {
@@ -462,6 +468,7 @@ enum CloudSharingBridgeError: LocalizedError {
     case .invalidPayload: return "Invalid CloudKit sharing payload."
     case .missingAsset: return "A shared CloudKit image is missing."
     case .noPresenter: return "TinyToes could not open the share sheet."
+    case .quotaExceeded: return "Your iCloud storage is full. Free up space in Settings › iCloud, then try sharing again."
     case .unknownAction(let action): return "Unknown CloudKit sharing action: \(action)"
     }
   }
