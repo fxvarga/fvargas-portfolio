@@ -112,13 +112,16 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
       "record_count": assetRecords.count + 2
     ])
 
-    try await save(records: [root, share] + assetRecords)
-    CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetRecords.count) assets), presenting share controller")
-    emitTelemetry(webView: webView, name: "cloud_share_native_records_saved", properties: [
-      "asset_count": assetRecords.count,
-      "record_name": root.recordID.recordName
-    ])
-    try await presentShareController(share: share, webView: webView)
+    // The records (root + share + assets) are saved inside the controller's
+    // preparationHandler so UIKit owns the save/share-link creation. Presenting an
+    // already-saved CKShare via init(share:container:) leaves the local share.url nil,
+    // which makes "Add People" fail with "a link couldn't be created for you to share".
+    try await presentShareController(
+      share: share,
+      rootRecord: root,
+      assetRecords: assetRecords,
+      webView: webView
+    )
     emitTelemetry(webView: webView, name: "cloud_share_native_sheet_presented", properties: [
       "record_name": root.recordID.recordName
     ])
@@ -300,19 +303,53 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
   }
 
   @MainActor
-  private func presentShareController(share: CKShare, webView: WKWebView?) async throws {
+  private func presentShareController(
+    share: CKShare,
+    rootRecord: CKRecord,
+    assetRecords: [CKRecord],
+    webView: WKWebView?
+  ) async throws {
     guard let presenter = webView?.window?.rootViewController else {
       throw CloudSharingBridgeError.noPresenter
     }
+    activeWebView = webView
 
-    let controller = UICloudSharingController(share: share, container: container)
+    let recordsToSave = [rootRecord, share] + assetRecords
+    let assetCount = assetRecords.count
+    let recordName = rootRecord.recordID.recordName
+
+    // Use the preparationHandler initializer so UIKit performs the save and mints the
+    // share URL itself. This is the Apple-recommended path for creating a brand-new
+    // share and avoids the "a link couldn't be created for you to share" failure that
+    // occurs when presenting a pre-saved share whose local .url is still nil.
+    let controller = UICloudSharingController { [weak self] _, completion in
+      guard let self else {
+        completion(nil, nil, CloudSharingBridgeError.noPresenter)
+        return
+      }
+      Task {
+        do {
+          try await self.save(records: recordsToSave)
+          CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetCount) assets) via preparationHandler")
+          self.emitTelemetry(webView: webView, name: "cloud_share_native_records_saved", properties: [
+            "asset_count": assetCount,
+            "record_name": recordName
+          ])
+          completion(share, self.container, nil)
+        } catch {
+          self.emitTelemetry(webView: webView, kind: "error", name: "cloud_share_native_save_failed", properties: [
+            "error": error.localizedDescription
+          ])
+          completion(nil, nil, error)
+        }
+      }
+    }
     controller.delegate = self
     // availablePermissions must include at least one privacy option (.allowPrivate/.allowPublic)
     // AND at least one action option (.allowReadOnly/.allowReadWrite). Specifying only an action
     // option (e.g. [.allowReadOnly]) makes UICloudSharingController throw and crash on present.
     controller.availablePermissions = [.allowPrivate, .allowReadOnly]
-    activeWebView = webView
-    CrashReporter.shared.leaveBreadcrumb("cloudShare: presenting UICloudSharingController (permissions=allowPrivate,allowReadOnly)")
+    CrashReporter.shared.leaveBreadcrumb("cloudShare: presenting UICloudSharingController (preparationHandler)")
     presenter.present(controller, animated: true)
   }
 
