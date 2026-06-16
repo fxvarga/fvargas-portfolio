@@ -95,6 +95,9 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
       "payload_bytes": approximatePayloadSize(payload)
     ])
 
+    let accountStatus = await currentAccountStatus()
+    emitTelemetry(webView: webView, name: "cloud_share_native_account_status", properties: ["status": accountStatus])
+
     let zoneID = try await ensureShareZone()
     emitTelemetry(webView: webView, name: "cloud_share_native_zone_ready", properties: ["zone": zoneID.zoneName])
     let root = CKRecord(recordType: packageRecordType, recordID: CKRecord.ID(recordName: UUID().uuidString, zoneID: zoneID))
@@ -208,6 +211,45 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
       "contentType": contentType,
       "fileName": fileName
     ]
+  }
+
+  private func currentAccountStatus() async -> String {
+    await withCheckedContinuation { (continuation: CheckedContinuation<String, Never>) in
+      container.accountStatus { status, error in
+        let label: String
+        switch status {
+        case .available: label = "available"
+        case .noAccount: label = "noAccount"
+        case .restricted: label = "restricted"
+        case .couldNotDetermine: label = "couldNotDetermine"
+        case .temporarilyUnavailable: label = "temporarilyUnavailable"
+        @unknown default: label = "unknown"
+        }
+        if let error {
+          continuation.resume(returning: "\(label)|err:\(error.localizedDescription)")
+        } else {
+          continuation.resume(returning: label)
+        }
+      }
+    }
+  }
+
+  /// Explicitly fetches the share record so we can see whether the server minted a
+  /// `.url` (the modify-operation response sometimes does not carry it).
+  private func fetchShare(recordID: CKRecord.ID) async -> CKShare? {
+    await withCheckedContinuation { (continuation: CheckedContinuation<CKShare?, Never>) in
+      let operation = CKFetchRecordsOperation(recordIDs: [recordID])
+      var fetched: CKShare?
+      operation.perRecordResultBlock = { _, result in
+        if case .success(let record) = result, let share = record as? CKShare {
+          fetched = share
+        }
+      }
+      operation.fetchRecordsResultBlock = { _ in
+        continuation.resume(returning: fetched)
+      }
+      container.privateCloudDatabase.add(operation)
+    }
   }
 
   /// Saves the records and returns the server-updated `CKShare` (which carries the
@@ -339,13 +381,23 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
       Task {
         do {
           let savedShare = try await self.saveAndReturnShare(records: recordsToSave, localShare: share)
-          CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetCount) assets), share.url=\(savedShare.url != nil)")
+          var resolvedShare = savedShare
+          if resolvedShare.url == nil, let fetched = await self.fetchShare(recordID: share.recordID) {
+            self.emitTelemetry(webView: webView, name: "cloud_share_native_share_fetched", properties: [
+              "has_share_url_after_fetch": fetched.url != nil,
+              "participant_count": fetched.participants.count
+            ])
+            if fetched.url != nil {
+              resolvedShare = fetched
+            }
+          }
+          CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetCount) assets), share.url=\(resolvedShare.url != nil)")
           self.emitTelemetry(webView: webView, name: "cloud_share_native_records_saved", properties: [
             "asset_count": assetCount,
             "record_name": recordName,
-            "has_share_url": savedShare.url != nil
+            "has_share_url": resolvedShare.url != nil
           ])
-          completion(savedShare, self.container, nil)
+          completion(resolvedShare, self.container, nil)
         } catch {
           let isQuota = (error as? CKError)?.code == .quotaExceeded
           let surfacedError: Error = isQuota ? CloudSharingBridgeError.quotaExceeded : error
@@ -438,9 +490,12 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
 
   func cloudSharingController(_ csc: UICloudSharingController, failedToSaveShareWithError error: Error) {
     print("[TinyToes] Cloud sharing failed: \(error.localizedDescription)")
-    emitTelemetry(webView: activeWebView, kind: "error", name: "cloud_share_native_controller_save_failed", properties: [
-      "error": error.localizedDescription
-    ])
+    var properties: [String: Any] = ["error": error.localizedDescription]
+    if let ckError = error as? CKError {
+      properties["ck_code"] = ckError.code.rawValue
+      properties["ck_domain"] = CKError.errorDomain
+    }
+    emitTelemetry(webView: activeWebView, kind: "error", name: "cloud_share_native_controller_save_failed", properties: properties)
   }
 
   func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {
