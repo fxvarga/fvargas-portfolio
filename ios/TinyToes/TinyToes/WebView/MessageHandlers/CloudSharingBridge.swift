@@ -210,14 +210,23 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
     ]
   }
 
-  private func save(records: [CKRecord]) async throws {
-    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+  /// Saves the records and returns the server-updated `CKShare` (which carries the
+  /// minted share `.url`). Passing the un-refetched local share to the cloud-sharing
+  /// controller leaves `.url` nil, so UIKit cannot create a link to add people.
+  private func saveAndReturnShare(records: [CKRecord], localShare: CKShare) async throws -> CKShare {
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<CKShare, Error>) in
       let operation = CKModifyRecordsOperation(recordsToSave: records, recordIDsToDelete: nil)
       operation.savePolicy = .allKeys
+      var savedShare: CKShare?
+      operation.perRecordSaveBlock = { _, result in
+        if case .success(let record) = result, let share = record as? CKShare {
+          savedShare = share
+        }
+      }
       operation.modifyRecordsResultBlock = { result in
         switch result {
         case .success:
-          continuation.resume()
+          continuation.resume(returning: savedShare ?? localShare)
         case .failure(let error):
           continuation.resume(throwing: error)
         }
@@ -329,13 +338,14 @@ class CloudSharingBridge: NSObject, WKScriptMessageHandler, UICloudSharingContro
       }
       Task {
         do {
-          try await self.save(records: recordsToSave)
-          CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetCount) assets) via preparationHandler")
+          let savedShare = try await self.saveAndReturnShare(records: recordsToSave, localShare: share)
+          CrashReporter.shared.leaveBreadcrumb("cloudShare: records saved (\(assetCount) assets), share.url=\(savedShare.url != nil)")
           self.emitTelemetry(webView: webView, name: "cloud_share_native_records_saved", properties: [
             "asset_count": assetCount,
-            "record_name": recordName
+            "record_name": recordName,
+            "has_share_url": savedShare.url != nil
           ])
-          completion(share, self.container, nil)
+          completion(savedShare, self.container, nil)
         } catch {
           self.emitTelemetry(webView: webView, kind: "error", name: "cloud_share_native_save_failed", properties: [
             "error": error.localizedDescription
